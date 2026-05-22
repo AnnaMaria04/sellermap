@@ -14,15 +14,15 @@ export function formatRub(value: number) {
 }
 
 export function scoreVerdict(score: number) {
-  if (score < 40) return "Avoid";
-  if (score < 60) return "Risky";
-  if (score < 80) return "Promising";
-  return "Strong opportunity";
+  if (score < 40) return "Не запускать";
+  if (score < 60) return "Рискованно";
+  if (score < 80) return "Перспективно";
+  return "Сильная возможность";
 }
 
 export function marginLabel(margin: number) {
-  if (margin < 10) return "Dangerous";
-  if (margin < 20) return "Weak";
-  if (margin < 30) return "Acceptable";
-  return "Strong";
+  if (margin < 10) return "опасно";
+  if (margin < 20) return "слабая";
+  if (margin < 30) return "рабочая";
+  return "сильная";
 }

@@ -16,10 +16,10 @@ export function PageSection({
       {(title || eyebrow) && (
         <div className="mb-6 max-w-2xl">
           {eyebrow && (
-            <p className="mb-2 text-sm font-semibold text-primary-green">{eyebrow}</p>
+            <p className="mb-2 text-sm font-semibold text-[var(--c-green)]">{eyebrow}</p>
           )}
           {title && (
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            <h2 className="section-kicker text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {title}
             </h2>
           )}

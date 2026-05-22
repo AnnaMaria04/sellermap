@@ -5,23 +5,23 @@ import { weeklyUpdates } from "@/mock/sellermap";
 
 export default function WeeklyUpdatesPage() {
   return (
-    <main className="bg-off-white">
+    <main className="bg-background">
       <PageSection className="py-10">
         <div className="mb-8">
-          <h1 className="text-4xl font-semibold tracking-tight">Weekly AI updates</h1>
-          <p className="mt-3 max-w-2xl text-neutral-600">
-            Wildberries rule changes, packaging cost movement, category notes,
-            and affected saved products.
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Недельные AI-обновления</h1>
+          <p className="mt-3 max-w-2xl text-[var(--c-text2)]">
+            Изменения правил Wildberries, движение стоимости упаковки, заметки по категориям
+            и затронутые сохранённые товары.
           </p>
         </div>
-        <Card className="mb-6 bg-dark-green text-white">
-          <p className="text-sm font-semibold text-mint">This week</p>
-          <h2 className="mt-2 text-2xl font-semibold">
-            Packaging changes may affect 3 saved products.
+        <Card className="mb-6 border-[var(--c-green)] bg-[var(--c-green-dim)]">
+          <p className="text-sm font-semibold text-[var(--c-green)]">На этой неделе</p>
+          <h2 className="font-display mt-2 text-2xl font-semibold">
+            Изменения упаковки могут затронуть 3 сохранённых товара.
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/75">
-            AI summary: reinforce packaging assumptions for travel accessory and
-            soft goods categories before committing to supplier quantities.
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--c-text2)]">
+            AI-сводка: пересмотрите допущения по упаковке для дорожных аксессуаров
+            и мягких товаров до подтверждения объёма закупки у поставщика.
           </p>
         </Card>
         <div className="grid gap-4 lg:grid-cols-3">

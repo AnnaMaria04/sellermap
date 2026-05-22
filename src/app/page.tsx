@@ -14,68 +14,70 @@ import { ScoreGauge } from "@/components/sellermap/score-gauge";
 
 export default function LandingPage() {
   const steps: Array<[LucideIcon, string, string]> = [
-    [ScanSearch, "Analyze", "Paste a WB link, SKU, product name, or niche."],
-    [Database, "Diagnose", "Map price, demand, reviews, packaging, and margin risk."],
-    [Sparkles, "Act", "Get a verdict, fixes, and a launch checklist."],
+    [ScanSearch, "Проверка", "Вставьте ссылку WB, артикул, название товара или нишу."],
+    [Database, "Диагностика", "Система связывает цену, спрос, отзывы, упаковку и риск маржи."],
+    [Sparkles, "Решение", "Получите вердикт, список доработок и план запуска."],
   ];
 
   return (
     <main>
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
         <div>
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
-            Check if a Wildberries product is worth selling before you waste money on stock.
+          <h1 className="font-display max-w-3xl text-4xl font-semibold tracking-tight text-[var(--c-text)] sm:text-6xl">
+            Проверьте товар для Wildberries до закупки партии.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-neutral-600">
-            SellerMap analyzes competition, pricing, reviews, packaging risks,
-            logistics, and product-card quality to give you a clear launch verdict.
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--c-text2)]">
+            SellerMap анализирует конкуренцию, цены, отзывы, упаковку, логистику
+            и качество карточки, чтобы дать понятный вердикт по запуску.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <LinkButton href="/check">
-              Analyze Product <ArrowRight size={16} />
+              Анализировать товар <ArrowRight size={16} />
             </LinkButton>
             <LinkButton href="/result" variant="secondary">
-              View demo result
+              Смотреть демо-отчёт
             </LinkButton>
           </div>
         </div>
         <Card className="overflow-hidden p-0">
           <div className="grid gap-0 lg:grid-cols-[0.85fr_1fr]">
-            <div className="bg-dark-green p-6 text-white">
-              <Badge tone="mint">Demo diagnosis</Badge>
+            <div className="border-r border-[var(--c-border)] bg-[var(--c-green-dim)] p-6">
+              <Badge tone="mint">Демо-диагностика</Badge>
               <div className="mt-6">
                 <ScoreGauge score={78} />
               </div>
-              <p className="mt-5 text-xl font-semibold">Promising, but packaging cost risk</p>
-              <p className="mt-2 text-sm leading-6 text-white/75">
-                Recommended action: improve bundle, confirm packaging cost, and
-                keep net margin above 20%.
+              <p className="font-display mt-5 text-xl font-semibold">
+                Перспективно, но упаковку нужно проверить
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--c-text2)]">
+                Действие: усилить комплект, подтвердить стоимость упаковки и
+                удерживать чистую маржу выше 20%.
               </p>
             </div>
             <div className="space-y-4 p-6">
               {[
-                ["Competition", "Medium"],
-                ["Margin risk", "High"],
-                ["Card quality", "Weak"],
-                ["Demand", "Strong"],
+                ["Конкуренция", "средняя"],
+                ["Риск маржи", "высокий"],
+                ["Качество карточки", "слабое"],
+                ["Спрос", "сильный"],
               ].map(([label, value]) => (
-                <div key={label} className="flex justify-between rounded-lg border border-light-gray p-4">
-                  <span className="text-neutral-600">{label}</span>
-                  <span className="font-semibold">{value}</span>
+                <div key={label} className="flex justify-between rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
+                  <span className="text-[var(--c-text2)]">{label}</span>
+                  <span className="font-medium">{value}</span>
                 </div>
               ))}
-              <div className="mt-4 rounded-lg border border-light-gray bg-off-white p-4">
+              <div className="mt-4 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg bg-white p-3">
-                    <p className="text-xs font-semibold text-neutral-500">Market map</p>
-                    <div className="mt-3 h-24 rounded-lg border border-light-gray matrix-grid" />
+                  <div className="rounded-lg bg-[var(--c-bg2)] p-3">
+                    <p className="text-xs font-semibold text-[var(--c-text3)]">Карта рынка</p>
+                    <div className="mt-3 h-24 rounded-lg border border-[var(--c-border)] matrix-grid" />
                   </div>
-                  <div className="rounded-lg bg-white p-3">
-                    <p className="text-xs font-semibold text-neutral-500">Cost stack</p>
+                  <div className="rounded-lg bg-[var(--c-bg2)] p-3">
+                    <p className="text-xs font-semibold text-[var(--c-text3)]">Стек затрат</p>
                     <div className="mt-3 space-y-2">
-                      <span className="block h-2 w-4/5 rounded bg-light-gray" />
-                      <span className="block h-2 w-3/5 rounded bg-light-gray" />
-                      <span className="block h-2 w-2/3 rounded bg-mint" />
+                      <span className="block h-2 w-4/5 rounded bg-[var(--c-border2)]" />
+                      <span className="block h-2 w-3/5 rounded bg-[var(--c-border2)]" />
+                      <span className="block h-2 w-2/3 rounded bg-[var(--c-green)]" />
                     </div>
                   </div>
                 </div>
@@ -85,27 +87,27 @@ export default function LandingPage() {
         </Card>
       </section>
 
-      <PageSection title="From product idea to launch decision">
+      <PageSection title="От идеи товара к решению о запуске">
         <div className="grid gap-4 md:grid-cols-3">
           {steps.map(([Icon, title, text]) => (
             <Card key={String(title)} className="p-6 shadow-none">
-              <Icon className="text-primary-green" size={24} />
-              <h3 className="mt-5 text-lg font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-neutral-600">{text}</p>
+              <Icon className="text-[var(--c-green)]" size={24} />
+              <h3 className="font-display mt-5 text-lg font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--c-text2)]">{text}</p>
             </Card>
           ))}
         </div>
       </PageSection>
 
-      <section className="bg-off-white">
-        <PageSection title="Built for sellers who need a clear answer">
+      <section className="bg-[var(--c-bg2)]">
+        <PageSection title="Для продавцов, которым нужен ясный ответ">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {["Beginner seller", "Existing WB seller", "Product researcher", "Agency consultant"].map((segment) => (
+            {["Начинающий продавец", "Действующий продавец WB", "Исследователь ниш", "Агентство"].map((segment) => (
               <Card key={segment} className="p-5 shadow-none">
-                <CheckCircle2 className="text-primary-green" size={20} />
-                <h3 className="mt-4 font-semibold">{segment}</h3>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
-                  Decision-focused diagnostics with less raw-data overload.
+                <CheckCircle2 className="text-[var(--c-green)]" size={20} />
+                <h3 className="mt-4 font-medium">{segment}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--c-text2)]">
+                  Диагностика для решения без перегруза сырыми таблицами.
                 </p>
               </Card>
             ))}

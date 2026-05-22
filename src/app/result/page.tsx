@@ -18,16 +18,9 @@ export default function ResultPage() {
       <PageSection className="space-y-6 py-8">
         <ResultHeader result={demoResult} />
         <ScoreBreakdown result={demoResult} />
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-          <MarketMap result={demoResult} />
-          <DataSourcesPanel result={demoResult} />
-        </div>
-        <CompetitorCards result={demoResult} />
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <PackagingLogistics result={demoResult} />
-          <SupplierPanel result={demoResult} />
-        </div>
+        <MarketMap result={demoResult} />
         <MarginSimulator result={demoResult} />
+        <CompetitorCards result={demoResult} />
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
           <CardAudit result={demoResult} />
           <div className="space-y-6">
@@ -35,6 +28,11 @@ export default function ResultPage() {
             <ActionChecklist result={demoResult} />
           </div>
         </div>
+        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <PackagingLogistics result={demoResult} />
+          <SupplierPanel result={demoResult} />
+        </div>
+        <DataSourcesPanel result={demoResult} />
       </PageSection>
     </main>
   );

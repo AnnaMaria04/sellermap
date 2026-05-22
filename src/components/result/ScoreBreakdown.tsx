@@ -10,8 +10,8 @@ export function ScoreBreakdown({ result }: { result: ProductResult }) {
     <Card className="p-5">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Разбор скоринга</h2>
-          <p className="text-sm text-neutral-600">Оценка 0-100 по факторам запуска.</p>
+          <h2 className="section-kicker">Разбор скоринга</h2>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">Оценка 0-100 по факторам запуска.</p>
         </div>
         <span className="font-mono text-sm font-semibold tabular text-primary-green">
           {result.score}/100
@@ -21,9 +21,9 @@ export function ScoreBreakdown({ result }: { result: ProductResult }) {
         {result.scoreBreakdown.map((item, index) => {
           const Icon = icons[index] ?? Activity;
           return (
-            <div key={item.key} className="rounded-lg border border-light-gray bg-white p-3">
+            <div key={item.key} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft-green text-primary-green">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
                   <Icon size={16} />
                 </span>
                 <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusTone(item.status)}`}>
@@ -31,9 +31,9 @@ export function ScoreBreakdown({ result }: { result: ProductResult }) {
                 </span>
               </div>
               <p className="text-sm font-semibold">{item.label}</p>
-              <div className="mt-2 h-2 rounded-full bg-off-white">
+              <div className="mt-2 h-2 rounded-full bg-[var(--c-bg2)]">
                 <div
-                  className="h-2 rounded-full bg-primary-green"
+                  className="h-2 rounded-full bg-[var(--c-green)]"
                   style={{ width: `${item.score}%` }}
                 />
               </div>

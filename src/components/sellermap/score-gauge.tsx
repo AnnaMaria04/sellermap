@@ -16,20 +16,20 @@ export function ScoreGauge({
         size === "lg" ? "h-44 w-44" : "h-24 w-24",
       )}
       style={{
-        background: `conic-gradient(#0F7A4F ${angle}deg, #E6EAE6 0deg)`,
+        background: `conic-gradient(var(--c-green) ${angle}deg, rgba(255,255,255,0.08) 0deg)`,
       }}
     >
-      <div className="absolute inset-3 rounded-full bg-white" />
+      <div className="absolute inset-3 rounded-full bg-[var(--c-bg2)]" />
       <div className="relative text-center">
         <div
           className={cn(
-            "font-mono font-semibold tabular text-dark-green",
+            "font-display font-semibold tabular text-[var(--c-green)]",
             size === "lg" ? "text-4xl" : "text-xl",
           )}
         >
           {score}
         </div>
-        <div className="text-xs font-semibold text-neutral-500">/ 100</div>
+        <div className="font-body text-xs font-medium text-[var(--c-text3)]">/ 100</div>
       </div>
     </div>
   );

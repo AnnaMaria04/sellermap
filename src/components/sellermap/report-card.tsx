@@ -25,14 +25,14 @@ export function SavedReportCard({
           <h3 className="font-semibold">{report.name}</h3>
           <Badge tone={tone}>{report.verdict}</Badge>
         </div>
-        <p className="mt-1 text-sm text-neutral-500">
-          {report.date} · Main risk: {report.risk}
+        <p className="mt-1 text-sm text-[var(--c-text3)]">
+          {report.date} · Главный риск: {report.risk}
         </p>
-        <p className="mt-2 text-sm font-semibold text-charcoal">{report.status}</p>
+        <p className="mt-2 text-sm font-semibold text-[var(--c-text)]">{report.status}</p>
       </div>
-      <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-light-gray px-4 text-sm font-semibold hover:border-primary-green hover:text-primary-green">
+      <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-semibold text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]">
         <FileText size={16} />
-        Open report
+        Открыть отчёт
       </button>
     </Card>
   );

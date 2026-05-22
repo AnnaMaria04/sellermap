@@ -11,16 +11,16 @@ export function PackagingRiskCard() {
           <PackageCheck size={19} />
         </span>
         <div>
-          <h2 className="text-xl font-semibold">Packaging and logistics</h2>
-          <p className="text-sm text-neutral-600">Weekly rule status included</p>
+          <h2 className="text-xl font-semibold">Упаковка и логистика</h2>
+          <p className="text-sm text-neutral-600">Учитывается статус недельных правил</p>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {[
-          ["Packaging risk", "Medium"],
-          ["Estimated cost", "₽70-120"],
-          ["Fragility risk", "Low"],
-          ["Storage risk", "Medium"],
+          ["Риск упаковки", "средний"],
+          ["Расчётная стоимость", "₽70-120"],
+          ["Риск хрупкости", "низкий"],
+          ["Риск хранения", "средний"],
         ].map(([label, value]) => (
           <div key={label} className="rounded-lg border border-light-gray bg-off-white p-3">
             <p className="text-xs font-semibold text-neutral-500">{label}</p>
@@ -29,8 +29,8 @@ export function PackagingRiskCard() {
         ))}
       </div>
       <p className="mt-4 rounded-lg bg-soft-green p-4 text-sm leading-6 text-dark-green">
-        AI note: check latest WB packaging category rules before ordering stock;
-        reinforced packaging could reduce margin by 3-5 points.
+        AI-заметка: проверьте актуальные правила упаковки WB перед закупкой;
+        усиленная упаковка может снизить маржу на 3-5 п.п.
       </p>
     </Card>
   );
@@ -39,7 +39,7 @@ export function PackagingRiskCard() {
 export function ProductCardAudit() {
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-semibold">Product-card quality audit</h2>
+      <h2 className="text-xl font-semibold">Аудит карточки товара</h2>
       <div className="mt-4 grid gap-3">
         {audit.map(([label, status, detail]) => (
           <div key={label} className="flex gap-3 rounded-lg border border-light-gray p-3">
@@ -59,9 +59,9 @@ export function ProductCardAudit() {
 
 export function AIRecommendationCards() {
   const cards: Array<[string, string[], "amber" | "green" | "red"]> = [
-    ["Fix before launch", recommendations.fix, "amber" as const],
-    ["Opportunity", recommendations.opportunity, "green" as const],
-    ["Risk", recommendations.risk, "red" as const],
+    ["Исправить перед запуском", recommendations.fix, "amber" as const],
+    ["Возможность", recommendations.opportunity, "green" as const],
+    ["Риск", recommendations.risk, "red" as const],
   ];
 
   return (
@@ -90,8 +90,8 @@ export function ActionChecklist() {
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold">Action checklist</h2>
-        <Badge tone="mint">Saveable later</Badge>
+        <h2 className="text-xl font-semibold">План действий</h2>
+        <Badge tone="mint">Сохранение позже</Badge>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {checklist.map((item) => (
@@ -106,7 +106,7 @@ export function ActionChecklist() {
       </div>
       <p className="mt-4 flex items-center gap-2 text-sm text-neutral-500">
         <TriangleAlert size={15} />
-        Export and report persistence are prepared as next MVP layer.
+        Экспорт и сохранение отчётов подготовлены для следующего слоя MVP.
       </p>
     </Card>
   );

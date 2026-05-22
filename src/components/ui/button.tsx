@@ -6,10 +6,10 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  primary: "bg-primary-green text-white shadow-sm hover:bg-dark-green",
+  primary: "bg-[var(--c-green)] text-[var(--c-bg)] shadow-sm hover:bg-[#25e890]",
   secondary:
-    "border border-light-gray bg-white text-charcoal hover:border-primary-green hover:text-primary-green",
-  ghost: "text-charcoal hover:bg-soft-green",
+    "border border-[var(--c-border2)] bg-transparent text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]",
+  ghost: "text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
 };
 
 export function Button({
@@ -21,6 +21,7 @@ export function Button({
     <button
       className={cn(
         "inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
+        "font-body",
         variants[variant],
         className,
       )}
@@ -45,6 +46,7 @@ export function LinkButton({
       href={href}
       className={cn(
         "inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
+        "font-body",
         variants[variant],
         className,
       )}

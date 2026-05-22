@@ -1,18 +1,22 @@
 import type { RiskLevel, ScoreStatus, SourceStatus } from "@/lib/analysis/types";
 
 export function statusTone(status: ScoreStatus | SourceStatus | string) {
-  if (status === "сильный" || status === "подключено") return "bg-soft-green text-dark-green";
-  if (status === "демо" || status === "средний" || status === "ручной ввод") {
-    return "bg-mint/55 text-dark-green";
+  if (status === "сильный" || status === "подключено" || status === "активен") {
+    return "bg-[var(--c-green-dim)] text-[var(--c-green)]";
   }
-  if (status === "риск" || status === "ожидает API ключ") return "bg-warning/15 text-[#806000]";
-  return "bg-risk/10 text-risk";
+  if (status === "готов" || status === "средний" || status === "риск" || status === "ожидает API ключ") {
+    return "bg-[var(--c-amber-dim)] text-[var(--c-amber)]";
+  }
+  if (status === "не подключён" || status === "демо" || status === "ручной ввод") {
+    return "bg-[var(--c-bg3)] text-[var(--c-text3)]";
+  }
+  return "bg-[var(--c-red-dim)] text-[var(--c-red)]";
 }
 
 export function riskDot(risk: RiskLevel) {
-  if (risk === "low") return "bg-primary-green";
-  if (risk === "medium") return "bg-warning";
-  return "bg-risk";
+  if (risk === "low") return "bg-[var(--c-green)]";
+  if (risk === "medium") return "bg-[var(--c-amber)]";
+  return "bg-[var(--c-red)]";
 }
 
 export function riskLabel(risk: RiskLevel) {

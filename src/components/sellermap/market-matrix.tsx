@@ -7,23 +7,23 @@ export function MarketMatrix() {
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Market map</h2>
-          <p className="text-sm text-neutral-600">Price level vs review strength</p>
+          <h2 className="text-xl font-semibold">Карта рынка</h2>
+          <p className="text-sm text-[var(--c-text2)]">Уровень цены и сила отзывов</p>
         </div>
-        <Badge tone="green">User product highlighted</Badge>
+        <Badge tone="green">Ваш товар выделен</Badge>
       </div>
       <div className="relative h-[360px] rounded-lg border border-light-gray bg-off-white matrix-grid">
         <span className="absolute left-4 top-4 text-xs font-semibold text-neutral-500">
-          Opportunity zone
+          зона возможностей
         </span>
         <span className="absolute right-4 top-4 text-xs font-semibold text-neutral-500">
-          Premium leaders
+          лидеры выдачи
         </span>
         <span className="absolute bottom-4 left-4 text-xs font-semibold text-neutral-500">
-          Cheap but weak
+          дешево, но слабо
         </span>
         <span className="absolute bottom-4 right-4 text-xs font-semibold text-neutral-500">
-          Risky overpriced
+          риск переплаты
         </span>
         {competitors.map((competitor) => (
           <div
@@ -42,10 +42,10 @@ export function MarketMatrix() {
           <div className="h-4 w-4 rounded-full bg-mint" />
         </div>
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-neutral-500">
-          Price level: Low to High
+          Уровень цены: низкая → высокая
         </div>
         <div className="absolute left-3 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-semibold text-neutral-500">
-          Review strength: Low to High
+          Сила отзывов: низкая → высокая
         </div>
       </div>
     </Card>

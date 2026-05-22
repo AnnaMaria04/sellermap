@@ -3,55 +3,55 @@ import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRub } from "@/lib/utils";
 import type { ProductResult } from "@/lib/analysis/types";
-import { ScoreGauge } from "@/components/sellermap/score-gauge";
 
 export function ResultHeader({ result }: { result: ProductResult }) {
+  const scoreColor =
+    result.score >= 70
+      ? "text-[var(--c-green)]"
+      : result.score >= 50
+        ? "text-[var(--c-amber)]"
+        : "text-[var(--c-red)]";
+
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="grid gap-0 lg:grid-cols-[0.72fr_1.28fr]">
-        <div className="bg-charcoal p-6 text-white lg:p-8">
-          <p className="text-sm font-semibold text-mint">Итоговое решение</p>
-          <div className="mt-6">
-            <ScoreGauge score={result.score} />
+    <Card className="border-l-[3px] border-l-[var(--c-green)] bg-[var(--c-green-dim)] p-6 lg:p-8">
+      <div className="grid gap-8 lg:grid-cols-[0.45fr_1fr] lg:items-start">
+        <div>
+          <p className="section-kicker border-t-0 pt-0">Итоговое решение</p>
+          <div className={`font-display mt-5 text-5xl font-semibold tabular sm:text-[72px] ${scoreColor}`}>
+            {result.score}<span className="text-2xl text-[var(--c-text3)] sm:text-3xl">/100</span>
           </div>
-          <div className="mt-6 inline-flex rounded-full bg-mint px-3 py-1 text-sm font-semibold text-dark-green">
+          <div className="mt-5 inline-flex rounded-lg bg-[var(--c-bg3)] px-3 py-2 text-sm font-medium text-[var(--c-green)]">
             {result.verdictChip}
           </div>
-          <p className="mt-4 text-sm leading-6 text-white/72">
-            Безопасный диапазон цены:{" "}
-            <span className="font-mono text-white">
-              {formatRub(result.margin.safePriceMin)}-{formatRub(result.margin.safePriceMax)}
-            </span>
-          </p>
         </div>
-        <div className="p-6 lg:p-8">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-neutral-500">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--c-text3)]">
             <span>nmId {result.nmId}</span>
-            <span className="h-1 w-1 rounded-full bg-light-gray" />
+            <span className="h-1 w-1 rounded-full bg-[var(--c-border2)]" />
             <span>{result.category}</span>
-            <span className="h-1 w-1 rounded-full bg-light-gray" />
+            <span className="h-1 w-1 rounded-full bg-[var(--c-border2)]" />
             <span>обновлено: {result.updatedAt}</span>
           </div>
-          <h1 className="mt-4 max-w-4xl text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h1 className="font-display mt-4 max-w-4xl text-3xl font-semibold tracking-tight sm:text-5xl">
             {result.title}
           </h1>
-          <div className="mt-4 inline-flex rounded-lg border border-light-gray bg-off-white px-3 py-2 text-sm font-semibold text-charcoal">
+          <div className="font-display mt-4 text-base font-semibold">
             {result.verdict}
           </div>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-neutral-600">
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--c-text2)]">
             {result.summary}
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <Metric label="Маржа" value={`${result.margin.marginPercent.toFixed(1)}%`} />
-            <Metric label="Прибыль / шт." value={formatRub(result.margin.profit)} />
-            <Metric label="Риск упаковки" value={result.packaging.riskLevel === "high" ? "высокий" : result.packaging.riskLevel === "medium" ? "средний" : "низкий"} />
+            <Metric label="Маржа" value={`${result.margin.marginPercent.toFixed(1)}%`} tone="warning" />
+            <Metric label="Прибыль / шт" value={formatRub(result.margin.profit)} tone="positive" />
+            <Metric label="Безопасный диапазон цены" value={`${formatRub(result.margin.safePriceMin)}-${formatRub(result.margin.safePriceMax)}`} tone="positive" />
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <LinkButton href="/reports" variant="secondary">
               <FileCheck2 size={16} />
-              Сохранить отчет
+              Сохранить отчёт
             </LinkButton>
-            <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-light-gray bg-white px-5 text-sm font-semibold text-charcoal transition hover:border-primary-green hover:text-primary-green">
+            <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-5 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]">
               <Download size={16} />
               Экспорт PDF
             </button>
@@ -66,11 +66,18 @@ export function ResultHeader({ result }: { result: ProductResult }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, tone }: { label: string; value: string; tone: "positive" | "warning" | "negative" }) {
+  const toneClass =
+    tone === "positive"
+      ? "text-[var(--c-green)]"
+      : tone === "warning"
+        ? "text-[var(--c-amber)]"
+        : "text-[var(--c-red)]";
+
   return (
-    <div className="rounded-lg border border-light-gray bg-off-white p-3">
-      <p className="text-xs font-semibold text-neutral-500">{label}</p>
-      <p className="mt-1 font-mono text-lg font-semibold tabular">{value}</p>
+    <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
+      <p className="text-[11px] font-medium text-[var(--c-text3)]">{label}</p>
+      <p className={`font-display mt-1 text-xl font-semibold tabular ${toneClass}`}>{value}</p>
     </div>
   );
 }

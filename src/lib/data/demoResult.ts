@@ -63,30 +63,30 @@ export const demoResultInput: RawResultInput = {
       note: "Конкуренты, продажи, выручка, позиции и SEO подготовлены как адаптер.",
     },
     {
-      source: "Supplier link",
+      source: "Ссылка поставщика",
       status: "ручной ввод",
       lastUpdated: "22 мая 2026",
       confidence: 55,
       note: "Alibaba / 1688 / AliExpress: автоматическое извлечение не включено.",
     },
     {
-      source: "Yandex AI",
+      source: "YandexGPT",
       status: "ожидает API ключ",
       lastUpdated: "демо-вывод",
       confidence: 68,
       note: "Сводки, недельные правила и рекомендации будут идти через YANDEX_AI_API_KEY.",
     },
     {
-      source: "Manual input",
+      source: "Ручной ввод",
       status: "подключено",
       lastUpdated: "22 мая 2026",
       confidence: 82,
-      note: "Ручной fallback используется, когда API недоступны.",
+      note: "Ручной резервный ввод используется, когда API недоступны.",
     },
   ],
   competitors: [
     {
-      name: "TravelCase Pro",
+      name: "ТревелКейс Про",
       nmId: "166381902",
       price: 2190,
       rating: 4.8,
@@ -104,7 +104,7 @@ export const demoResultInput: RawResultInput = {
       riskLevel: "medium",
     },
     {
-      name: "Beauty Bag Mini",
+      name: "Бьюти Бэг Мини",
       nmId: "149728303",
       price: 1690,
       rating: 4.6,
@@ -122,7 +122,7 @@ export const demoResultInput: RawResultInput = {
       riskLevel: "low",
     },
     {
-      name: "OrganizeMe XL",
+      name: "Органайз Ми XL",
       nmId: "183742991",
       price: 2790,
       rating: 4.7,
@@ -140,7 +140,7 @@ export const demoResultInput: RawResultInput = {
       riskLevel: "medium",
     },
     {
-      name: "CosmoTrip Basic",
+      name: "КосмоТрип Базовый",
       nmId: "174338220",
       price: 1490,
       rating: 4.2,
@@ -158,7 +158,7 @@ export const demoResultInput: RawResultInput = {
       riskLevel: "high",
     },
     {
-      name: "Smart Travel Kit",
+      name: "Смарт Тревел Кит",
       nmId: "190554812",
       price: 2390,
       rating: 4.4,

@@ -9,25 +9,25 @@ export function CompetitorCards({ result }: { result: ProductResult }) {
     <section>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Конкурентный срез</h2>
-          <p className="text-sm text-neutral-600">
+          <h2 className="section-kicker">Конкурентный срез</h2>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">
             До 5 ключевых карточек: продажи, позиция, УТП и причина спроса.
           </p>
         </div>
-        <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-light-gray bg-white px-4 text-sm font-semibold hover:border-primary-green hover:text-primary-green">
+        <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-4 text-sm font-medium text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]">
           Показать больше <ChevronDown size={15} />
         </button>
       </div>
       <div className="grid gap-4 xl:grid-cols-5">
         {result.competitors.map((competitor) => (
-          <Card key={competitor.nmId} className="p-4 shadow-none">
-            <div className="mb-4 aspect-[4/3] rounded-lg border border-light-gray bg-[linear-gradient(135deg,#EAFBF2,#FFFFFF_55%,#E6EAE6)]" />
+          <Card key={competitor.nmId} className="rounded-xl border-[var(--c-border)] bg-[var(--c-bg2)] p-4 shadow-none transition hover:border-[var(--c-border2)]">
+            <div className="mb-4 aspect-[4/3] rounded-lg border border-[var(--c-border)] bg-[linear-gradient(135deg,rgba(31,209,131,0.18),rgba(255,255,255,0.04)_55%,rgba(255,255,255,0.08))]" />
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold">{competitor.name}</h3>
-                <p className="mt-1 text-xs text-neutral-500">nmId {competitor.nmId}</p>
+                <p className="mt-1 text-xs text-[var(--c-text3)]">nmId {competitor.nmId}</p>
               </div>
-              <span className="rounded-full bg-off-white px-2 py-1 text-xs font-semibold">
+              <span className="rounded-full bg-[var(--c-bg3)] px-2 py-1 text-xs font-semibold text-[var(--c-text2)]">
                 #{competitor.position}
               </span>
             </div>
@@ -36,7 +36,7 @@ export function CompetitorCards({ result }: { result: ProductResult }) {
               <Metric
                 label="Рейтинг"
                 value={`${competitor.rating} ★`}
-                icon={<Star size={12} className="fill-warning text-warning" />}
+                icon={<Star size={12} className="fill-[var(--c-amber)] text-[var(--c-amber)]" />}
               />
               <Metric label="Отзывы" value={competitor.reviews.toLocaleString("ru-RU")} />
               <Metric label="Продажи" value={`${competitor.estimatedMonthlySales} шт`} />
@@ -45,18 +45,18 @@ export function CompetitorCards({ result }: { result: ProductResult }) {
             </div>
             <div className="mt-4 space-y-2 text-xs leading-5">
               <p>
-                <span className="font-semibold text-primary-green">Сила:</span>{" "}
+                <span className="font-semibold text-[var(--c-green)]">Сила:</span>{" "}
                 {competitor.strength}
               </p>
               <p>
-                <span className="font-semibold text-risk">Слабость:</span>{" "}
+                <span className="font-semibold text-[var(--c-red)]">Слабость:</span>{" "}
                 {competitor.weakness}
               </p>
               <p>
                 <span className="font-semibold">Позиция:</span>{" "}
                 {competitor.positioning}
               </p>
-              <p className="rounded-lg bg-soft-green p-2 text-dark-green">
+              <p className="rounded-lg bg-[var(--c-green-dim)] p-2 text-[var(--c-green)]">
                 {competitor.aiInsight}
               </p>
             </div>
@@ -79,8 +79,8 @@ function Metric({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-lg bg-off-white p-2 ${wide ? "col-span-2" : ""}`}>
-      <p className="text-neutral-500">{label}</p>
+    <div className={`rounded-lg bg-[var(--c-bg3)] p-2 ${wide ? "col-span-2" : ""}`}>
+      <p className="text-[var(--c-text3)]">{label}</p>
       <p className="mt-1 flex items-center gap-1 font-mono font-semibold tabular">
         {icon}
         {value}

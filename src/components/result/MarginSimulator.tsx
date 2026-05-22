@@ -45,8 +45,8 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
           <Calculator size={18} />
         </span>
         <div>
-          <h2 className="text-xl font-semibold">Симулятор цены и маржи</h2>
-          <p className="text-sm text-neutral-600">
+          <h2 className="section-kicker">Симулятор цены и маржи</h2>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">
             Текущий риск вверху страницы основан на этой же модели маржи.
           </p>
         </div>
@@ -71,7 +71,7 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
             </label>
           ))}
         </div>
-        <div className="rounded-lg border border-light-gray bg-off-white p-4">
+        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <Output label="Прибыль / шт." value={formatRub(margin.profit)} emph />
             <Output label="Чистая маржа" value={`${margin.marginPercent.toFixed(1)}%`} emph />
@@ -82,7 +82,7 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
           </div>
           <div className="mt-4 space-y-2">
             {margin.sensitivity.map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg bg-white p-3 text-sm">
+              <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg bg-[var(--c-bg2)] p-3 text-sm">
                 <span className="flex items-center gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${riskDot(item.risk)}`} />
                   {item.label}
@@ -106,9 +106,9 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
 
 function Output({ label, value, emph }: { label: string; value: string; emph?: boolean }) {
   return (
-    <div className="rounded-lg bg-white p-3">
-      <p className="text-xs font-semibold text-neutral-500">{label}</p>
-      <p className={`mt-1 font-mono font-semibold tabular ${emph ? "text-xl text-dark-green" : ""}`}>
+    <div className="rounded-lg bg-[var(--c-bg2)] p-3">
+      <p className="text-xs font-semibold text-[var(--c-text3)]">{label}</p>
+      <p className={`font-display mt-1 font-semibold tabular ${emph ? "text-xl text-[var(--c-green)]" : ""}`}>
         {value}
       </p>
     </div>

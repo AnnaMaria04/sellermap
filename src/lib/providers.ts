@@ -13,26 +13,26 @@ export const dataProviders: Array<{
   {
     name: "ManualInputProvider",
     status: "active",
-    description: "MVP path for seller-entered product, price, and packaging data.",
+    description: "Ручной ввод данных продавца: товар, цена, упаковка.",
   },
   {
     name: "CSVUploadProvider",
     status: "ready",
-    description: "Prepared for report imports and admin-uploaded rule tables.",
+    description: "Импорт отчётов и таблиц правил администратора.",
   },
   {
     name: "WBSellerAPIProvider",
     status: "placeholder",
-    description: "Official seller-authorized Wildberries data connection.",
+    description: "Официальное подключение через кабинет продавца WB.",
   },
   {
     name: "MPStatsProvider",
     status: "placeholder",
-    description: "Optional analytics provider, not required for MVP.",
+    description: "Аналитика конкурентов, продажи, позиции, SEO.",
   },
   {
     name: "YandexAIProvider",
     status: "placeholder",
-    description: "Structured summaries for recommendations and weekly updates.",
+    description: "Сводки, рекомендации и еженедельные правила через YandexGPT.",
   },
 ];

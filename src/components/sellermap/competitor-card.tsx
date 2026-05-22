@@ -21,7 +21,7 @@ export function CompetitorCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{competitor.name}</h3>
-          <p className="text-sm text-neutral-500">Position #{competitor.position}</p>
+          <p className="text-sm text-[var(--c-text3)]">Позиция #{competitor.position}</p>
         </div>
         <div className="text-right">
           <p className="font-mono font-semibold tabular">{formatRub(competitor.price)}</p>
@@ -33,11 +33,11 @@ export function CompetitorCard({
       </div>
       <div className="mt-4 grid gap-2 text-sm">
         <p>
-          <span className="font-semibold text-primary-green">Strength:</span>{" "}
+          <span className="font-semibold text-[var(--c-green)]">Сила:</span>{" "}
           {competitor.strength}
         </p>
         <p>
-          <span className="font-semibold text-risk">Weakness:</span>{" "}
+          <span className="font-semibold text-[var(--c-red)]">Слабость:</span>{" "}
           {competitor.weakness}
         </p>
       </div>

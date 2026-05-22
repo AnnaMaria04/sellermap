@@ -4,9 +4,9 @@ import { formatRub } from "@/lib/utils";
 import { riskDot } from "./result-style";
 
 const bubbleClass: Record<RiskLevel, string> = {
-  low: "bg-primary-green/85",
-  medium: "bg-warning/85",
-  high: "bg-risk/85",
+  low: "bg-[var(--c-green)]/85",
+  medium: "bg-[var(--c-amber)]/85",
+  high: "bg-[var(--c-red)]/85",
 };
 
 export function MarketMap({ result }: { result: ProductResult }) {
@@ -14,14 +14,14 @@ export function MarketMap({ result }: { result: ProductResult }) {
     <Card className="p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Карта рынка</h2>
-          <p className="text-sm text-neutral-600">
+          <h2 className="section-kicker">Карта рынка</h2>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">
             Цена, сила отзывов и оценка продаж по конкурентам.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {result.marketMap.legend.map((item) => (
-            <span key={item.label} className="inline-flex items-center gap-2 rounded-full bg-off-white px-2.5 py-1 text-xs font-semibold text-charcoal">
+            <span key={item.label} className="inline-flex items-center gap-2 rounded-full bg-[var(--c-bg3)] px-2.5 py-1 text-xs font-semibold text-[var(--c-text2)]">
               <span className={`h-2 w-2 rounded-full ${item.className}`} />
               {item.label}
             </span>
@@ -29,7 +29,7 @@ export function MarketMap({ result }: { result: ProductResult }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <div className="relative h-[390px] min-w-[720px] rounded-lg border border-light-gray bg-off-white matrix-grid">
+        <div className="relative h-[390px] min-w-[720px] rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] matrix-grid">
           {result.competitors.map((competitor) => (
             <div
               key={competitor.nmId}
@@ -42,9 +42,9 @@ export function MarketMap({ result }: { result: ProductResult }) {
               }}
               title={competitor.name}
             >
-              <div className="absolute left-1/2 top-full mt-2 w-44 -translate-x-1/2 rounded-lg border border-light-gray bg-white p-2 text-xs shadow-sm">
+              <div className="absolute left-1/2 top-full mt-2 w-44 -translate-x-1/2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-2 text-xs shadow-sm">
                 <p className="font-semibold">{competitor.name}</p>
-                <p className="text-neutral-500">
+                <p className="text-[var(--c-text3)]">
                   {formatRub(competitor.price)} · {competitor.rating} ★ · {competitor.reviews}
                 </p>
                 <p className="mt-1 font-mono text-primary-green tabular">
@@ -59,24 +59,24 @@ export function MarketMap({ result }: { result: ProductResult }) {
           >
             <div className="h-4 w-4 rounded-full bg-mint" />
           </div>
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-neutral-500">
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-[var(--c-text3)]">
             {result.marketMap.xLabel}
           </span>
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-semibold text-neutral-500">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-semibold text-[var(--c-text3)]">
             {result.marketMap.yLabel}
           </span>
-          <span className="absolute left-4 top-4 rounded-full bg-white px-2 py-1 text-xs font-semibold text-primary-green">
-            зона возможности
+          <span className="absolute left-4 top-4 rounded-full bg-[var(--c-bg2)] px-2 py-1 text-xs font-semibold text-[var(--c-green)]">
+            зона возможностей
           </span>
-          <span className="absolute right-4 top-4 rounded-full bg-white px-2 py-1 text-xs font-semibold text-charcoal">
+          <span className="absolute right-4 top-4 rounded-full bg-[var(--c-bg2)] px-2 py-1 text-xs font-semibold text-[var(--c-text)]">
             лидеры выдачи
           </span>
-          <span className="absolute bottom-4 right-4 rounded-full bg-white px-2 py-1 text-xs font-semibold text-risk">
+          <span className="absolute bottom-4 right-4 rounded-full bg-[var(--c-bg2)] px-2 py-1 text-xs font-semibold text-[var(--c-red)]">
             риск переплаты
           </span>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm text-neutral-600 sm:grid-cols-3">
+      <div className="mt-4 grid gap-2 text-sm text-[var(--c-text2)] sm:grid-cols-3">
         <LegendDot risk="low" label="Зеленый: окно для входа" />
         <LegendDot risk="medium" label="Янтарный: плотный кластер" />
         <LegendDot risk="high" label="Красный: слабая позиция" />

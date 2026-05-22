@@ -33,8 +33,8 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
           <PackageCheck size={18} />
         </span>
         <div>
-          <h2 className="text-xl font-semibold">Упаковка и логистика</h2>
-          <p className="text-sm text-neutral-600">
+          <h2 className="section-kicker">Упаковка и логистика</h2>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">
             Расчет связан с габаритами, моделью поставки и каналом поставщика.
           </p>
         </div>
@@ -47,9 +47,9 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
           <NumberField label="Вес, кг" value={input.weightKg} onChange={(v) => setInput({ ...input, weightKg: v })} />
           <NumberField label="Кол-во в поставке" value={input.quantityPerShipment} onChange={(v) => setInput({ ...input, quantityPerShipment: v })} />
           <label>
-            <span className="mb-1.5 block text-xs font-semibold text-neutral-600">Хрупкость</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--c-text2)]">Хрупкость</span>
             <select
-              className="h-11 w-full rounded-lg border border-light-gray bg-white px-3 text-sm"
+              className="h-11 w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)]"
               value={input.fragility}
               onChange={(event) => setInput({ ...input, fragility: event.target.value as PackagingInput["fragility"] })}
             >
@@ -59,13 +59,13 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
             </select>
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-neutral-600">Тип упаковки</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--c-text2)]">Тип упаковки</span>
             <Input value={input.packageType} onChange={(event) => setInput({ ...input, packageType: event.target.value })} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-semibold text-neutral-600">Поставка</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--c-text2)]">Поставка</span>
             <select
-              className="h-11 w-full rounded-lg border border-light-gray bg-white px-3 text-sm"
+              className="h-11 w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)]"
               value={input.shippingMode}
               onChange={(event) => setInput({ ...input, shippingMode: event.target.value as PackagingInput["shippingMode"] })}
             >
@@ -73,11 +73,11 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
               <option value="truck">авто</option>
               <option value="rail">ж/д</option>
               <option value="sea">море</option>
-              <option value="manual">ручной расчет</option>
+              <option value="manual">ручной расчёт</option>
             </select>
           </label>
         </div>
-        <div className="rounded-lg border border-light-gray bg-off-white p-4">
+        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <Output label="Упаковка / шт." value={formatRub(packaging.packagingCostPerUnit)} />
             <Output label="Логистика WB" value={formatRub(packaging.wbLogisticsEstimate)} />
@@ -86,12 +86,12 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
             <Output label="Риск хранения" value={riskLabel(packaging.storageRisk)} />
             <Output label="Риск упаковки" value={riskLabel(packaging.riskLevel)} />
           </div>
-          <div className="mt-4 rounded-lg bg-white p-3">
-            <p className="text-xs font-semibold text-neutral-500">Влияние на маржу</p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-risk tabular">
+          <div className="mt-4 rounded-lg bg-[var(--c-bg2)] p-3">
+            <p className="text-xs font-semibold text-[var(--c-text3)]">Влияние на маржу</p>
+            <p className="font-display mt-1 text-2xl font-semibold text-[var(--c-red)] tabular">
               -{packaging.marginImpactPoints} п.п.
             </p>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">{packaging.note}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--c-text2)]">{packaging.note}</p>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
     <label>
-      <span className="mb-1.5 block text-xs font-semibold text-neutral-600">{label}</span>
+      <span className="mb-1.5 block text-xs font-semibold text-[var(--c-text2)]">{label}</span>
       <Input type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
@@ -110,8 +110,8 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
 
 function Output({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-white p-3">
-      <p className="text-xs font-semibold text-neutral-500">{label}</p>
+    <div className="rounded-lg bg-[var(--c-bg2)] p-3">
+      <p className="text-xs font-semibold text-[var(--c-text3)]">{label}</p>
       <p className="mt-1 font-mono font-semibold tabular">{value}</p>
     </div>
   );

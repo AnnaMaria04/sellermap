@@ -12,23 +12,23 @@ export function VerdictCard() {
       <div className="grid gap-8 lg:grid-cols-[auto_1fr_auto] lg:items-center">
         <ScoreGauge score={productCheck.score} />
         <div>
-          <Badge tone="mint">Opportunity diagnosis</Badge>
+          <Badge tone="mint">Диагностика ниши</Badge>
           <h1 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">
             {productCheck.verdict}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
-            Demand is strong and the niche has a mid-price gap, but the launch
-            needs stricter packaging and margin control before stock is ordered.
+            Спрос сильный, а в среднем ценовом сегменте есть окно. Перед закупкой
+            нужно строже проверить упаковку и маржу.
           </p>
         </div>
         <div className="flex gap-2 lg:flex-col">
           <Button variant="secondary">
             <Save size={16} />
-            Save
+            Сохранить
           </Button>
           <Button variant="secondary">
             <Share2 size={16} />
-            Export
+            Экспорт
           </Button>
         </div>
       </div>
@@ -43,7 +43,7 @@ export function VerdictCard() {
         <span>{productCheck.category}</span>
         <span className="h-1 w-1 rounded-full bg-light-gray" />
         <span className="inline-flex items-center gap-1 text-primary-green">
-          Open demo source <ArrowUpRight size={14} />
+          Открыть демо-источник <ArrowUpRight size={14} />
         </span>
       </div>
     </Card>
