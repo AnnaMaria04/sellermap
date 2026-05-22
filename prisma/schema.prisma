@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  name                  String?
+  productChecks         ProductCheck[]
+  dataSourceConnections DataSourceConnection[]
+  savedReports          SavedReport[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model ProductCheck {
+  id                String              @id @default(cuid())
+  userId            String?
+  user              User?               @relation(fields: [userId], references: [id])
+  product           Product?
+  productName       String
+  productUrl        String?
+  wbNmId            String?
+  category          String?
+  brand             String?
+  imageUrl          String?
+  score             Int
+  verdict           String
+  demandScore       Int
+  competitionScore  Int
+  marginScore       Int
+  cardQualityScore  Int
+  riskScore         Int
+  competitors       CompetitorProduct[]
+  marginScenarios   MarginScenario[]
+  aiRecommendations AIRecommendation[]
+  savedReports      SavedReport[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  productCheckId String        @unique
+  productCheck   ProductCheck  @relation(fields: [productCheckId], references: [id])
+  name           String
+  category       String?
+  brand          String?
+  wbNmId         String?
+  imageUrl       String?
+  price          Decimal?      @db.Decimal(10, 2)
+  rating         Decimal?      @db.Decimal(3, 2)
+  reviewCount    Int?
+}
+
+model CompetitorProduct {
+  id             String       @id @default(cuid())
+  productCheckId String
+  productCheck   ProductCheck @relation(fields: [productCheckId], references: [id])
+  name           String
+  price          Decimal      @db.Decimal(10, 2)
+  rating         Decimal      @db.Decimal(3, 2)
+  reviewCount    Int
+  imageUrl       String?
+  position       Int?
+  strength       String?
+  weakness       String?
+}
+
+model MarginScenario {
+  id             String       @id @default(cuid())
+  productCheckId String
+  productCheck   ProductCheck @relation(fields: [productCheckId], references: [id])
+  sellingPrice   Decimal      @db.Decimal(10, 2)
+  productCost    Decimal      @db.Decimal(10, 2)
+  commission     Decimal      @db.Decimal(10, 2)
+  logisticsCost  Decimal      @db.Decimal(10, 2)
+  packagingCost  Decimal      @db.Decimal(10, 2)
+  adsReserve     Decimal      @db.Decimal(10, 2)
+  returnReserve  Decimal      @db.Decimal(10, 2)
+  netProfit      Decimal      @db.Decimal(10, 2)
+  netMargin      Decimal      @db.Decimal(5, 2)
+  breakEvenPrice Decimal      @db.Decimal(10, 2)
+  safePriceMin   Decimal      @db.Decimal(10, 2)
+  safePriceMax   Decimal      @db.Decimal(10, 2)
+}
+
+model AIRecommendation {
+  id                 String       @id @default(cuid())
+  productCheckId     String
+  productCheck       ProductCheck @relation(fields: [productCheckId], references: [id])
+  summary            String
+  topRisks           Json
+  opportunities      Json
+  recommendedActions Json
+  verdictExplanation String
+  createdAt          DateTime     @default(now())
+}
+
+model PackagingRule {
+  id                 String   @id @default(cuid())
+  category           String
+  summary            String
+  requirementText    String
+  estimatedCostMin   Decimal? @db.Decimal(10, 2)
+  estimatedCostMax   Decimal? @db.Decimal(10, 2)
+  effectiveFrom      DateTime?
+  createdAt          DateTime @default(now())
+}
+
+model WeeklyUpdate {
+  id                 String   @id @default(cuid())
+  title              String
+  updateType         String
+  aiSummary          String
+  affectedCategories Json
+  affectedProductIds Json?
+  createdAt          DateTime @default(now())
+}
+
+model DataSourceConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  provider    String
+  status      String
+  metadata    Json?
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SavedReport {
+  id             String       @id @default(cuid())
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  productCheckId String
+  productCheck   ProductCheck @relation(fields: [productCheckId], references: [id])
+  status         String
+  mainRisk       String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}

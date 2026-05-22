@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --c-bg: #0c0e0f;
+  --c-bg2: #141618;
+  --c-bg3: #1c1f21;
+  --c-border: rgba(255,255,255,0.07);
+  --c-border2: rgba(255,255,255,0.13);
+  --c-text: #f0ede8;
+  --c-text2: #9a9690;
+  --c-text3: #5a5754;
+  --c-green: #1fd183;
+  --c-green-dim: rgba(31,209,131,0.10);
+  --c-amber: #f5a623;
+  --c-amber-dim: rgba(245,166,35,0.10);
+  --c-red: #f05050;
+  --c-red-dim: rgba(240,80,80,0.10);
+  --c-blue: #4d9fff;
+  --c-blue-dim: rgba(77,159,255,0.10);
+  --background: var(--c-bg);
+  --foreground: var(--c-text);
+  --charcoal: var(--c-text);
+  --off-white: var(--c-bg);
+  --light-gray: var(--c-border);
+  --primary-green: var(--c-green);
+  --dark-green: var(--c-green);
+  --mint: var(--c-green);
+  --soft-green: var(--c-green-dim);
+  --warning: var(--c-amber);
+  --risk: var(--c-red);
+  --font-geologica: 'Geologica', sans-serif;
+  --font-unbounded: 'Unbounded', sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-charcoal: var(--charcoal);
+  --color-off-white: var(--off-white);
+  --color-light-gray: var(--light-gray);
+  --color-primary-green: var(--primary-green);
+  --color-dark-green: var(--dark-green);
+  --color-mint: var(--mint);
+  --color-soft-green: var(--soft-green);
+  --color-warning: var(--warning);
+  --color-risk: var(--risk);
+  --font-sans: "Geologica", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geologica", ui-monospace, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), var(--font-geologica);
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--c-green);
+  color: var(--c-bg);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 122, 79, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 122, 79, 0.14) 1px, transparent 1px);
+  background-size: 50% 50%;
+}
+
+.soft-shadow {
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-unbounded);
+}
+
+.font-body {
+  font-family: var(--font-body), var(--font-geologica);
+}
+
+.section-kicker {
+  border-top: 1px solid var(--c-border);
+  color: var(--c-text3);
+  font-family: var(--font-display), var(--font-unbounded);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding-top: 18px;
+  text-transform: uppercase;
+}
