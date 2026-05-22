@@ -3,11 +3,11 @@ import { Map, Search } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 
 const nav = [
-  ["Product Check", "/check"],
-  ["Result", "/result"],
-  ["Dashboard", "/dashboard"],
-  ["Reports", "/reports"],
-  ["Updates", "/updates"],
+  ["Проверка товара", "/check"],
+  ["Отчет", "/result"],
+  ["Дашборд", "/dashboard"],
+  ["Отчеты", "/reports"],
+  ["Обновления", "/updates"],
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           <LinkButton href="/check" className="h-10 px-4">
             <Search size={16} />
-            Analyze
+            Анализ
           </LinkButton>
         </div>
       </header>
