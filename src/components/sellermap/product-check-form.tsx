@@ -638,12 +638,12 @@ export function ProductCheckForm() {
 
   return (
     <Card className="p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-[var(--c-text)]">
-          Проверка товара
+      <div className="mb-10">
+        <h1 className="font-display text-4xl font-semibold tracking-tight text-[var(--c-text)] md:text-5xl">
+          Проверь товар до закупки
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--c-text2)]">
-          Начните со ссылки поставщика. SellerMap соберёт черновик экономики, сравнит товар с рынком WB и покажет, стоит ли запускать продукт.
+        <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-[var(--c-text2)]">
+          Рассчитайте реальную прибыль на WB/Ozon до того, как купите партию товара.
         </p>
       </div>
 
@@ -662,7 +662,25 @@ export function ProductCheckForm() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+      <div className="rounded-2xl border border-[var(--c-border2)] bg-[var(--c-bg2)] p-5 md:p-7">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--c-text3)]">
+          Товар от поставщика
+        </p>
+        <div className="mb-4 inline-flex rounded-xl bg-[var(--c-bg3)] p-1">
+          {["Alibaba", "AliExpress", "1688.com"].map((platform) => (
+            <button
+              key={platform}
+              type="button"
+              className={`rounded-lg px-5 py-2 text-sm font-semibold ${
+                supplierUrl.toLowerCase().includes(platform.toLowerCase().replace(".com", ""))
+                  ? "border border-[var(--c-border2)] bg-[var(--c-bg2)] text-[var(--c-text)]"
+                  : "text-[var(--c-text3)]"
+              }`}
+            >
+              {platform}
+            </button>
+          ))}
+        </div>
         <label>
           <span className="mb-2 block text-sm font-medium text-[var(--c-text)]">
             Вставьте ссылку Alibaba / 1688 / поставщика
@@ -675,10 +693,18 @@ export function ProductCheckForm() {
             />
             <Button type="button" onClick={() => importSupplier()} disabled={state === "importing"}>
               {state === "importing" ? <Loader2 size={16} className="animate-spin" /> : <WandSparkles size={16} />}
-              Импортировать товар
+              Извлечь данные
             </Button>
           </div>
         </label>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--c-text3)]">
+          <span>Демо:</span>
+          {["Лампа LED", "Рюкзак 30L", "Чехол iPhone", "Поп-ит"].map((item) => (
+            <span key={item} className="rounded-full border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-1 font-semibold">
+              {item}
+            </span>
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -743,6 +769,7 @@ export function ProductCheckForm() {
 
       {(imported?.product || state === "manual_mode") && (
         <div className="mt-6 space-y-5">
+          <p className="section-kicker border-t-0 pt-0">Платформа и налог</p>
           <MarketTargetStep
             productTitle={fields.productTitle || imported?.product?.title || ""}
             specifications={imported?.product?.specifications}
