@@ -43,31 +43,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const catalogRes = await fetch(
+    const catalogUrls = [
+      `https://card.wb.ru/cards/v4/detail?appType=1&nm=${nmId}&curr=rub&dest=-1257786&spp=30`,
+      `https://card.wb.ru/cards/v2/detail?appType=1&nm=${nmId}&curr=rub&dest=-1257786&regions=${WB_REGIONS}&spp=30`,
       `https://card.wb.ru/cards/detail?appType=1&nm=${nmId}&curr=rub&dest=-1257786&regions=${WB_REGIONS}&spp=30`,
-      { next: { revalidate: 300 } },
-    );
+    ];
 
-    if (catalogRes.ok) {
+    for (const url of catalogUrls) {
+      const catalogRes = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        next: { revalidate: 300 },
+      });
+      if (!catalogRes.ok || !(catalogRes.headers.get("content-type") ?? "").includes("application/json")) continue;
       const data = await catalogRes.json();
-      const product = data?.data?.products?.[0];
+      const product = data?.products?.[0] ?? data?.data?.products?.[0];
 
       if (product) {
         return NextResponse.json({
           nmId: product.id,
           name: product.name,
           brand: product.brand,
-          category: product.subjectName,
-          price: product.salePriceU / 100,
-          priceOriginal: product.priceU / 100,
-          rating: product.reviewRating,
-          reviewCount: product.feedbacks,
+          category: product.subjectName ?? product.entity ?? "",
+          price: product.salePriceU ? product.salePriceU / 100 : null,
+          priceOriginal: product.priceU ? product.priceU / 100 : null,
+          rating: product.reviewRating ?? product.nmReviewRating ?? product.rating ?? null,
+          reviewCount: product.feedbacks ?? product.nmFeedbacks ?? null,
           photos: product.photos ?? [],
           colors: product.colors ?? [],
           sizes: product.sizes ?? [],
           supplier: product.supplier,
           supplierId: product.supplierId,
-          source: "catalog",
+          source: "catalog_public",
         });
       }
     }

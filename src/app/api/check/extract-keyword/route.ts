@@ -3,6 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 let client: Anthropic | null = null;
 
+const DICTIONARY: Array<[RegExp, string]> = [
+  [/posca|paint marker|acrylic marker|marker pen/i, "акриловый маркер"],
+  [/permanent marker/i, "перманентный маркер"],
+  [/makeup|cosmetic|beauty/i, "косметичка"],
+  [/bag|organizer|case/i, "органайзер"],
+  [/phone case|iphone case/i, "чехол для телефона"],
+  [/water bottle|thermos/i, "термос бутылка"],
+  [/toy|kids/i, "игрушка"],
+  [/lamp|light/i, "светильник"],
+];
+
 function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY required");
   client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -28,8 +39,15 @@ export async function POST(req: NextRequest) {
       message.content[0].type === "text" ? message.content[0].text.trim() : title;
     return NextResponse.json({ keyword });
   } catch {
-    // Fallback: strip brand/model noise and return title words
-    const fallback = title.split(/\s+/).slice(0, 3).join(" ");
+    const mapped = DICTIONARY.find(([pattern]) => pattern.test(title))?.[1];
+    const fallback =
+      mapped ??
+      title
+        .replace(/\b(high|quality|factory|wholesale|custom|new|hot|sale|for|with|and)\b/gi, "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 4)
+        .join(" ");
     return NextResponse.json({ keyword: fallback });
   }
 }

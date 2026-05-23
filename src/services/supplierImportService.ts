@@ -100,9 +100,31 @@ function asNumber(value: unknown): number | null {
 function amountFrom(value: unknown): number | null {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const item = value as Record<string, unknown>;
-    return asNumber(pickFirst(item, ["amount", "value", "min", "price", "salePrice", "current", "low"]));
+    return asNumber(pickFirst(item, ["amount", "value", "min", "price", "salePrice", "current", "low", "cost", "fee"]));
   }
   return asNumber(value);
+}
+
+function objectFrom(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function deepEntries(value: unknown, prefix = "", depth = 0): Array<[string, unknown]> {
+  const object = objectFrom(value);
+  if (!object || depth > 4) return [];
+  return Object.entries(object).flatMap(([key, child]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    const childObject = objectFrom(child);
+    return childObject ? [[path, child] as [string, unknown], ...deepEntries(child, path, depth + 1)] : [[path, child] as [string, unknown]];
+  });
+}
+
+function pickDeepByKey(raw: RawSupplierProduct, patterns: RegExp[]) {
+  const entry = deepEntries(raw).find(([path, value]) => {
+    if (value === null || value === undefined || value === "") return false;
+    return patterns.some((pattern) => pattern.test(path.toLowerCase()));
+  });
+  return entry?.[1] ?? null;
 }
 
 function dimensionValueFromObject(source: Record<string, unknown>) {
@@ -132,6 +154,23 @@ function dimensionValueFromObject(source: Record<string, unknown>) {
     if (entry) return entry[1];
   }
   return null;
+}
+
+function dimensionsFromObject(value: unknown): Dimensions | null {
+  const object = objectFrom(value);
+  if (!object) return null;
+  const length = asNumber(pickFirst(object, ["length", "l", "long", "packageLength", "cartonLength"]));
+  const width = asNumber(pickFirst(object, ["width", "w", "packageWidth", "cartonWidth"]));
+  const height = asNumber(pickFirst(object, ["height", "h", "packageHeight", "cartonHeight"]));
+  if (!length || !width || !height) return null;
+  const unitRaw = String(pickFirst(object, ["unit", "dimensionUnit", "sizeUnit"]) ?? "cm").toLowerCase();
+  const factor = unitRaw.includes("mm") ? 0.1 : unitRaw === "m" || unitRaw.includes("meter") ? 100 : 1;
+  return {
+    length: Number((length * factor).toFixed(1)),
+    width: Number((width * factor).toFixed(1)),
+    height: Number((height * factor).toFixed(1)),
+    unit: "cm",
+  };
 }
 
 function parseDimensionText(value: unknown): Dimensions | null {
@@ -264,15 +303,34 @@ export function normalizeSpecifications(raw: RawSupplierProduct): Record<string,
 }
 
 export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null {
-  const value = pickFirst(raw, ["dimensions", "packageDimensions", "size"]);
+  const value =
+    pickFirst(raw, [
+      "packageDimensions",
+      "packageDimension",
+      "packageSize",
+      "packingSize",
+      "packingDimensions",
+      "cartonSize",
+      "cartonDimensions",
+      "boxSize",
+      "boxDimensions",
+      "dimensions",
+      "size",
+    ]) ??
+    pickDeepByKey(raw, [
+      /package.*dimension/,
+      /package.*size/,
+      /packing.*dimension/,
+      /packing.*size/,
+      /carton.*dimension/,
+      /carton.*size/,
+      /box.*dimension/,
+      /box.*size/,
+      /shipping.*dimension/,
+    ]);
   if (value && typeof value === "object" && !Array.isArray(value)) {
-    const item = value as Record<string, unknown>;
-    return {
-      length: asNumber(pickFirst(item, ["length", "l"])),
-      width: asNumber(pickFirst(item, ["width", "w"])),
-      height: asNumber(pickFirst(item, ["height", "h"])),
-      unit: "cm",
-    };
+    const parsed = dimensionsFromObject(value);
+    if (parsed) return parsed;
   }
   if (typeof value === "string") {
     const parsed = parseDimensionText(value);
@@ -295,7 +353,46 @@ export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null 
 }
 
 export function normalizeWeight(raw: RawSupplierProduct): number | null {
-  return asNumber(pickFirst(raw, ["weight", "productWeight", "packageWeight", "unitWeight"]));
+  const direct =
+    pickFirst(raw, [
+      "unitWeight",
+      "packageWeight",
+      "package_weight",
+      "shippingWeight",
+      "grossWeight",
+      "gross_weight",
+      "weight",
+      "productWeight",
+    ]) ??
+    pickDeepByKey(raw, [
+      /unit.*weight/,
+      /package.*weight/,
+      /shipping.*weight/,
+      /gross.*weight/,
+      /logistics.*weight/,
+      /weight$/,
+    ]);
+  return asNumber(direct);
+}
+
+function normalizeShippingEstimate(raw: RawSupplierProduct): number | null {
+  const value =
+    pickFirst(raw, [
+      "shippingEstimate",
+      "shippingCost",
+      "shippingPrice",
+      "deliveryCost",
+      "deliveryPrice",
+      "freightCost",
+      "freight",
+    ]) ??
+    pickDeepByKey(raw, [
+      /shipping.*(estimate|cost|price|fee|amount)/,
+      /delivery.*(estimate|cost|price|fee|amount)/,
+      /freight.*(estimate|cost|price|fee|amount)/,
+      /logistics.*(estimate|cost|price|fee|amount)/,
+    ]);
+  return amountFrom(value);
 }
 
 export function calculateBestPriceTier(priceTiers: PriceTier[], selectedQuantity?: number | null) {
@@ -345,7 +442,7 @@ export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierP
     },
     weight: normalizeWeight(raw),
     dimensions: normalizeDimensions(raw),
-    shippingEstimate: amountFrom(pickFirst(raw, ["shippingEstimate", "shipping", "deliveryCost", "shippingCost"])),
+    shippingEstimate: normalizeShippingEstimate(raw),
     leadTime: asNumber(pickFirst(raw, ["leadTime", "leadTimeDays", "deliveryTime", "deliveryHours"])),
     imageAltTexts: Array.isArray(raw.imageAltTexts) ? raw.imageAltTexts.filter((item): item is string => typeof item === "string") : [],
     category: typeof raw.category === "string" ? raw.category : null,
@@ -483,6 +580,17 @@ async function responseFromRaw(url: string, raw: RawSupplierProduct, source: Sup
   }
 
   const missingFields = detectMissingFields(product);
+  const specs = product.specifications;
+  const productSizeOnly =
+    !product.dimensions &&
+    Object.entries(specs).some(([key, value]) => {
+      const normalized = key.toLowerCase();
+      return (
+        /(^|[^a-z])(pen|nib|brush|product)\s*size/.test(normalized) &&
+        typeof value === "string" &&
+        /\d/.test(value)
+      );
+    });
   return {
     source,
     provider,
@@ -493,6 +601,9 @@ async function responseFromRaw(url: string, raw: RawSupplierProduct, source: Sup
     missingFields,
     warnings: [
       ...(missingFields.length ? ["Часть полей не найдена автоматически и требует ручного заполнения."] : []),
+      ...(productSizeOnly
+        ? ["Apify нашёл размер самого товара, но не размер упаковки. Для логистики WB нужны габариты упаковки/короба."]
+        : []),
       ...(product.currency !== "RUB" ? ["Цена поставщика в USD/CNY. Для финального расчёта нужен курс валюты."] : []),
     ],
     rawDebug: { urlTokens: identity.tokens, matchedTokens: validation.matchedTokens, providerErrors },

@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
         specificationKeys: Object.keys(normalizeSpecifications(result.raw)).slice(0, 20),
         unitCost: normalized.unitCost,
         currency: normalized.currency,
+        weight: normalized.weight,
+        dimensions: normalized.dimensions,
+        shippingEstimate: normalized.shippingEstimate,
         missingFields: detectMissingFields(normalized),
       },
     });

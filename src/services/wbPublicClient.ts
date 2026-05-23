@@ -19,6 +19,14 @@ function priceRub(product: WbRawProduct, keys: string[]) {
   return null;
 }
 
+function firstProductPayload(data: unknown): WbRawProduct | null {
+  const record = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const direct = Array.isArray(record.products) ? record.products[0] : null;
+  const nestedData = record.data && typeof record.data === "object" ? (record.data as Record<string, unknown>) : {};
+  const nested = Array.isArray(nestedData.products) ? nestedData.products[0] : null;
+  return (direct ?? nested ?? null) as WbRawProduct | null;
+}
+
 export function getWbImageUrl(nmId: number) {
   const vol = Math.floor(nmId / 100000);
   const part = Math.floor(nmId / 1000);
@@ -50,8 +58,8 @@ export function normalizeWbProduct(product: WbRawProduct): CompetitorProduct {
     brand: typeof product.brand === "string" ? product.brand : null,
     sellerName: typeof product.supplier === "string" ? product.supplier : typeof product.seller === "string" ? product.seller : null,
     price: priceRub(product, ["salePriceU", "salePrice", "priceU"]) ?? asNumber(product.price),
-    rating: asNumber(product.reviewRating) ?? asNumber(product.rating),
-    reviewCount: asNumber(product.feedbacks) ?? asNumber(product.reviews) ?? asNumber(product.reviewCount),
+    rating: asNumber(product.reviewRating) ?? asNumber(product.nmReviewRating) ?? asNumber(product.rating),
+    reviewCount: asNumber(product.feedbacks) ?? asNumber(product.nmFeedbacks) ?? asNumber(product.reviews) ?? asNumber(product.reviewCount),
     estimatedSales: null,
     estimatedRevenue: null,
     image: nmId ? getWbImageUrl(nmId) : null,
@@ -107,20 +115,23 @@ async function getWbBasketProduct(nmId: number): Promise<CompetitorProduct | nul
 }
 
 export async function getWbPublicProduct(nmId: number): Promise<CompetitorProduct | null> {
-  const res = await fetch(
+  const urls = [
+    `https://card.wb.ru/cards/v4/detail?appType=1&curr=rub&dest=${WB_DEST}&spp=30&nm=${nmId}`,
     `https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=${WB_DEST}&regions=${WB_REGIONS}&spp=30&nm=${nmId}`,
-    {
+  ];
+
+  for (const url of urls) {
+    const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
       next: { revalidate: 300 },
-    },
-  );
-  if (!res.ok) return getWbBasketProduct(nmId);
-  if (!(res.headers.get("content-type") ?? "").includes("application/json")) {
-    return getWbBasketProduct(nmId);
+    });
+    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("application/json")) continue;
+    const data = await res.json();
+    const product = firstProductPayload(data);
+    if (product) return normalizeWbProduct(product);
   }
-  const data = await res.json();
-  const product = data?.data?.products?.[0];
-  return product ? normalizeWbProduct(product) : getWbBasketProduct(nmId);
+
+  return getWbBasketProduct(nmId);
 }
 
 function median(values: number[]) {
