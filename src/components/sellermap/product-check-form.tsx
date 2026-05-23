@@ -793,7 +793,7 @@ export function ProductCheckForm() {
             <Field label="Вес, кг" source={fieldSources.weight} note={fieldNotes.weight}>
               <Input type="number" value={fields.weight} onChange={(event) => updateField("weight", event.target.value)} />
             </Field>
-            <Field label="Габариты, см" source={fieldSources.dimensions} note={fieldNotes.dimensions}>
+            <Field label="Габариты упаковки, см" source={fieldSources.dimensions} note={fieldNotes.dimensions || "для расчёта логистики и хранения WB, не размер самого товара"}>
               <Input value={fields.dimensions} onChange={(event) => updateField("dimensions", event.target.value)} placeholder="30 x 20 x 8" />
             </Field>
             <Field label="Реклама, % от цены" source={fieldSources.adBudgetPercent} note={fieldNotes.adBudgetPercent}>

@@ -109,13 +109,19 @@ function dimensionValueFromObject(source: Record<string, unknown>) {
   const preferred = [
     "package size",
     "package dimensions",
-    "product size",
-    "product dimensions",
-    "pen size",
+    "package dimension",
+    "packing size",
+    "packing dimensions",
+    "packing dimension",
+    "packaging size",
+    "packaging dimensions",
     "carton size",
-    "dimensions",
-    "dimension",
-    "size",
+    "carton dimensions",
+    "carton dimension",
+    "box size",
+    "box dimensions",
+    "box dimension",
+    "carton size",
   ];
   for (const pattern of preferred) {
     const entry = Object.entries(source).find(([key]) => {
