@@ -16,20 +16,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, category, price, competitors, auditNotes } = body;
 
-    const prompt = `Ты SEO-специалист по маркетплейсу Wildberries Россия. Создай карточку товара. Верни ТОЛЬКО JSON без markdown:
-{
-  "title": "SEO-заголовок до 100 символов с ключевыми словами для WB поиска",
-  "description": "Продающее описание 400-600 символов с ключевыми словами и выгодами покупателя, без эмодзи",
-  "keywords": "25-30 поисковых фраз через запятую, которые реально ищут на Wildberries",
-  "attributes": "Заполненные характеристики в формате Параметр: Значение, каждый с новой строки"
-}
-
-Товар: ${name}
-Категория: ${category}
-Цена: ₽${price}
+    const prompt = `Ты SEO-специалист по Wildberries Россия. Создай карточку товара. Верни ТОЛЬКО JSON без markdown:
+{"title":"SEO-заголовок до 100 символов","description":"Описание 400-600 символов без эмодзи","keywords":"25-30 поисковых фраз через запятую","attributes":"Характеристики, каждый с новой строки в формате Параметр: Значение"}
+Товар: ${name} | Категория: ${category} | Цена: ₽${price}
 Слабости конкурентов: ${auditNotes}
-Конкурентные наблюдения: ${JSON.stringify(competitors)}
-Учти эти слабости и сделай карточку лучше.`;
+Проблемы текущей карточки: ${JSON.stringify(competitors)}`;
 
     const message = await getAnthropicClient().messages.create({
       model: "claude-sonnet-4-20250514",

@@ -15,10 +15,20 @@ type GeneratedCard = {
   attributes: string;
 };
 
+type Tab = "title" | "description" | "keywords" | "attributes";
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "title", label: "Заголовок" },
+  { key: "description", label: "Описание" },
+  { key: "keywords", label: "Ключевые слова" },
+  { key: "attributes", label: "Характеристики" },
+];
+
 export function CardAudit({ result }: { result: ProductResult }) {
   const [generated, setGenerated] = useState<GeneratedCard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("title");
 
   async function generateCard() {
     setLoading(true);
@@ -47,6 +57,7 @@ export function CardAudit({ result }: { result: ProductResult }) {
         throw new Error(data.error || "Не удалось создать карточку");
       }
       setGenerated(data);
+      setActiveTab("title");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось создать карточку");
     } finally {
@@ -88,6 +99,8 @@ export function CardAudit({ result }: { result: ProductResult }) {
           );
         })}
       </div>
+
+      {/* Card generation button */}
       <button
         type="button"
         onClick={generateCard}
@@ -95,30 +108,43 @@ export function CardAudit({ result }: { result: ProductResult }) {
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-medium text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-        Создать карточку товара с AI
+        ✦ Создать карточку товара
       </button>
+
       {error && (
         <p className="mt-3 rounded-lg bg-[var(--c-red-dim)] p-3 text-sm text-[var(--c-red)]">
           {error}
         </p>
       )}
+
+      {/* Tabbed generated card */}
       {generated && (
-        <div className="mt-5 space-y-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
-          <GeneratedBlock label="Заголовок" value={generated.title} />
-          <GeneratedBlock label="Описание" value={generated.description} />
-          <GeneratedBlock label="Ключевые фразы" value={generated.keywords} />
-          <GeneratedBlock label="Характеристики" value={generated.attributes} />
+        <div className="mt-5 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)]">
+          {/* Tab bar */}
+          <div className="flex border-b border-[var(--c-border)]">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 px-3 py-2.5 text-xs font-semibold transition ${
+                  activeTab === tab.key
+                    ? "border-b-2 border-[var(--c-green)] text-[var(--c-green)]"
+                    : "text-[var(--c-text3)] hover:text-[var(--c-text2)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {/* Tab content */}
+          <div className="p-4">
+            <p className="whitespace-pre-line text-sm leading-6 text-[var(--c-text)]">
+              {generated[activeTab]}
+            </p>
+          </div>
         </div>
       )}
     </Card>
-  );
-}
-
-function GeneratedBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium text-[var(--c-text3)]">{label}</p>
-      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-[var(--c-text)]">{value}</p>
-    </div>
   );
 }
