@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Database, Link as LinkIcon, Loader2, Package, Upload, WandSparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -14,11 +15,14 @@ import { formatRub } from "@/lib/utils";
 
 const schema = z.object({
   productUrl: z.string().optional(),
+  supplierUrl: z.string().optional(),
   productName: z.string().min(2, "Укажите название товара для анализа."),
   category: z.string().optional(),
   purchaseCost: z.coerce.number().optional(),
   sellingPrice: z.coerce.number().optional(),
   packagingCost: z.coerce.number().optional(),
+  supplierShipping: z.coerce.number().optional(),
+  moq: z.coerce.number().optional(),
   weight: z.string().optional(),
   dimensions: z.string().optional(),
 });
@@ -35,24 +39,56 @@ type WbPreview = {
 };
 
 export function ProductCheckForm({ onWbConnect }: { onWbConnect?: () => void } = {}) {
+  const router = useRouter();
   const [preview, setPreview] = useState<WbPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const {
     register,
     setValue,
+    handleSubmit,
     formState: { errors },
   } = useForm<z.input<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
+      supplierUrl: "https://www.alibaba.com/product-detail/demo-travel-organizer",
       productName: "Дорожный органайзер для косметики, складной",
       category: "Аксессуары для путешествий",
       purchaseCost: 900,
       sellingPrice: 2490,
       packagingCost: 95,
+      supplierShipping: 120,
+      moq: 100,
+      weight: "0.4",
+      dimensions: "30 x 20 x 8",
     },
   });
 
   const productUrl = register("productUrl");
+
+  function submitAnalysis(values: z.input<typeof schema>) {
+    const params = new URLSearchParams();
+    const entries: Array<[string, unknown]> = [
+      ["supplierUrl", values.supplierUrl],
+      ["productUrl", values.productUrl],
+      ["name", values.productName],
+      ["category", values.category],
+      ["cost", values.purchaseCost],
+      ["price", values.sellingPrice],
+      ["packaging", values.packagingCost],
+      ["supplierShipping", values.supplierShipping],
+      ["moq", values.moq],
+      ["weight", values.weight],
+      ["dimensions", values.dimensions],
+    ];
+
+    for (const [key, value] of entries) {
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        params.set(key, String(value));
+      }
+    }
+
+    router.push(`/result?${params.toString()}`);
+  }
 
   async function handleUrlChange(value: string) {
     const nmId = parseWbUrl(value);
@@ -92,10 +128,23 @@ export function ProductCheckForm({ onWbConnect }: { onWbConnect?: () => void } =
         </span>
       </div>
 
-      <form className="grid gap-4 md:grid-cols-2">
+      <form id="product-check-form" className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(submitAnalysis)}>
         <label className="md:col-span-2">
           <span className="mb-2 block text-sm font-medium text-[var(--c-text)]">
-            Ссылка на товар Wildberries
+            Ссылка поставщика Alibaba / 1688 / AliExpress
+          </span>
+          <Input
+            placeholder="https://www.alibaba.com/product-detail/..."
+            {...register("supplierUrl")}
+          />
+          <span className="mt-1 block text-xs text-[var(--c-text3)]">
+            Сейчас SellerMap определяет домен и использует ручные поля. Автоизвлечение с защищённых страниц подключается отдельным адаптером.
+          </span>
+        </label>
+
+        <label className="md:col-span-2">
+          <span className="mb-2 block text-sm font-medium text-[var(--c-text)]">
+            Ссылка на похожий товар Wildberries (необязательно)
           </span>
           <div className="relative">
             <Input
@@ -159,6 +208,12 @@ export function ProductCheckForm({ onWbConnect }: { onWbConnect?: () => void } =
         <Field label="Стоимость упаковки (₽/шт)">
           <Input type="number" {...register("packagingCost")} />
         </Field>
+        <Field label="Доставка от поставщика (₽/шт)">
+          <Input type="number" {...register("supplierShipping")} />
+        </Field>
+        <Field label="MOQ (мин. заказ)">
+          <Input type="number" {...register("moq")} />
+        </Field>
         <Field label="Вес (кг)">
           <Input placeholder="0.4" {...register("weight")} />
         </Field>
@@ -171,10 +226,10 @@ export function ProductCheckForm({ onWbConnect }: { onWbConnect?: () => void } =
       </form>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <LinkButton href="/result">
+        <Button type="submit" form="product-check-form">
           <WandSparkles size={16} />
           Анализировать товар
-        </LinkButton>
+        </Button>
         <Button variant="secondary">
           <Upload size={16} />
           Загрузить CSV

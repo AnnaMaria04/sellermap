@@ -2,7 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import { Calculator } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calculateMargin, validateMarginResult } from "@/lib/analysis/calculateResult";
 import type { MarginInput, ProductResult } from "@/lib/analysis/types";
 import { Card } from "@/components/ui/card";
@@ -43,7 +43,13 @@ function fmtPriceRange(min: number, max: number) {
   return `${formatRub(min)}–${formatRub(max)}`;
 }
 
-export function MarginSimulator({ result }: { result: ProductResult }) {
+export function MarginSimulator({
+  result,
+  onInputChange,
+}: {
+  result: ProductResult;
+  onInputChange?: (input: MarginInput) => void;
+}) {
   const [input, setInput] = useState<MarginInput>({
     sellingPrice: result.margin.sellingPrice,
     costPrice: result.margin.costPrice,
@@ -65,6 +71,10 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
   function handleChange(key: keyof MarginInput, raw: string) {
     setInput((prev: MarginInput) => ({ ...prev, [key]: parseVal(key, raw) }));
   }
+
+  useEffect(() => {
+    onInputChange?.(input);
+  }, [input, onInputChange]);
 
   function handleTaxChange(raw: string) {
     setInput((prev: MarginInput) => ({ ...prev, taxRate: Number(raw) }));

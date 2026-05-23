@@ -1,7 +1,7 @@
 "use client";
 
 import { PackageCheck } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PackagingInput, ProductResult } from "@/lib/analysis/types";
 import { calculatePackagingRisk } from "@/lib/analysis/calculateResult";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { formatRub } from "@/lib/utils";
 import { riskLabel } from "./result-style";
 
-export function PackagingLogistics({ result }: { result: ProductResult }) {
+export function PackagingLogistics({
+  result,
+  onInputChange,
+}: {
+  result: ProductResult;
+  onInputChange?: (input: PackagingInput) => void;
+}) {
   const [input, setInput] = useState<PackagingInput>({
     lengthCm: result.packaging.lengthCm,
     widthCm: result.packaging.widthCm,
@@ -25,6 +31,10 @@ export function PackagingLogistics({ result }: { result: ProductResult }) {
     currency: result.packaging.currency,
   });
   const packaging = useMemo(() => calculatePackagingRisk(input), [input]);
+
+  useEffect(() => {
+    onInputChange?.(input);
+  }, [input, onInputChange]);
 
   return (
     <Card className="p-5">
