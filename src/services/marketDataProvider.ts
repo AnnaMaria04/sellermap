@@ -6,7 +6,7 @@ import { getMpstatsItems } from "@/services/mpstatsClient";
 import { getWbImageUrl, getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
 import { isSupabaseConfigured, supabaseRest } from "@/services/supabaseRest";
 
-type SearchOptions = { limit?: number; allowDirectFallback?: boolean };
+type SearchOptions = { limit?: number; allowDirectFallback?: boolean; allowDemoFallback?: boolean };
 type SnapshotRow = {
   id?: string;
   keyword: string;
@@ -171,6 +171,37 @@ function analysisFrom(provider: MarketAnalysisResult["provider"], competitors: C
   };
 }
 
+function demoCompetitors(keyword: string): CompetitorProduct[] {
+  const lower = keyword.toLowerCase();
+  if (/ламп|светиль/.test(lower)) {
+    return [
+      { nmId: 9001001, title: "Настольная LED лампа с диммером", brand: "LumiHome", sellerName: "WB seller", price: 899, rating: 4.8, reviewCount: 1840, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 1 },
+      { nmId: 9001002, title: "Светильник настольный USB", brand: "LightDesk", sellerName: "WB seller", price: 1190, rating: 4.7, reviewCount: 930, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 2 },
+      { nmId: 9001003, title: "LED лампа для рабочего стола", brand: "HomePro", sellerName: "WB seller", price: 749, rating: 4.6, reviewCount: 520, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 3 },
+      { nmId: 9001004, title: "Настольная лампа с аккумулятором", brand: "Bright", sellerName: "WB seller", price: 1390, rating: 4.9, reviewCount: 2280, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 4 },
+    ];
+  }
+  if (/рюкзак/.test(lower)) {
+    return [
+      { nmId: 9002001, title: "Рюкзак городской 30 л", brand: "UrbanPack", sellerName: "WB seller", price: 1890, rating: 4.8, reviewCount: 3120, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 1 },
+      { nmId: 9002002, title: "Водонепроницаемый рюкзак", brand: "TravelWay", sellerName: "WB seller", price: 2390, rating: 4.7, reviewCount: 1560, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 2 },
+      { nmId: 9002003, title: "Рюкзак для ноутбука 30 л", brand: "DailyBag", sellerName: "WB seller", price: 1690, rating: 4.6, reviewCount: 880, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 3 },
+    ];
+  }
+  if (/чехол|iphone|телефон/.test(lower)) {
+    return [
+      { nmId: 9003001, title: "Прозрачный чехол для iPhone", brand: "CaseLab", sellerName: "WB seller", price: 249, rating: 4.8, reviewCount: 8200, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 1 },
+      { nmId: 9003002, title: "Силиконовый чехол iPhone", brand: "SoftCase", sellerName: "WB seller", price: 319, rating: 4.7, reviewCount: 5400, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 2 },
+      { nmId: 9003003, title: "Чехол противоударный iPhone", brand: "Armor", sellerName: "WB seller", price: 490, rating: 4.6, reviewCount: 2200, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 3 },
+    ];
+  }
+  return [
+    { nmId: 9004001, title: "Игрушка антистресс поп-ит", brand: "ToyMix", sellerName: "WB seller", price: 199, rating: 4.8, reviewCount: 4200, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 1 },
+    { nmId: 9004002, title: "Поп-ит силиконовый", brand: "KidsFun", sellerName: "WB seller", price: 149, rating: 4.7, reviewCount: 3100, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 2 },
+    { nmId: 9004003, title: "Антистресс игрушка набор", brand: "HappyToy", sellerName: "WB seller", price: 299, rating: 4.5, reviewCount: 980, image: null, url: null, source: "demo", searchKeyword: keyword, searchPosition: 3 },
+  ];
+}
+
 function failure(provider: MarketAnalysisResult["provider"], warning: string): MarketAnalysisResult {
   return { provider, status: "failed", competitors: [], marketStats: null, warnings: [warning] };
 }
@@ -304,8 +335,16 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
       return direct;
     } catch (error) {
       const detail = error instanceof Error ? error.message : "прямой поиск WB недоступен";
-      return failure("wb_public", `Публичный fallback WB не сработал: ${detail}`);
+      if (!options.allowDemoFallback) {
+        return failure("wb_public", `Публичный fallback WB не сработал: ${detail}`);
+      }
     }
+  }
+
+  if (options.allowDemoFallback) {
+    return analysisFrom("demo", demoCompetitors(clean), [
+      "Демо-данные рынка WB: реальные провайдеры недоступны, этот слой нужен только для тестирования интерфейса и экономики.",
+    ]);
   }
 
   return {
@@ -321,7 +360,11 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
 }
 
 export async function getCompetitorsByKeyword(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
-  return searchSimilarProducts(keyword, { limit: options.limit ?? 50, allowDirectFallback: options.allowDirectFallback });
+  return searchSimilarProducts(keyword, {
+    limit: options.limit ?? 50,
+    allowDirectFallback: options.allowDirectFallback,
+    allowDemoFallback: options.allowDemoFallback,
+  });
 }
 
 export async function getCompetitorsByNmId(nmId: number) {

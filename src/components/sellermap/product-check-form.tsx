@@ -501,7 +501,7 @@ export function ProductCheckForm() {
     setError("");
     const draft = applyImportedData(data, "demo");
     setState("import_success");
-    if (draft && data.product?.title) void lookupMarketByTitle(data.product.title, draft.id, { allowDirectFallback: true });
+    if (draft && data.product?.title) void lookupMarketByTitle(data.product.title, draft.id, { allowDirectFallback: true, allowDemoFallback: true });
   }
 
   async function importSupplier(url = supplierUrl, mode: "replace" | "missing_only" = "replace") {
@@ -657,7 +657,7 @@ export function ProductCheckForm() {
     }
   }
 
-  async function lookupMarketByTitle(title: string, currentDraftId?: string, options: { allowDirectFallback?: boolean } = {}) {
+  async function lookupMarketByTitle(title: string, currentDraftId?: string, options: { allowDirectFallback?: boolean; allowDemoFallback?: boolean } = {}) {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
     setMarketLoading(true);
@@ -676,7 +676,11 @@ export function ProductCheckForm() {
       const marketResponse = await fetch("/api/market/competitors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, allowDirectFallback: options.allowDirectFallback }),
+        body: JSON.stringify({
+          target,
+          allowDirectFallback: options.allowDirectFallback,
+          allowDemoFallback: options.allowDemoFallback,
+        }),
       });
       const nextMarket = (await marketResponse.json()) as MarketAnalysisResult;
       setMarket(nextMarket);
