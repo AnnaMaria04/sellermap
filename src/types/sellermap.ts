@@ -164,7 +164,7 @@ export type MarketTarget = {
   source: "user" | "generated" | "manual";
 };
 
-export type MarketDataProviderName = "mpstats" | "wb_public" | "manual" | "demo" | "none";
+export type MarketDataProviderName = "apify" | "mpstats" | "wb_public" | "cache" | "manual" | "demo" | "none";
 
 export type CompetitorProduct = {
   nmId?: number | null;
@@ -178,7 +178,17 @@ export type CompetitorProduct = {
   estimatedRevenue?: number | null;
   image?: string | null;
   url?: string | null;
+  searchKeyword?: string | null;
+  searchPosition?: number | null;
+  stockSignal?: number | null;
   source: MarketDataProviderName;
+};
+
+export type ProviderHealth = {
+  provider: MarketDataProviderName;
+  ok: boolean;
+  status: "ready" | "not_configured" | "disabled" | "failed";
+  message?: string;
 };
 
 export type MarketStats = {

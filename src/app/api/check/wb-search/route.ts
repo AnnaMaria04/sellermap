@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWbImageUrl, searchWbPublicProducts } from "@/services/wbPublicClient";
+import { searchSimilarProducts } from "@/services/marketDataProvider";
 
 function median(values: number[]) {
   if (!values.length) return 0;
@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
   if (!query) return NextResponse.json({ error: "q обязателен" }, { status: 400 });
 
   try {
-    const products = await searchWbPublicProducts(query, 100);
+    const result = await searchSimilarProducts(query, { limit: 100 });
+    const products = result.competitors;
     const prices = products
       .map((product) => product.price)
       .filter((price): price is number => typeof price === "number" && price > 0);
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       query,
       total: products.length,
-      medianPrice: median(prices),
+      medianPrice: result.marketStats?.medianPrice ?? median(prices),
       entryBarrier,
       demandLevel,
       competitors: products.slice(0, 5).map((product, index) => ({
@@ -38,22 +39,23 @@ export async function GET(req: NextRequest) {
         price: product.price ?? 0,
         rating: product.rating ?? 0,
         reviews: product.reviewCount ?? 0,
-        position: index + 1,
-        imageUrl: product.image ?? (product.nmId ? getWbImageUrl(product.nmId) : ""),
-        category: "",
+        position: product.searchPosition ?? index + 1,
+        imageUrl: product.image ?? "",
+        category: product.searchKeyword ?? "",
       })),
-      source: "wb_public",
-      warning:
-        "Источник: публичный каталог WB. Продажи и выручка требуют MPStats или другого аналитического провайдера.",
+      source: result.provider,
+      status: result.status,
+      warnings: result.warnings,
+      warning: result.warnings.join(" ") || "Продажи и выручка показываются только если их возвращает подключённый провайдер.",
     });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "Публичный поиск WB недоступен.";
+    const detail = error instanceof Error ? error.message : "Market provider недоступен.";
     return NextResponse.json(
       {
-        error: "WB поиск недоступен",
+        error: "Поиск похожих товаров недоступен",
         detail,
         recommendation:
-          "Публичный WB часто ограничивает серверные IP Vercel. Для стабильной аналитики подключите MPStats или введите конкурентов вручную.",
+          "Подключите Apify WB provider, MPStats, кэш снимков или введите конкурентов вручную.",
       },
       { status: 502 },
     );

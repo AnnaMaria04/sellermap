@@ -63,3 +63,26 @@ drop policy if exists "Users can only see own saved products" on public.saved_pr
 create policy "Users can only see own saved products"
   on public.saved_products for all
   using (auth.uid() = user_id);
+
+create table if not exists public.wb_search_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  keyword text not null,
+  provider text not null,
+  products jsonb not null default '[]'::jsonb,
+  market_stats jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists wb_search_snapshots_keyword_created_at_idx
+  on public.wb_search_snapshots (keyword, created_at desc);
+
+create table if not exists public.wb_product_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  nm_id text not null,
+  provider text not null,
+  product jsonb not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists wb_product_snapshots_nm_id_created_at_idx
+  on public.wb_product_snapshots (nm_id, created_at desc);

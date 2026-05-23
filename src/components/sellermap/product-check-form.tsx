@@ -11,7 +11,7 @@ import { MarketTargetStep } from "@/components/MarketTargetStep";
 import { WbCategoryCommissionStep } from "@/components/WbCategoryCommissionStep";
 import type { EconomicsResult } from "@/lib/economics/calculateEconomics";
 import type { SupplierFieldSource, SupplierImportResponse, SupplierPriceTier } from "@/lib/integrations/suppliers/types";
-import { createDraftFromImport, saveDraft, updateDraftField } from "@/services/draftStorage";
+import { createDraftFromImport, saveDraft, updateDraftField, updateMarketAnalysis, updateMarketTarget } from "@/services/draftStorage";
 import { calculateUnitEconomics } from "@/services/economicsCalculator";
 import { formatRub } from "@/lib/utils";
 import type { CommissionMatch, CompetitorProduct, Dimensions, MarketAnalysisResult, MarketTarget, SupplierCurrency } from "@/types/sellermap";
@@ -222,6 +222,7 @@ export function ProductCheckForm() {
   const [marketTarget, setMarketTarget] = useState<MarketTarget | null>(null);
   const [manualCompetitors, setManualCompetitors] = useState<CompetitorProduct[]>([]);
   const [market, setMarket] = useState<MarketAnalysisResult | null>(null);
+  const [marketLoading, setMarketLoading] = useState(false);
   const [commission, setCommission] = useState<CommissionMatch | null>(null);
   const [draftId, setDraftId] = useState<string>("");
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(getCachedExchangeRates);
@@ -406,10 +407,56 @@ export function ProductCheckForm() {
           specs: data.product.specifications,
         }),
       });
+      void lookupMarketByTitle(data.product.title ?? "", draft.id);
       setState(data.status === "success" ? "import_success" : "import_partial");
     } catch {
       setError("Поставщик не ответил. Попробуйте ещё раз или введите данные вручную.");
       setState("import_failed");
+    }
+  }
+
+  async function lookupMarketByTitle(title: string, currentDraftId?: string) {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return;
+    setMarketLoading(true);
+    try {
+      const keywordResponse = await fetch("/api/check/extract-keyword", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: cleanTitle }),
+      });
+      const keywordData = (await keywordResponse.json()) as { keyword?: string };
+      const keyword = keywordData.keyword?.trim() || cleanTitle.split(/\s+/).slice(0, 4).join(" ");
+      const target: MarketTarget = { mode: "keyword", keyword, source: "generated" };
+      setMarketTarget(target);
+      if (currentDraftId) updateMarketTarget(currentDraftId, target);
+
+      const marketResponse = await fetch("/api/market/competitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target }),
+      });
+      const nextMarket = (await marketResponse.json()) as MarketAnalysisResult;
+      setMarket(nextMarket);
+      if (currentDraftId) updateMarketAnalysis(currentDraftId, nextMarket);
+
+      const medianPrice = nextMarket.marketStats?.medianPrice;
+      if (medianPrice && fieldSources.plannedSellingPrice !== "manual") {
+        setFields((current) => ({ ...current, plannedSellingPrice: String(medianPrice) }));
+        setFieldSources((current) => ({ ...current, plannedSellingPrice: "wb_market" }));
+        setFieldNotes((current) => ({ ...current, plannedSellingPrice: "предложение рынка: медиана WB" }));
+        if (currentDraftId) updateDraftField(currentDraftId, "plannedSellingPrice", medianPrice, "wb_market");
+      }
+    } catch {
+      setMarket({
+        provider: "none",
+        status: "failed",
+        competitors: [],
+        marketStats: null,
+        warnings: ["Автоматический поиск похожих товаров WB не выполнен. Можно продолжить с экономикой или добавить конкурентов вручную."],
+      });
+    } finally {
+      setMarketLoading(false);
     }
   }
 
@@ -456,23 +503,38 @@ export function ProductCheckForm() {
 
   async function chooseMarketTarget(target: MarketTarget) {
     setMarketTarget(target);
+    if (draftId) updateMarketTarget(draftId, target);
     if (target.mode === "skip") {
       setMarket(null);
       return;
     }
-    const response = await fetch("/api/market/competitors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ target, manualCompetitors }),
-    });
-    const nextMarket = await response.json() as MarketAnalysisResult;
-    setMarket(nextMarket);
-    const medianPrice = nextMarket.marketStats?.medianPrice;
-    if (medianPrice && fieldSources.plannedSellingPrice !== "manual") {
-      setFields((current) => ({ ...current, plannedSellingPrice: String(medianPrice) }));
-      setFieldSources((current) => ({ ...current, plannedSellingPrice: "wb_market" }));
-      setFieldNotes((current) => ({ ...current, plannedSellingPrice: "предложение рынка: медиана WB" }));
-      if (draftId) updateDraftField(draftId, "plannedSellingPrice", medianPrice, "wb_market");
+    setMarketLoading(true);
+    try {
+      const response = await fetch("/api/market/competitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, manualCompetitors }),
+      });
+      const nextMarket = await response.json() as MarketAnalysisResult;
+      setMarket(nextMarket);
+      if (draftId) updateMarketAnalysis(draftId, nextMarket);
+      const medianPrice = nextMarket.marketStats?.medianPrice;
+      if (medianPrice && fieldSources.plannedSellingPrice !== "manual") {
+        setFields((current) => ({ ...current, plannedSellingPrice: String(medianPrice) }));
+        setFieldSources((current) => ({ ...current, plannedSellingPrice: "wb_market" }));
+        setFieldNotes((current) => ({ ...current, plannedSellingPrice: "предложение рынка: медиана WB" }));
+        if (draftId) updateDraftField(draftId, "plannedSellingPrice", medianPrice, "wb_market");
+      }
+    } catch {
+      setMarket({
+        provider: "none",
+        status: "failed",
+        competitors: [],
+        marketStats: null,
+        warnings: ["Не удалось получить данные конкурентов. Добавьте конкурентов вручную или продолжайте только с экономикой."],
+      });
+    } finally {
+      setMarketLoading(false);
     }
   }
 
@@ -770,6 +832,30 @@ export function ProductCheckForm() {
       {(imported?.product || state === "manual_mode") && (
         <div className="mt-6 space-y-5">
           <p className="section-kicker border-t-0 pt-0">Платформа и налог</p>
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--c-text)]">Автопоиск похожих товаров WB</p>
+                <p className="mt-1 text-xs text-[var(--c-text2)]">
+                  SellerMap сам подбирает поисковый запрос и проверяет конкурентов через подключённый market provider.
+                </p>
+              </div>
+              <span className="rounded-full bg-[var(--c-bg3)] px-3 py-1 text-xs font-semibold text-[var(--c-text2)]">
+                {marketLoading ? "ищем..." : marketTarget?.keyword ? `ключ: ${marketTarget.keyword}` : "ожидает товара"}
+              </span>
+            </div>
+            {marketLoading && (
+              <p className="mt-3 flex items-center gap-2 text-sm text-[var(--c-text2)]">
+                <Loader2 size={14} className="animate-spin text-[var(--c-green)]" />
+                Ищем похожие товары на WB и считаем медиану рынка.
+              </p>
+            )}
+            {market && (
+              <p className="mt-3 text-xs text-[var(--c-text3)]">
+                Источник: {market.provider}. {market.warnings[0] ?? "Точные продажи показываются только если провайдер их возвращает."}
+              </p>
+            )}
+          </div>
           <MarketTargetStep
             productTitle={fields.productTitle || imported?.product?.title || ""}
             specifications={imported?.product?.specifications}

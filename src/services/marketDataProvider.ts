@@ -1,12 +1,42 @@
-import type { CompetitorProduct, MarketAnalysisResult, MarketStats } from "@/types/sellermap";
+import "server-only";
+
+import { ApifyClient } from "apify-client";
+import type { CompetitorProduct, MarketAnalysisResult, MarketStats, ProviderHealth } from "@/types/sellermap";
 import { getMpstatsItems } from "@/services/mpstatsClient";
 import { getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
+import { isSupabaseConfigured, supabaseRest } from "@/services/supabaseRest";
+
+type SearchOptions = { limit?: number };
+type SnapshotRow = {
+  id?: string;
+  keyword: string;
+  provider: string;
+  products: CompetitorProduct[];
+  market_stats?: MarketStats | null;
+  created_at: string;
+};
+
+const WB_SEARCH_ACTOR = process.env.APIFY_WB_SEARCH_ACTOR_ID ?? "stealth_mode/wildberries-product-search-scraper";
+const CACHE_TTL_HOURS = Number(process.env.MARKET_DATA_CACHE_TTL_HOURS ?? 24);
+const ENABLE_DIRECT_WB = process.env.ENABLE_DIRECT_WB_PROVIDER === "true";
+const MARKET_PROVIDER = process.env.MARKET_DATA_PROVIDER ?? "apify";
+
+function apifyToken() {
+  return process.env.APIFY_TOKEN ?? process.env.APIFY_API_TOKEN;
+}
 
 function median(values: number[]) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+function percentile(values: number[], p: number) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * p)));
+  return sorted[index];
 }
 
 export function calculateReviewBarrier(competitors: CompetitorProduct[]) {
@@ -42,6 +72,66 @@ export function getMarketStats(competitors: CompetitorProduct[]): MarketStats {
   return { ...base, marketDifficulty: calculateMarketDifficulty(base) };
 }
 
+export function priceStatsWithQuartiles(competitors: CompetitorProduct[]) {
+  const prices = competitors.map((item) => item.price).filter((value): value is number => typeof value === "number").sort((a, b) => a - b);
+  return {
+    min: prices[0] ?? null,
+    p25: percentile(prices, 0.25),
+    median: median(prices),
+    average: prices.length ? Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length) : null,
+    p75: percentile(prices, 0.75),
+    max: prices.at(-1) ?? null,
+  };
+}
+
+function normalizeNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/\s/g, "").replace(/[^\d.,-]/g, "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function pick(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return null;
+}
+
+function normalizeApifyRows(raw: unknown[], keyword: string): CompetitorProduct[] {
+  return raw.map((entry, index) => {
+    const row = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
+    const priceObject = pick(row, ["price", "salePrice", "finalPrice"]);
+    const seller = pick(row, ["seller", "supplier", "sellerInfo"]);
+    const sellerRecord = seller && typeof seller === "object" ? seller as Record<string, unknown> : {};
+    const nmId = normalizeNumber(pick(row, ["nmId", "id", "productId", "sku", "article"]));
+    const price =
+      typeof priceObject === "object" && priceObject !== null
+        ? normalizeNumber(pick(priceObject as Record<string, unknown>, ["value", "amount", "price", "sale", "current"]))
+        : normalizeNumber(priceObject ?? pick(row, ["priceRub", "salePriceRub", "currentPrice", "discountPrice"]));
+    return {
+      nmId,
+      title: String(pick(row, ["title", "name", "productName"]) ?? "Товар WB"),
+      brand: typeof pick(row, ["brand", "brandName"]) === "string" ? String(pick(row, ["brand", "brandName"])) : null,
+      sellerName: String(pick(row, ["sellerName", "supplierName"]) ?? sellerRecord.name ?? sellerRecord.supplierName ?? "") || null,
+      price,
+      rating: normalizeNumber(pick(row, ["rating", "reviewRating", "stars"])),
+      reviewCount: normalizeNumber(pick(row, ["reviewCount", "reviews", "feedbacks", "comments"])),
+      estimatedSales: normalizeNumber(pick(row, ["estimatedMonthlySales", "sales", "sales30d", "orders"])),
+      estimatedRevenue: normalizeNumber(pick(row, ["estimatedRevenue", "revenue", "revenue30d"])),
+      image: typeof pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"]) === "string" ? String(pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"])) : null,
+      url: typeof pick(row, ["url", "productUrl", "link"]) === "string" ? String(pick(row, ["url", "productUrl", "link"])) : nmId ? `https://www.wildberries.ru/catalog/${nmId}/detail.aspx` : null,
+      source: "apify" as const,
+      searchKeyword: keyword,
+      searchPosition: index + 1,
+      stockSignal: normalizeNumber(pick(row, ["stock", "stockSignal", "quantity", "totalQuantity"])),
+    } as CompetitorProduct;
+  }).filter((product) => product.title !== "Товар WB" || product.nmId || product.price);
+}
+
 export function normalizeMpstatsResponse(raw: unknown): CompetitorProduct[] {
   const rows = Array.isArray(raw) ? raw : Array.isArray((raw as { data?: unknown[] })?.data) ? (raw as { data: unknown[] }).data : [];
   return rows.map((row) => {
@@ -67,35 +157,157 @@ export function normalizeMpstatsResponse(raw: unknown): CompetitorProduct[] {
   });
 }
 
-function notConfigured(): MarketAnalysisResult {
+function analysisFrom(provider: MarketAnalysisResult["provider"], competitors: CompetitorProduct[], warnings: string[]): MarketAnalysisResult {
+  return {
+    provider,
+    status: competitors.length ? "success" : "failed",
+    competitors,
+    marketStats: competitors.length ? getMarketStats(competitors) : null,
+    warnings,
+  };
+}
+
+function failure(provider: MarketAnalysisResult["provider"], warning: string): MarketAnalysisResult {
+  return { provider, status: "failed", competitors: [], marketStats: null, warnings: [warning] };
+}
+
+async function readCachedSnapshot(keyword: string): Promise<MarketAnalysisResult | null> {
+  if (!isSupabaseConfigured()) return null;
+  const since = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  const result = await supabaseRest<SnapshotRow[]>("wb_search_snapshots", {
+    query: {
+      select: "keyword,provider,products,market_stats,created_at",
+      keyword: `eq.${keyword}`,
+      created_at: `gte.${since}`,
+      order: "created_at.desc",
+      limit: "1",
+    },
+  });
+  if (!result.ok || !result.data[0]) return null;
+  const row = result.data[0];
+  return {
+    provider: "cache",
+    status: "success",
+    competitors: row.products ?? [],
+    marketStats: row.market_stats ?? getMarketStats(row.products ?? []),
+    warnings: [`Кэш WB: ${row.provider}, обновлено ${new Date(row.created_at).toLocaleString("ru-RU")}`],
+  };
+}
+
+async function writeCachedSnapshot(keyword: string, provider: string, competitors: CompetitorProduct[], marketStats: MarketStats | null) {
+  if (!isSupabaseConfigured() || !competitors.length) return;
+  await supabaseRest("wb_search_snapshots", {
+    method: "POST",
+    body: JSON.stringify({ keyword, provider, products: competitors, market_stats: marketStats }),
+  });
+}
+
+function apifyPayload(keyword: string, limit: number) {
+  const searchUrl = `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(keyword)}`;
+  return {
+    query: keyword,
+    keyword,
+    search: keyword,
+    searchQuery: keyword,
+    startUrls: [{ url: searchUrl }],
+    searchUrls: [{ url: searchUrl }],
+    maxItems: limit,
+    limit,
+    proxyConfiguration: { useApifyProxy: true },
+  };
+}
+
+async function apifySearchSimilarProducts(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
+  const token = apifyToken();
+  if (!token) return { provider: "apify", status: "not_configured", competitors: [], marketStats: null, warnings: ["APIFY_TOKEN/APIFY_API_TOKEN не задан."] };
+  const client = new ApifyClient({ token });
+  try {
+    const run = await client.actor(WB_SEARCH_ACTOR).call(apifyPayload(keyword, options.limit ?? 50), { timeout: 90 });
+    if (!run.defaultDatasetId) return failure("apify", "Apify WB actor did not return a dataset.");
+    const { items } = await client.dataset(run.defaultDatasetId).listItems({ limit: options.limit ?? 50 });
+    const competitors = normalizeApifyRows(items as unknown[], keyword);
+    const marketStats = getMarketStats(competitors);
+    await writeCachedSnapshot(keyword, "apify", competitors, marketStats);
+    return analysisFrom("apify", competitors, ["Источник: Apify WB provider. Monthly sales are shown only if returned by provider; otherwise demand is proxy-based."]);
+  } catch (error) {
+    return failure("apify", error instanceof Error ? `Apify WB provider failed: ${error.message}` : "Apify WB provider failed.");
+  }
+}
+
+async function mpstatsSearchSimilarProducts(keyword: string): Promise<MarketAnalysisResult> {
+  const result = await getMpstatsItems({ market: "wb", keyword, startRow: 0, endRow: 50 });
+  if (!result.ok) {
+    return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
+  }
+  const competitors = normalizeMpstatsResponse(result.data);
+  const marketStats = getMarketStats(competitors);
+  await writeCachedSnapshot(keyword, "mpstats", competitors, marketStats);
+  return { provider: "mpstats", status: "success", competitors, marketStats, warnings: [] };
+}
+
+export async function getMarketProviderHealth(): Promise<ProviderHealth[]> {
+  return [
+    { provider: "cache", ok: isSupabaseConfigured(), status: isSupabaseConfigured() ? "ready" : "not_configured", message: isSupabaseConfigured() ? undefined : "Supabase cache is not configured." },
+    { provider: "apify", ok: Boolean(apifyToken()), status: apifyToken() ? "ready" : "not_configured", message: apifyToken() ? WB_SEARCH_ACTOR : "APIFY_TOKEN/APIFY_API_TOKEN missing." },
+    { provider: "mpstats", ok: Boolean(process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN), status: (process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN) ? "ready" : "not_configured" },
+    { provider: "wb_public", ok: ENABLE_DIRECT_WB, status: ENABLE_DIRECT_WB ? "ready" : "disabled", message: "Direct WB search is unstable and disabled by default in production." },
+  ];
+}
+
+export async function searchSimilarProducts(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
+  const clean = keyword.trim();
+  if (!clean) return { provider: "none", status: "not_configured", competitors: [], marketStats: null, warnings: ["Keyword is empty."] };
+
+  const cached = await readCachedSnapshot(clean);
+  if (cached) return cached;
+
+  if (MARKET_PROVIDER === "mpstats") {
+    const mpstats = await mpstatsSearchSimilarProducts(clean);
+    if (mpstats.status === "success") return mpstats;
+  }
+
+  const apify = await apifySearchSimilarProducts(clean, options);
+  if (apify.status === "success") return apify;
+
+  if (MARKET_PROVIDER === "mpstats") return apify;
+
+  if (process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN) {
+    const mpstats = await mpstatsSearchSimilarProducts(clean);
+    if (mpstats.status === "success") return mpstats;
+  }
+
+  if (ENABLE_DIRECT_WB) {
+    const direct = await getWbPublicMarketByKeyword(clean, options.limit ?? 50);
+    direct.warnings.unshift("Direct WB search is unstable and may be blocked.");
+    return direct;
+  }
+
   return {
     provider: "none",
-    status: "not_configured",
+    status: apify.status === "not_configured" ? "not_configured" : "failed",
     competitors: [],
     marketStats: null,
-    warnings: ["MPStats API is not configured."],
+    warnings: [
+      ...apify.warnings,
+      "Direct WB search is disabled. Configure APIFY_WB_SEARCH_ACTOR_ID/APIFY_TOKEN, MPStats, cache, or enter competitors manually.",
+    ],
   };
 }
 
 export async function getCompetitorsByKeyword(keyword: string): Promise<MarketAnalysisResult> {
-  if (!keyword.trim()) return notConfigured();
-  if (!process.env.MPSTATS_API_KEY) return getWbPublicMarketByKeyword(keyword);
-  const result = await getMpstatsItems({ market: "wb", keyword, startRow: 0, endRow: 30 });
-  if (!result.ok) {
-    return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
-  }
-  const competitors = normalizeMpstatsResponse(result.data);
-  return { provider: "mpstats", status: "success", competitors, marketStats: getMarketStats(competitors), warnings: [] };
+  return searchSimilarProducts(keyword, { limit: 50 });
 }
 
 export async function getCompetitorsByNmId(nmId: number) {
-  if (!process.env.MPSTATS_API_KEY) return getWbPublicMarketByNmId(nmId);
-  const result = await getMpstatsItems({ market: "wb", ids: String(nmId), startRow: 0, endRow: 30 });
-  if (!result.ok) {
-    return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
+  if (process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN) {
+    const result = await getMpstatsItems({ market: "wb", ids: String(nmId), startRow: 0, endRow: 30 });
+    if (result.ok) {
+      const competitors = normalizeMpstatsResponse(result.data);
+      return { provider: "mpstats", status: "success" as const, competitors, marketStats: getMarketStats(competitors), warnings: [] };
+    }
   }
-  const competitors = normalizeMpstatsResponse(result.data);
-  return { provider: "mpstats", status: "success", competitors, marketStats: getMarketStats(competitors), warnings: [] };
+  if (ENABLE_DIRECT_WB) return getWbPublicMarketByNmId(nmId);
+  return { provider: "none", status: "not_configured" as const, competitors: [], marketStats: null, warnings: ["WB nmId competitor lookup requires MPStats or direct WB fallback enabled."] };
 }
 
 export function buildManualMarketAnalysis(competitors: CompetitorProduct[]): MarketAnalysisResult {
