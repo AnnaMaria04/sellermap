@@ -2,6 +2,8 @@ import "server-only";
 
 import { ApifyClient } from "apify-client";
 import type { CompetitorProduct, MarketAnalysisResult, MarketStats, ProviderHealth } from "@/types/sellermap";
+import { ownWbCollectorProvider } from "@/lib/providers/market/own-wb-collector-provider";
+import type { WBProduct } from "@/lib/providers/market/types";
 import { getMpstatsItems } from "@/services/mpstatsClient";
 import { getWbImageUrl, getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
 import { isSupabaseConfigured, supabaseRest } from "@/services/supabaseRest";
@@ -19,7 +21,8 @@ type SnapshotRow = {
 const WB_SEARCH_ACTOR = process.env.APIFY_WB_SEARCH_ACTOR_ID ?? "stealth_mode/wildberries-product-search-scraper";
 const CACHE_TTL_HOURS = Number(process.env.MARKET_DATA_CACHE_TTL_HOURS ?? 24);
 const ENABLE_DIRECT_WB = process.env.ENABLE_DIRECT_WB_PROVIDER === "true";
-const MARKET_PROVIDER = process.env.MARKET_DATA_PROVIDER ?? "apify";
+const MARKET_PROVIDER = process.env.MARKET_DATA_PROVIDER ?? "auto";
+const ENABLE_APIFY_FALLBACK = process.env.ENABLE_APIFY_FALLBACK !== "false";
 
 function apifyToken() {
   return process.env.APIFY_TOKEN ?? process.env.APIFY_API_TOKEN;
@@ -171,6 +174,26 @@ function analysisFrom(provider: MarketAnalysisResult["provider"], competitors: C
   };
 }
 
+function ownWbToCompetitor(product: WBProduct): CompetitorProduct {
+  return {
+    nmId: Number.isFinite(Number(product.nmId)) ? Number(product.nmId) : null,
+    title: product.title,
+    brand: product.brand,
+    sellerName: product.sellerName,
+    price: product.priceRub,
+    rating: product.rating,
+    reviewCount: product.reviewCount,
+    estimatedSales: product.estimatedMonthlySales,
+    estimatedRevenue: product.estimatedMonthlyRevenue,
+    image: product.imageUrl,
+    url: product.productUrl,
+    searchKeyword: product.searchKeyword,
+    searchPosition: product.searchPosition,
+    stockSignal: product.stockSignal,
+    source: "own-wb",
+  };
+}
+
 function demoCompetitors(keyword: string): CompetitorProduct[] {
   const lower = keyword.toLowerCase();
   if (/ламп|светиль/.test(lower)) {
@@ -241,8 +264,48 @@ async function writeCachedSnapshot(keyword: string, provider: string, competitor
   if (!isSupabaseConfigured() || !competitors.length) return;
   await supabaseRest("wb_search_snapshots", {
     method: "POST",
-    body: JSON.stringify({ keyword, provider, products: competitors, market_stats: marketStats }),
+    body: JSON.stringify({ keyword, query: keyword, provider, products: competitors, market_stats: marketStats, result_count: competitors.length, raw_payload: competitors }),
   });
+  await supabaseRest("wb_product_snapshots", {
+    method: "POST",
+    body: JSON.stringify(
+      competitors
+        .filter((product) => product.nmId)
+        .map((product) => ({
+          nm_id: String(product.nmId),
+          query: product.searchKeyword ?? keyword,
+          provider,
+          title: product.title,
+          brand: product.brand,
+          seller_name: product.sellerName,
+          price_rub: product.price,
+          rating: product.rating,
+          review_count: product.reviewCount,
+          image_url: product.image,
+          product_url: product.url,
+          search_position: product.searchPosition,
+          stock_signal: product.stockSignal,
+          estimated_monthly_sales: product.estimatedSales,
+          product,
+          raw_payload: product,
+        })),
+    ),
+  });
+}
+
+async function ownCollectorSearchSimilarProducts(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
+  try {
+    const products = await ownWbCollectorProvider.searchSimilarProducts(keyword, { limit: options.limit ?? 50 });
+    const competitors = products.map(ownWbToCompetitor);
+    const marketStats = getMarketStats(competitors);
+    await writeCachedSnapshot(keyword, "own-wb", competitors, marketStats);
+    return analysisFrom("own-wb", competitors, [
+      "Источник: собственный WB collector. Точные продажи конкурентов не извлекаются; используем прокси спроса по цене, отзывам и позиции.",
+    ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "own WB collector недоступен";
+    return { provider: "own-wb", status: "failed", competitors: [], marketStats: null, warnings: [`Own WB collector недоступен: ${message}`] };
+  }
 }
 
 function apifyPayload(keyword: string, limit: number) {
@@ -294,9 +357,16 @@ async function mpstatsSearchSimilarProducts(keyword: string): Promise<MarketAnal
 }
 
 export async function getMarketProviderHealth(): Promise<ProviderHealth[]> {
+  const ownHealth = await ownWbCollectorProvider.getProviderHealth?.();
   return [
     { provider: "cache", ok: isSupabaseConfigured(), status: isSupabaseConfigured() ? "ready" : "not_configured", message: isSupabaseConfigured() ? undefined : "Supabase cache is not configured." },
-    { provider: "apify", ok: Boolean(apifyToken()), status: apifyToken() ? "ready" : "not_configured", message: apifyToken() ? WB_SEARCH_ACTOR : "APIFY_TOKEN/APIFY_API_TOKEN missing." },
+    {
+      provider: "own-wb",
+      ok: Boolean(ownHealth?.available),
+      status: ownHealth?.status ?? "not_configured",
+      message: ownHealth?.message,
+    },
+    { provider: "apify", ok: Boolean(apifyToken()) && ENABLE_APIFY_FALLBACK, status: apifyToken() ? (ENABLE_APIFY_FALLBACK ? "ready" : "disabled") : "not_configured", message: apifyToken() ? WB_SEARCH_ACTOR : "APIFY_TOKEN/APIFY_API_TOKEN missing." },
     { provider: "mpstats", ok: Boolean(process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN), status: (process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN) ? "ready" : "not_configured" },
     { provider: "wb_public", ok: ENABLE_DIRECT_WB, status: ENABLE_DIRECT_WB ? "ready" : "disabled", message: "Direct WB search is unstable and disabled by default in production." },
   ];
@@ -309,17 +379,31 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
   const cached = await readCachedSnapshot(clean);
   if (cached) return cached;
 
+  const providersTried: string[] = ["cache"];
+
   if (MARKET_PROVIDER === "mpstats") {
+    providersTried.push("mpstats");
     const mpstats = await mpstatsSearchSimilarProducts(clean);
     if (mpstats.status === "success") return mpstats;
   }
 
-  const apify = await apifySearchSimilarProducts(clean, options);
-  if (apify.status === "success") return apify;
+  if (MARKET_PROVIDER === "own-wb" || MARKET_PROVIDER === "auto" || MARKET_PROVIDER === "apify") {
+    providersTried.push("own-wb");
+    const own = await ownCollectorSearchSimilarProducts(clean, options);
+    if (own.status === "success") return { ...own, warnings: [...own.warnings, `Провайдеры проверены: ${providersTried.join(" → ")}`] };
+  }
+
+  let apify: MarketAnalysisResult = { provider: "apify", status: "failed", competitors: [], marketStats: null, warnings: ["Apify fallback skipped."] };
+  if (ENABLE_APIFY_FALLBACK) {
+    providersTried.push("apify");
+    apify = await apifySearchSimilarProducts(clean, options);
+    if (apify.status === "success") return { ...apify, warnings: ["APIFY_FALLBACK_USED", ...apify.warnings, `Провайдеры проверены: ${providersTried.join(" → ")}`] };
+  }
 
   if (MARKET_PROVIDER === "mpstats") return apify;
 
   if (process.env.MPSTATS_API_KEY ?? process.env.MPSTATS_API_TOKEN) {
+    providersTried.push("mpstats");
     const mpstats = await mpstatsSearchSimilarProducts(clean);
     if (mpstats.status === "success") return mpstats;
   }
@@ -357,7 +441,8 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
     marketStats: null,
     warnings: [
       ...apify.warnings,
-      "Direct WB search is disabled. Configure APIFY_WB_SEARCH_ACTOR_ID/APIFY_TOKEN, MPStats, cache, or enter competitors manually.",
+      `Провайдеры проверены: ${providersTried.join(" → ")}`,
+      "Direct WB search is disabled. Configure OWN_WB_COLLECTOR_BASE_URL/OWN_WB_COLLECTOR_API_KEY, Supabase cache, Apify fallback, MPStats, or enter competitors manually.",
     ],
   };
 }

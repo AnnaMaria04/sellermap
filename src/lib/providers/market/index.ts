@@ -20,7 +20,16 @@ export function toWBProduct(product: CompetitorProduct, keyword: string): WBProd
     stockSignal: product.stockSignal,
     estimatedMonthlySales: product.estimatedSales,
     estimatedMonthlyRevenue: product.estimatedRevenue,
-    source: product.source === "cache" ? "cache" : product.source === "mpstats" ? "mpstats" : product.source === "wb_public" ? "direct-wb" : "apify",
+    source:
+      product.source === "cache"
+        ? "cache"
+        : product.source === "mpstats"
+          ? "mpstats"
+          : product.source === "own-wb"
+            ? "own-wb"
+            : product.source === "wb_public"
+              ? "direct-wb"
+              : "apify",
     raw: product,
   };
 }

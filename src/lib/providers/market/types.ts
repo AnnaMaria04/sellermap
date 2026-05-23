@@ -36,7 +36,7 @@ export type ProviderHealth = {
 };
 
 export type MarketDataProvider = {
-  name: "cache" | "apify" | "mpstats" | "direct-wb";
+  name: "cache" | "own-wb" | "apify" | "mpstats" | "direct-wb";
   searchSimilarProducts(
     query: string,
     options?: {

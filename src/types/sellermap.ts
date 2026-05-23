@@ -164,7 +164,7 @@ export type MarketTarget = {
   source: "user" | "generated" | "manual";
 };
 
-export type MarketDataProviderName = "apify" | "mpstats" | "wb_public" | "cache" | "manual" | "demo" | "none";
+export type MarketDataProviderName = "own-wb" | "apify" | "mpstats" | "wb_public" | "cache" | "manual" | "demo" | "none";
 
 export type CompetitorProduct = {
   nmId?: number | null;
