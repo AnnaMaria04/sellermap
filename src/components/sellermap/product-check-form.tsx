@@ -90,11 +90,16 @@ function cnyToRub(value: number | null) {
   return value ? Math.round(value * 12.8) : "";
 }
 
+function eurToRub(value: number | null) {
+  return value ? Math.round(value * 98) : "";
+}
+
 function unitCostToRub(imported: SupplierImportResponse) {
   const unitCost = imported.product?.unitCost;
   if (!unitCost) return "";
   if (imported.product?.currency === "USD") return String(usdToRub(unitCost));
   if (imported.product?.currency === "CNY") return String(cnyToRub(unitCost));
+  if (imported.product?.currency === "EUR") return String(eurToRub(unitCost));
   return String(Math.round(unitCost));
 }
 
@@ -211,7 +216,7 @@ export function ProductCheckForm() {
           ? [data.product.dimensions.length, data.product.dimensions.width, data.product.dimensions.height].filter(Boolean).join(" x ")
           : "",
         selectedQuantity: String(data.product.selectedQuantity ?? data.product.moq ?? 100),
-        exchangeRate: data.product.currency === "CNY" ? "12.5" : data.product.currency === "USD" ? "90" : "1",
+        exchangeRate: data.product.currency === "CNY" ? "12.5" : data.product.currency === "EUR" ? "98" : data.product.currency === "USD" ? "90" : "1",
       };
 
       setFields((current) => {
@@ -252,7 +257,7 @@ export function ProductCheckForm() {
     const tier = bestTier(imported.product.priceTiers, Number(value));
     if (!tier) return;
     const rubValue =
-      tier.currency === "RUB" ? Math.round(tier.price) : Math.round(tier.price * Number(fields.exchangeRate || (tier.currency === "CNY" ? 12.5 : 90)));
+      tier.currency === "RUB" ? Math.round(tier.price) : Math.round(tier.price * Number(fields.exchangeRate || (tier.currency === "CNY" ? 12.5 : tier.currency === "EUR" ? 98 : 90)));
     updateField("productCostRub", String(rubValue));
   }
 

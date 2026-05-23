@@ -19,7 +19,7 @@ export function getApifyActorForPlatform(platform: SupplierPlatform): string | n
 
 export function getApifyActorsForPlatform(platform: SupplierPlatform): string[] {
   if (platform === "alibaba") {
-    return [process.env.APIFY_ALIBABA_ACTOR_ID, "happitap/alibaba-product-scraper", "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
+    return [process.env.APIFY_ALIBABA_ACTOR_ID, "xtracto/alibaba-product-scraper", "happitap/alibaba-product-scraper", "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
   }
   if (platform === "1688") {
     return [process.env.APIFY_1688_ACTOR_ID, "ecomscrape/1688-product-search-scraper", "futurizerush/1688-com-products-scraper"].filter(Boolean) as string[];
@@ -37,6 +37,24 @@ export async function runApifyActor(input: { actorId: string; payload: Record<st
   if (!run.defaultDatasetId) return null;
   const { items } = await client.dataset(run.defaultDatasetId).listItems({ limit: 1 });
   return (items[0] as RawSupplierProduct | undefined) ?? null;
+}
+
+function payloadForActor(actorId: string, url: string) {
+  if (actorId === "xtracto/alibaba-product-scraper") {
+    return {
+      productUrls: [{ url }],
+      proxyConfiguration: {
+        useApifyProxy: true,
+        apifyProxyGroups: ["RESIDENTIAL"],
+      },
+    };
+  }
+
+  return {
+    startUrls: [{ url }],
+    maxItems: 1,
+    proxyConfiguration: { useApifyProxy: true },
+  };
 }
 
 export async function extractWithApify(url: string, platform: SupplierPlatform): Promise<ApifyExtractionResult> {
@@ -61,11 +79,7 @@ export async function extractWithApify(url: string, platform: SupplierPlatform):
         // Update payload shape here if selected Apify actor requires different input.
         const raw = await runApifyActor({
           actorId,
-          payload: {
-            startUrls: [{ url }],
-            maxItems: 1,
-            proxyConfiguration: { useApifyProxy: true },
-          },
+          payload: payloadForActor(actorId, url),
         });
         if (raw) return { ok: true, provider: "apify", raw };
         errors.push(`${actorId}: no dataset item`);

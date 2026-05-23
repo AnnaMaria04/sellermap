@@ -1,4 +1,5 @@
 import type { CompetitorProduct, MarketAnalysisResult, MarketStats } from "@/types/sellermap";
+import { getMpstatsItems } from "@/services/mpstatsClient";
 
 function median(values: number[]) {
   if (!values.length) return null;
@@ -44,18 +45,22 @@ export function normalizeMpstatsResponse(raw: unknown): CompetitorProduct[] {
   const rows = Array.isArray(raw) ? raw : Array.isArray((raw as { data?: unknown[] })?.data) ? (raw as { data: unknown[] }).data : [];
   return rows.map((row) => {
     const item = row as Record<string, unknown>;
+    const price = item.price && typeof item.price === "object" ? (item.price as Record<string, unknown>) : {};
+    const stats = item.period_stats && typeof item.period_stats === "object" ? (item.period_stats as Record<string, unknown>) : {};
+    const brand = item.brand && typeof item.brand === "object" ? (item.brand as Record<string, unknown>) : {};
+    const seller = item.seller && typeof item.seller === "object" ? (item.seller as Record<string, unknown>) : {};
     return {
-      nmId: typeof item.nmId === "number" ? item.nmId : null,
+      nmId: typeof item.nmId === "number" ? item.nmId : typeof item.id === "number" ? item.id : null,
       title: String(item.title ?? item.name ?? "WB competitor"),
-      brand: typeof item.brand === "string" ? item.brand : null,
-      sellerName: typeof item.sellerName === "string" ? item.sellerName : null,
-      price: typeof item.price === "number" ? item.price : null,
+      brand: typeof item.brand === "string" ? item.brand : typeof brand.name === "string" ? brand.name : null,
+      sellerName: typeof item.sellerName === "string" ? item.sellerName : typeof seller.name === "string" ? seller.name : null,
+      price: typeof item.price === "number" ? item.price : typeof price.final_price === "number" ? Math.round(price.final_price / 100) : null,
       rating: typeof item.rating === "number" ? item.rating : null,
-      reviewCount: typeof item.reviewCount === "number" ? item.reviewCount : null,
-      estimatedSales: typeof item.estimatedSales === "number" ? item.estimatedSales : null,
-      estimatedRevenue: typeof item.estimatedRevenue === "number" ? item.estimatedRevenue : null,
-      image: typeof item.image === "string" ? item.image : null,
-      url: typeof item.url === "string" ? item.url : null,
+      reviewCount: typeof item.reviewCount === "number" ? item.reviewCount : typeof item.comments === "number" ? item.comments : null,
+      estimatedSales: typeof item.estimatedSales === "number" ? item.estimatedSales : typeof stats.sales === "number" ? stats.sales : null,
+      estimatedRevenue: typeof item.estimatedRevenue === "number" ? item.estimatedRevenue : typeof stats.revenue === "number" ? stats.revenue : null,
+      image: typeof item.image === "string" ? item.image : typeof item.thumb === "string" ? item.thumb : null,
+      url: typeof item.url === "string" ? item.url : typeof item.link === "string" ? item.link : null,
       source: "mpstats" as const,
     };
   });
@@ -73,18 +78,22 @@ function notConfigured(): MarketAnalysisResult {
 
 export async function getCompetitorsByKeyword(keyword: string): Promise<MarketAnalysisResult> {
   if (!process.env.MPSTATS_API_KEY) return notConfigured();
-  void keyword;
-  return {
-    provider: "mpstats",
-    status: "failed",
-    competitors: [],
-    marketStats: null,
-    warnings: ["MPStats adapter is ready, but endpoint mapping is not configured yet."],
-  };
+  const result = await getMpstatsItems({ market: "wb", keyword, startRow: 0, endRow: 30 });
+  if (!result.ok) {
+    return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
+  }
+  const competitors = normalizeMpstatsResponse(result.data);
+  return { provider: "mpstats", status: "success", competitors, marketStats: getMarketStats(competitors), warnings: [] };
 }
 
 export async function getCompetitorsByNmId(nmId: number) {
-  return getCompetitorsByKeyword(String(nmId));
+  if (!process.env.MPSTATS_API_KEY) return notConfigured();
+  const result = await getMpstatsItems({ market: "wb", ids: String(nmId), startRow: 0, endRow: 30 });
+  if (!result.ok) {
+    return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
+  }
+  const competitors = normalizeMpstatsResponse(result.data);
+  return { provider: "mpstats", status: "success", competitors, marketStats: getMarketStats(competitors), warnings: [] };
 }
 
 export function buildManualMarketAnalysis(competitors: CompetitorProduct[]): MarketAnalysisResult {

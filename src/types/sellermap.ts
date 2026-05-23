@@ -25,7 +25,7 @@ export type FieldSource =
   | "missing"
   | "demo";
 
-export type SupplierCurrency = "RUB" | "USD" | "CNY";
+export type SupplierCurrency = "RUB" | "USD" | "CNY" | "EUR";
 
 export type PriceTier = {
   minQty: number;

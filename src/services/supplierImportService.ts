@@ -89,41 +89,66 @@ export function pickFirst(raw: RawSupplierProduct, possibleKeys: string[]) {
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
-    const parsed = Number(value.replace(/[^\d.,]/g, "").replace(",", "."));
+    const normalized = value.replace(/\s/g, "");
+    const rangeFirstValue = normalized.split(/[-–—]/)[0];
+    const parsed = Number(rangeFirstValue.replace(/[^\d.,]/g, "").replace(",", "."));
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
 }
 
 function asCurrency(value: unknown): SupplierCurrency {
-  if (value === "CNY" || value === "USD" || value === "RUB") return value;
+  if (value === "CNY" || value === "USD" || value === "RUB" || value === "EUR") return value;
   const raw = String(value ?? "").toUpperCase();
   if (raw.includes("CNY") || raw.includes("RMB") || raw.includes("¥")) return "CNY";
   if (raw.includes("RUB") || raw.includes("₽")) return "RUB";
+  if (raw.includes("EUR") || raw.includes("€")) return "EUR";
   return "USD";
 }
 
 export function normalizeImages(raw: RawSupplierProduct): string[] {
-  const value = pickFirst(raw, ["images", "imageUrls", "productImages", "photos", "gallery", "image"]);
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.startsWith("http"));
+  const value = pickFirst(raw, ["images", "imageUrls", "productImages", "photos", "gallery", "image", "mainImages"]);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          return String(record.url ?? record.src ?? record.image ?? "");
+        }
+        return "";
+      })
+      .filter((item) => item.startsWith("http"));
+  }
   if (typeof value === "string" && value.startsWith("http")) return [value];
   return [];
 }
 
+function quantityRange(value: unknown) {
+  if (typeof value === "number") return { minQty: value, maxQty: null };
+  if (typeof value !== "string") return { minQty: 1, maxQty: null };
+  const numbers = value.match(/\d+/g)?.map(Number) ?? [];
+  if (numbers.length >= 2) return { minQty: numbers[0], maxQty: numbers[1] };
+  if (numbers.length === 1) return { minQty: numbers[0], maxQty: null };
+  return { minQty: 1, maxQty: null };
+}
+
 export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
-  const value = pickFirst(raw, ["priceTiers", "moqPrices", "prices"]);
+  const value = pickFirst(raw, ["priceTiers", "moqPrices", "prices", "priceRanges", "priceRange"]);
   if (Array.isArray(value)) {
     return value
       .map((tier) => {
         const item = tier as Record<string, unknown>;
-        const price = asNumber(pickFirst(item, ["price", "unitPrice", "value"]));
-        const minQty = asNumber(pickFirst(item, ["minQty", "quantity", "minOrder", "from"])) ?? 1;
+        const priceValue = pickFirst(item, ["price", "unitPrice", "value", "amount"]);
+        const qtyValue = pickFirst(item, ["minQty", "quantity", "minOrder", "from", "range", "qty", "pieces"]);
+        const price = asNumber(priceValue);
+        const { minQty, maxQty } = quantityRange(qtyValue);
         if (!price) return null;
         return {
           minQty,
-          maxQty: asNumber(pickFirst(item, ["maxQty", "to"])) ?? null,
+          maxQty: asNumber(pickFirst(item, ["maxQty", "to"])) ?? maxQty,
           price,
-          currency: asCurrency(pickFirst(item, ["currency", "priceCurrency"])),
+          currency: asCurrency(pickFirst(item, ["currency", "priceCurrency"]) ?? priceValue),
         };
       })
       .filter((tier): tier is PriceTier => Boolean(tier));
@@ -143,11 +168,11 @@ export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
 }
 
 export function normalizeMOQ(raw: RawSupplierProduct): number | null {
-  return asNumber(pickFirst(raw, ["moq", "minOrder", "minimumOrderQuantity", "minOrderQuantity"]));
+  return asNumber(pickFirst(raw, ["moq", "minOrder", "minimumOrderQuantity", "minOrderQuantity", "minimumOrder", "minOrderText"]));
 }
 
 export function normalizeSpecifications(raw: RawSupplierProduct): Record<string, unknown> {
-  const value = pickFirst(raw, ["specs", "specifications", "attributes", "productAttributes"]);
+  const value = pickFirst(raw, ["specs", "specifications", "attributes", "productAttributes", "productSpecifications"]);
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
@@ -187,8 +212,14 @@ export function calculateBestPriceTier(priceTiers: PriceTier[], selectedQuantity
 export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierPlatform, provider: string): NormalizedSupplierProduct {
   const priceTiers = normalizePriceTiers(raw);
   const selected = calculateBestPriceTier(priceTiers, normalizeMOQ(raw));
-  const title = pickFirst(raw, ["title", "name", "productName", "product_title"]);
-  const supplierName = pickFirst(raw, ["supplier", "supplierName", "companyName", "sellerName", "manufacturer"]);
+  const title = pickFirst(raw, ["title", "name", "productName", "product_title", "productTitle"]);
+  const supplierValue = pickFirst(raw, ["supplier", "supplierName", "companyName", "sellerName", "manufacturer", "vendorName"]);
+  const supplierName =
+    typeof supplierValue === "string"
+      ? supplierValue
+      : supplierValue && typeof supplierValue === "object"
+        ? pickFirst(supplierValue as RawSupplierProduct, ["name", "companyName", "supplierName"])
+        : null;
   return {
     title: typeof title === "string" ? title : null,
     supplierName: typeof supplierName === "string" ? supplierName : null,
@@ -201,7 +232,14 @@ export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierP
     unitCost: selected.unitCost,
     currency: selected.tier?.currency ?? asCurrency(pickFirst(raw, ["currency", "priceCurrency"])),
     variants: Array.isArray(raw.variants) ? raw.variants.filter((item): item is string => typeof item === "string") : [],
-    specifications: { ...normalizeSpecifications(raw), source, provider },
+    specifications: {
+      ...normalizeSpecifications(raw),
+      supplierRating: pickFirst(raw, ["supplierRating", "rating", "supplierScore"]),
+      tradeAssurance: pickFirst(raw, ["tradeAssurance", "tradeAssuranceAmount"]),
+      onTimeDelivery: pickFirst(raw, ["onTimeDelivery", "onTimeDeliveryRate"]),
+      source,
+      provider,
+    },
     weight: normalizeWeight(raw),
     dimensions: normalizeDimensions(raw),
     shippingEstimate: asNumber(pickFirst(raw, ["shippingEstimate", "shipping", "deliveryCost"])),
