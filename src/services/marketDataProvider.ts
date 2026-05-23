@@ -237,7 +237,7 @@ async function apifySearchSimilarProducts(keyword: string, options: SearchOption
     const competitors = normalizeApifyRows(items as unknown[], keyword);
     const marketStats = getMarketStats(competitors);
     await writeCachedSnapshot(keyword, "apify", competitors, marketStats);
-    return analysisFrom("apify", competitors, ["Источник: Apify WB provider. Monthly sales are shown only if returned by provider; otherwise demand is proxy-based."]);
+    return analysisFrom("apify", competitors, ["Источник: Apify WB provider. Продажи показываются только если их возвращает провайдер; иначе используем прокси спроса по отзывам, цене и позициям."]);
   } catch (error) {
     return failure("apify", error instanceof Error ? `Apify WB provider failed: ${error.message}` : "Apify WB provider failed.");
   }

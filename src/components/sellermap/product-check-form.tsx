@@ -343,6 +343,13 @@ function defaultSellingPrice(productCostRub: number) {
   return productCostRub > 0 ? Math.round(productCostRub * 3.5) : "";
 }
 
+function marketDifficultyLabel(value: string | null | undefined) {
+  if (value === "high") return "высокая";
+  if (value === "medium") return "средняя";
+  if (value === "low") return "низкая";
+  return "неизвестно";
+}
+
 function getCachedExchangeRates(): ExchangeRates {
   if (typeof window === "undefined") return { USD: 90, CNY: 12.5, EUR: 98, source: "reserve" };
   try {
@@ -1112,7 +1119,7 @@ export function ProductCheckForm() {
               <Metric label="Медиана рынка" value={market.marketStats.medianPrice ? formatRub(market.marketStats.medianPrice) : "—"} />
               <Metric label="Конкурентов" value={String(market.marketStats.competitorCount ?? 0)} />
               <Metric label="Барьер отзывов" value={String(market.marketStats.reviewBarrier ?? "—")} />
-              <Metric label="Сложность" value={market.marketStats.marketDifficulty} />
+              <Metric label="Сложность" value={marketDifficultyLabel(market.marketStats.marketDifficulty)} />
             </div>
           )}
           <WbCategoryCommissionStep title={fields.productTitle} commissionPercent={fields.commissionRate} onChange={applyCommission} />

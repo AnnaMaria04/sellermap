@@ -11,6 +11,7 @@ const DICTIONARY: Array<[RegExp, string]> = [
   [/phone case|iphone case/i, "чехол для телефона"],
   [/water bottle|thermos/i, "термос бутылка"],
   [/toy|kids/i, "игрушка"],
+  [/desk lamp|table lamp|настольная лампа/i, "настольная лампа"],
   [/lamp|light/i, "светильник"],
 ];
 
