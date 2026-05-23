@@ -127,6 +127,29 @@ function pickDeepByKey(raw: RawSupplierProduct, patterns: RegExp[]) {
   return entry?.[1] ?? null;
 }
 
+function renderedText(raw: RawSupplierProduct) {
+  const rendered = raw.rendered;
+  if (!rendered) return "";
+  if (typeof rendered === "string") return rendered;
+  try {
+    return JSON.stringify(rendered);
+  } catch {
+    return "";
+  }
+}
+
+function valueAfterLabel(text: string, labels: string[]) {
+  if (!text) return null;
+  const normalized = text.replace(/\\u0026/g, "&").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  for (const label of labels) {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`${escaped}\\s*[:：]?\\s*([0-9.,]+\\s*[xх*×]\\s*[0-9.,]+(?:\\s*[xх*×]\\s*[0-9.,]+)?\\s*(?:mm|cm|m|kg|g)?|[0-9.,]+\\s*(?:kg|g|usd|eur|cny|rmb|\\$|€|¥)?)`, "i");
+    const match = normalized.match(pattern);
+    if (match?.[1]) return match[1].trim();
+  }
+  return null;
+}
+
 function dimensionValueFromObject(source: Record<string, unknown>) {
   const preferred = [
     "package size",
@@ -337,6 +360,17 @@ export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null 
     if (parsed) return parsed;
   }
 
+  const renderedPackageSize = valueAfterLabel(renderedText(raw), [
+    "Single package size",
+    "Package size",
+    "Single package dimensions",
+    "Package dimensions",
+    "Carton size",
+    "Box size",
+  ]);
+  const parsedRenderedPackageSize = parseDimensionText(renderedPackageSize);
+  if (parsedRenderedPackageSize) return parsedRenderedPackageSize;
+
   const specs = normalizeSpecifications(raw);
   const sizeValue =
     dimensionValueFromObject(specs) ??
@@ -372,7 +406,20 @@ export function normalizeWeight(raw: RawSupplierProduct): number | null {
       /logistics.*weight/,
       /weight$/,
     ]);
-  return asNumber(direct);
+  const parsed = asNumber(direct);
+  if (parsed !== null) return parsed;
+
+  const renderedWeight = valueAfterLabel(renderedText(raw), [
+    "Single gross weight",
+    "Gross weight",
+    "Package weight",
+    "Single package weight",
+    "Unit weight",
+  ]);
+  const weight = asNumber(renderedWeight);
+  if (weight === null) return null;
+  const rawText = String(renderedWeight ?? "").toLowerCase();
+  return rawText.includes("g") && !rawText.includes("kg") ? Number((weight / 1000).toFixed(3)) : weight;
 }
 
 function normalizeShippingEstimate(raw: RawSupplierProduct): number | null {
