@@ -274,6 +274,17 @@ function DecisionDashboard({
         <Status label="Готовность" value={String(decision.scores.launchReadiness)} />
       </div>
 
+      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+        <Status label="Спрос" value={draft.market?.marketStats ? "proxy" : "нет данных"} />
+        <Status label="Конкуренция" value={draft.market?.marketStats?.marketDifficulty ?? "—"} />
+        <Status label="Медиана WB" value={draft.market?.marketStats?.medianPrice ? `${draft.market.marketStats.medianPrice} ₽` : "—"} />
+        <Status label="Рекоменд. вход" value={draft.economics ? `${draft.economics.safePriceMin} ₽` : "—"} />
+        <Status label="Прибыль / шт." value={draft.economics ? `${draft.economics.profitPerUnit} ₽` : "—"} />
+        <Status label="Маржа" value={draft.economics ? `${draft.economics.marginPercent}%` : "—"} />
+        <Status label="Барьер отзывов" value={draft.market?.marketStats?.reviewBarrier ? String(draft.market.marketStats.reviewBarrier) : "—"} />
+        <Status label="Источник" value={draft.market?.provider ?? "—"} />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1fr]">
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <p className="section-kicker border-t-0 pt-0">Товар поставщика</p>
@@ -305,6 +316,36 @@ function DecisionDashboard({
       <EconomicsWaterfall economics={draft.economics} sellingPrice={draft.product.plannedSellingPrice} />
       <PriceScenarioSimulator scenarios={priceScenarios} />
 
+      {draft.market?.competitors?.length ? (
+        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+          <p className="section-kicker border-t-0 pt-0">Карта конкурентов WB</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {draft.market.competitors.slice(0, 12).map((competitor, index) => (
+              <div key={`${competitor.nmId ?? index}`} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
+                <div className="flex gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-[var(--c-bg2)]">
+                    {competitor.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={competitor.image} alt="" className="h-full w-full object-cover" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="max-h-10 overflow-hidden text-sm font-semibold text-[var(--c-text)]">{competitor.title}</p>
+                    <p className="mt-1 text-xs text-[var(--c-text2)]">
+                      {competitor.price ? `${competitor.price} ₽` : "цена —"} · {competitor.rating ?? "—"}★ · {competitor.reviewCount ?? 0} отзывов
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">Позиция {competitor.searchPosition ?? index + 1}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-[var(--c-text3)]">
+            Месячные продажи не показываются как факт, если провайдер их не возвращает. SellerMap использует прокси спроса по отзывам, позициям и ценам.
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <p className="section-kicker border-t-0 pt-0">Недостающие данные</p>
@@ -327,6 +368,19 @@ function DecisionDashboard({
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+        <p className="section-kicker border-t-0 pt-0">Качество данных</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <Status label="Поставщик" value={draft.importStatus ?? "manual"} />
+          <Status label="WB источник" value={draft.market?.provider ?? "нет"} />
+          <Status label="Конкурентов" value={String(draft.market?.competitors?.length ?? 0)} />
+          <Status label="Продажи" value="proxy / недоступны как факт" />
+        </div>
+        <p className="mt-3 text-xs text-[var(--c-text3)]">
+          Это не официальные продажи WB. Оценки строятся по доступным marketplace-сигналам и станут точнее после накопления исторических снимков.
+        </p>
       </div>
     </div>
   );
