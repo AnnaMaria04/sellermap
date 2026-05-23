@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseWbUrl } from "@/lib/parseWbUrl";
+import { getWBCommission } from "@/lib/wbCommissions";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,9 +31,10 @@ type WbPreview = {
   price?: number | null;
   rating?: number | null;
   reviewCount?: number | null;
+  commission?: number;
 };
 
-export function ProductCheckForm() {
+export function ProductCheckForm({ onWbConnect }: { onWbConnect?: () => void } = {}) {
   const [preview, setPreview] = useState<WbPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const {
@@ -64,7 +66,9 @@ export function ProductCheckForm() {
         setValue("productName", data.name);
         setValue("category", data.category);
         if (typeof data.price === "number") setValue("sellingPrice", data.price);
-        setPreview(data);
+        const commission = getWBCommission(data.category ?? "");
+        setPreview({ ...data, commission });
+        onWbConnect?.();
       }
     } finally {
       setLoading(false);
@@ -115,17 +119,22 @@ export function ProductCheckForm() {
                 <Package size={20} />
               </span>
               <div className="min-w-0">
-                <p className="font-medium text-[var(--c-text)]">{preview.name}</p>
+                <p className="font-display text-[14px] font-bold text-[var(--c-text)]">
+                  {preview.name}
+                </p>
                 <p className="mt-1 text-sm text-[var(--c-text2)]">
-                  {preview.brand || "Бренд не указан"} · {preview.category || "Категория не указана"}
-                </p>
-                <p className="mt-2 text-sm text-[var(--c-text2)]">
-                  Цена: {typeof preview.price === "number" ? formatRub(preview.price) : "не получена"} ·
-                  Рейтинг: {typeof preview.rating === "number" ? `${preview.rating}★` : "нет данных"} ·{" "}
+                  {preview.brand || "Бренд не указан"} · {preview.category || "Категория не указана"} ·{" "}
+                  {typeof preview.price === "number" ? formatRub(preview.price) : "цена н/д"} ·{" "}
+                  {typeof preview.rating === "number" ? `${preview.rating}★` : "нет рейтинга"} ·{" "}
                   {typeof preview.reviewCount === "number"
-                    ? `${preview.reviewCount.toLocaleString("ru-RU")} отз.`
-                    : "отзывы не получены"}
+                    ? `${preview.reviewCount.toLocaleString("ru-RU")} отзывов`
+                    : "отзывы н/д"}
                 </p>
+                {typeof preview.commission === "number" && (
+                  <p className="mt-1 text-sm text-[var(--c-text2)]">
+                    Комиссия WB: <span className="font-semibold text-[var(--c-text)]">{Math.round(preview.commission * 100)}%</span>
+                  </p>
+                )}
                 <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-[var(--c-green)]">
                   <CheckCircle2 size={16} />
                   Данные загружены с Wildberries
