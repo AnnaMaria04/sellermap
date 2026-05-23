@@ -41,7 +41,6 @@ export default function ProductCheckPage() {
         <div className="mt-6 grid gap-4 lg:grid-cols-5">
           {dataProviders.map((provider) => {
             const isWbConnected = provider.name === "WBSellerAPIProvider" && wbConnected;
-            const statusKey = isWbConnected ? "connected" : provider.status;
             const statusText = isWbConnected ? "подключено" : statusLabels[provider.status];
             const statusColor = isWbConnected
               ? "text-[var(--c-green)]"
