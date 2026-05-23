@@ -327,12 +327,15 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
   if (ENABLE_DIRECT_WB || options.allowDirectFallback) {
     try {
       const direct = await getWbPublicMarketByKeyword(clean, options.limit ?? 50);
-      direct.warnings.unshift(
-        options.allowDirectFallback
-          ? "Демо-режим: Apify недоступен, использован прямой публичный поиск WB как тестовый fallback."
-          : "Direct WB search is unstable and may be blocked.",
-      );
-      return direct;
+      if (direct.status === "success") {
+        direct.warnings.unshift(
+          options.allowDirectFallback
+            ? "Демо-режим: Apify недоступен, использован прямой публичный поиск WB как тестовый fallback."
+            : "Direct WB search is unstable and may be blocked.",
+        );
+        return direct;
+      }
+      if (!options.allowDemoFallback) return direct;
     } catch (error) {
       const detail = error instanceof Error ? error.message : "прямой поиск WB недоступен";
       if (!options.allowDemoFallback) {
