@@ -12,10 +12,10 @@ const fields = [
   ["sellingPrice", "Цена продажи WB"],
   ["productCost", "Себестоимость"],
   ["commission", "Комиссия WB"],
-  ["logisticsCost", "Логистика"],
+  ["logisticsCost", "Логистика WB"],
   ["packagingCost", "Упаковка"],
   ["adsReserve", "Резерв рекламы"],
-  ["returnReserve", "Риск возвратов"],
+  ["returnReserve", "Резерв возвратов"],
 ] as const;
 
 export function MarginCalculator() {
@@ -59,7 +59,7 @@ export function MarginCalculator() {
             {[
               ["Цена продажи", margin.sellingPrice],
               ["Комиссия WB", -margin.commission],
-              ["Логистика", -margin.logisticsCost],
+              ["Логистика WB", -margin.logisticsCost],
               ["Упаковка", -margin.packagingCost],
               ["Резерв рекламы", -margin.adsReserve],
               ["Себестоимость", -margin.productCost],

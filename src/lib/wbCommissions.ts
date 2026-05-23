@@ -19,6 +19,8 @@ export const WB_COMMISSIONS: Record<string, number> = {
   'Книги': 0.15,
   'Автотовары': 0.17,
   'Зоотовары': 0.18,
+  'Канцтовары': 0.18,
+  'Хобби и творчество': 0.18,
 };
 
 export function getWBCommission(category: string): number {

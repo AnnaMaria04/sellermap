@@ -1,5 +1,4 @@
-// WB FBO logistics tariff: ₽33 base + ₽8 per litre over 1L
-// Weight surcharge: ₽12 per kg over 0.5kg
+// WB FBO logistics tariff: ₽33 base + ₽8 per litre over 1L + ₽12 per kg over 0.5kg
 export function calcWBLogistics(
   lengthCm: number,
   widthCm: number,
