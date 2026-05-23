@@ -70,6 +70,14 @@ export function parseProductIdentityFromUrl(url: string) {
   return { productId, slug, tokens };
 }
 
+function titleFromSlug(slug: string | null) {
+  if (!slug) return null;
+  return slug
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function pickFirst(raw: RawSupplierProduct, possibleKeys: string[]) {
   for (const key of possibleKeys) {
     const value = raw[key];
@@ -322,6 +330,77 @@ async function responseFromRaw(url: string, raw: RawSupplierProduct, source: Sup
   };
 }
 
+function buildUrlIdentityDraft(
+  url: string,
+  source: SupplierPlatform,
+  providerErrors: string[],
+  reason: string,
+): SupplierImportResponse {
+  const identity = parseProductIdentityFromUrl(url);
+  const title = titleFromSlug(identity.slug);
+
+  if (!title) {
+    return {
+      source,
+      provider: "html_meta",
+      status: "blocked",
+      confidence: 0,
+      product: null,
+      fieldSources: {},
+      missingFields: [],
+      warnings: ["Автоматический импорт не смог прочитать страницу поставщика."],
+      error: reason,
+      rawDebug: { urlTokens: identity.tokens, matchedTokens: [], providerErrors },
+    };
+  }
+
+  return {
+    source,
+    provider: "html_meta",
+    status: "partial",
+    confidence: 0.42,
+    product: {
+      title,
+      supplierName: null,
+      supplierUrl: url,
+      productUrl: url,
+      productImages: [],
+      priceTiers: [],
+      moq: null,
+      selectedQuantity: null,
+      unitCost: null,
+      currency: "USD",
+      variants: [],
+      specifications: {
+        supplierProductId: identity.productId,
+        source: "url_identity_only",
+      },
+      weight: null,
+      dimensions: null,
+      shippingEstimate: null,
+      leadTime: null,
+      imageAltTexts: [],
+      category: null,
+    },
+    fieldSources: {
+      title: "supplier_import",
+      supplierName: "missing",
+      productImages: "missing",
+      moq: "missing",
+      unitCost: "missing",
+      weight: "missing",
+      dimensions: "missing",
+      shippingEstimate: "missing",
+    },
+    missingFields: ["unitCost", "moq", "weight", "dimensions", "shippingEstimate"],
+    warnings: [
+      "Создан безопасный черновик только из URL товара. Цена, MOQ, изображения, вес и доставка требуют ручного подтверждения.",
+      reason,
+    ],
+    rawDebug: { urlTokens: identity.tokens, matchedTokens: identity.tokens, providerErrors },
+  };
+}
+
 export async function importWithProviderChain(url: string): Promise<SupplierImportResponse> {
   const source = detectSupplierPlatform(url);
   const providerErrors: string[] = [];
@@ -330,21 +409,19 @@ export async function importWithProviderChain(url: string): Promise<SupplierImpo
   providerErrors.push(apify.error);
 
   const html = await extractWithHtmlMeta(url);
-  if (html) return responseFromRaw(url, html, source, "html_meta", providerErrors);
+  if (html) {
+    const htmlResponse = await responseFromRaw(url, html, source, "html_meta", providerErrors);
+    if (htmlResponse.status !== "identity_mismatch") return htmlResponse;
+    return buildUrlIdentityDraft(
+      url,
+      source,
+      providerErrors,
+      "HTML/meta данные страницы не совпали с URL, поэтому применён только безопасный черновик из самой ссылки.",
+    );
+  }
 
   if (apify.status === "not_configured") {
-    return {
-      source,
-      provider: "apify",
-      status: "not_configured",
-      confidence: 0,
-      product: null,
-      fieldSources: {},
-      missingFields: [],
-      warnings: ["Apify не настроен. Добавьте APIFY_API_TOKEN и actor ID в переменные окружения."],
-      error: apify.error,
-      rawDebug: { urlTokens: parseProductIdentityFromUrl(url).tokens, matchedTokens: [], providerErrors },
-    };
+    return buildUrlIdentityDraft(url, source, providerErrors, "Apify не настроен или недоступен. Проверьте APIFY_API_TOKEN в Vercel.");
   }
 
   return {
