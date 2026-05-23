@@ -134,12 +134,13 @@ function quantityRange(value: unknown) {
 }
 
 export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
-  const value = pickFirst(raw, ["priceTiers", "moqPrices", "prices", "priceRanges", "priceRange"]);
+  const value = pickFirst(raw, ["priceTiers", "moqPrices", "prices", "priceRanges", "priceRange", "ladderPrices"]);
   if (Array.isArray(value)) {
     return value
       .map((tier) => {
         const item = tier as Record<string, unknown>;
-        const priceValue = pickFirst(item, ["price", "unitPrice", "value", "amount"]);
+        const usdPrice = pickFirst(item, ["pricePerUnitUSD", "usdPrice", "priceUSD"]);
+        const priceValue = usdPrice ?? pickFirst(item, ["price", "unitPrice", "pricePerUnit", "value", "amount"]);
         const qtyValue = pickFirst(item, ["minQty", "quantity", "minOrder", "from", "range", "qty", "pieces"]);
         const price = asNumber(priceValue);
         const { minQty, maxQty } = quantityRange(qtyValue);
@@ -148,7 +149,7 @@ export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
           minQty,
           maxQty: asNumber(pickFirst(item, ["maxQty", "to"])) ?? maxQty,
           price,
-          currency: asCurrency(pickFirst(item, ["currency", "priceCurrency"]) ?? priceValue),
+          currency: usdPrice ? "USD" : asCurrency(pickFirst(item, ["currency", "priceCurrency"]) ?? priceValue),
         };
       })
       .filter((tier): tier is PriceTier => Boolean(tier));
@@ -168,7 +169,19 @@ export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
 }
 
 export function normalizeMOQ(raw: RawSupplierProduct): number | null {
-  return asNumber(pickFirst(raw, ["moq", "minOrder", "minimumOrderQuantity", "minOrderQuantity", "minimumOrder", "minOrderText"]));
+  return asNumber(
+    pickFirst(raw, [
+      "moq",
+      "minOrder",
+      "minimumOrderQuantity",
+      "minOrderQuantity",
+      "minOrderQty",
+      "customsMoq",
+      "boxMoq",
+      "minimumOrder",
+      "minOrderText",
+    ]),
+  );
 }
 
 export function normalizeSpecifications(raw: RawSupplierProduct): Record<string, unknown> {
