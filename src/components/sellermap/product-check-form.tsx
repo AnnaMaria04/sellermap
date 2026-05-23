@@ -59,6 +59,150 @@ const loadingSteps = [
 
 const steps = ["Поставщик", "Рынок WB", "Экономика", "Решение"];
 
+const demoImports: Array<{ label: string; data: SupplierImportResponse }> = [
+  {
+    label: "Лампа LED",
+    data: {
+      source: "alibaba",
+      provider: "demo",
+      status: "success",
+      confidence: 0.92,
+      product: {
+        title: "Настольная лампа LED с диммером и USB",
+        supplierName: "Guangzhou LightTech",
+        supplierUrl: "demo://supplier/led-lamp",
+        productUrl: "demo://supplier/led-lamp",
+        productImages: [],
+        priceTiers: [
+          { minQty: 50, maxQty: 199, price: 18.5, currency: "CNY" },
+          { minQty: 200, maxQty: 499, price: 16.8, currency: "CNY" },
+          { minQty: 500, maxQty: null, price: 15.9, currency: "CNY" },
+        ],
+        moq: 50,
+        selectedQuantity: 50,
+        unitCost: 18.5,
+        currency: "CNY",
+        variants: ["белый", "черный"],
+        specifications: { category: "Дом и сад", packing: "картонная коробка" },
+        weight: 0.42,
+        dimensions: { length: 22, width: 14, height: 10, unit: "cm" },
+        shippingEstimate: 11,
+        leadTime: 14,
+        category: "Дом и сад",
+      },
+      fieldSources: {
+        title: "demo",
+        supplierName: "demo",
+        productImages: "demo",
+        moq: "demo",
+        unitCost: "demo",
+        weight: "demo",
+        dimensions: "demo",
+        shippingEstimate: "demo",
+      },
+      missingFields: [],
+      warnings: ["Демо-товар: данные поставщика тестовые, рынок WB ищется через настоящий provider."],
+      rawDebug: { urlTokens: ["led", "lamp"], matchedTokens: ["lamp"], providerErrors: [] },
+    },
+  },
+  {
+    label: "Рюкзак 30L",
+    data: {
+      source: "1688",
+      provider: "demo",
+      status: "success",
+      confidence: 0.9,
+      product: {
+        title: "Городской рюкзак 30 литров водонепроницаемый",
+        supplierName: "Yiwu Bag Factory",
+        supplierUrl: "demo://supplier/backpack-30l",
+        productUrl: "demo://supplier/backpack-30l",
+        productImages: [],
+        priceTiers: [{ minQty: 100, maxQty: null, price: 42, currency: "CNY" }],
+        moq: 100,
+        selectedQuantity: 100,
+        unitCost: 42,
+        currency: "CNY",
+        variants: ["черный", "серый"],
+        specifications: { category: "Рюкзаки", material: "Oxford" },
+        weight: 0.75,
+        dimensions: { length: 45, width: 30, height: 15, unit: "cm" },
+        shippingEstimate: 18,
+        leadTime: 18,
+        category: "Рюкзаки",
+      },
+      fieldSources: { title: "demo", supplierName: "demo", moq: "demo", unitCost: "demo", weight: "demo", dimensions: "demo", shippingEstimate: "demo" },
+      missingFields: [],
+      warnings: ["Демо-товар: данные поставщика тестовые, рынок WB ищется через настоящий provider."],
+      rawDebug: { urlTokens: ["backpack", "30l"], matchedTokens: ["backpack"], providerErrors: [] },
+    },
+  },
+  {
+    label: "Чехол iPhone",
+    data: {
+      source: "aliexpress",
+      provider: "demo",
+      status: "success",
+      confidence: 0.88,
+      product: {
+        title: "Силиконовый чехол для iPhone прозрачный",
+        supplierName: "Shenzhen Phone Accessories",
+        supplierUrl: "demo://supplier/iphone-case",
+        productUrl: "demo://supplier/iphone-case",
+        productImages: [],
+        priceTiers: [{ minQty: 20, maxQty: null, price: 0.82, currency: "USD" }],
+        moq: 20,
+        selectedQuantity: 100,
+        unitCost: 0.82,
+        currency: "USD",
+        variants: ["iPhone 13", "iPhone 14", "iPhone 15"],
+        specifications: { category: "Аксессуары", material: "TPU" },
+        weight: 0.05,
+        dimensions: { length: 18, width: 10, height: 2, unit: "cm" },
+        shippingEstimate: 0.2,
+        leadTime: 10,
+        category: "Аксессуары",
+      },
+      fieldSources: { title: "demo", supplierName: "demo", moq: "demo", unitCost: "demo", weight: "demo", dimensions: "demo", shippingEstimate: "demo" },
+      missingFields: [],
+      warnings: ["Демо-товар: данные поставщика тестовые, рынок WB ищется через настоящий provider."],
+      rawDebug: { urlTokens: ["iphone", "case"], matchedTokens: ["case"], providerErrors: [] },
+    },
+  },
+  {
+    label: "Поп-ит",
+    data: {
+      source: "alibaba",
+      provider: "demo",
+      status: "success",
+      confidence: 0.86,
+      product: {
+        title: "Игрушка антистресс поп-ит силиконовая",
+        supplierName: "Dongguan Toy Supplier",
+        supplierUrl: "demo://supplier/pop-it",
+        productUrl: "demo://supplier/pop-it",
+        productImages: [],
+        priceTiers: [{ minQty: 100, maxQty: null, price: 0.55, currency: "USD" }],
+        moq: 100,
+        selectedQuantity: 300,
+        unitCost: 0.55,
+        currency: "USD",
+        variants: ["круг", "квадрат"],
+        specifications: { category: "Игрушки", material: "silicone" },
+        weight: 0.08,
+        dimensions: { length: 14, width: 14, height: 2, unit: "cm" },
+        shippingEstimate: 0.15,
+        leadTime: 12,
+        category: "Игрушки",
+      },
+      fieldSources: { title: "demo", supplierName: "demo", moq: "demo", unitCost: "demo", weight: "demo", dimensions: "demo", shippingEstimate: "demo" },
+      missingFields: [],
+      warnings: ["Демо-товар: данные поставщика тестовые, рынок WB ищется через настоящий provider."],
+      rawDebug: { urlTokens: ["pop", "it"], matchedTokens: ["pop"], providerErrors: [] },
+    },
+  },
+];
+
 const sourceLabels: Record<SupplierFieldSource, string> = {
   apify: "Apify",
   supplier_import: "Импорт",
@@ -261,6 +405,97 @@ export function ProductCheckForm() {
         setFieldSources((current) => ({ ...current, exchangeRate: "reserve" }));
       });
   }, [exchangeRates.source]);
+
+  function applyImportedData(data: SupplierImportResponse, sourceOverride?: SupplierFieldSource) {
+    if (!data.product) return null;
+    setImported(data);
+    setSupplierUrl(data.product.supplierUrl || data.product.productUrl);
+
+    const weight = data.product.weight ?? 0;
+    const dimensions = formatDimensions(data.product.dimensions);
+    const sourceCurrency = data.product.currency;
+    const sourceCost = data.product.unitCost;
+    const exchangeRate = sourceCurrency === "RUB" ? 1 : exchangeRates[sourceCurrency] ?? exchangeRates.USD;
+    const productCostRub = Number(unitCostToRub(data, exchangeRates));
+    const supplierDeliveryRub = data.product.shippingEstimate
+      ? Math.round(data.product.shippingEstimate * exchangeRate)
+      : "";
+    const logisticsDefault = estimateWbLogistics(weight, dimensions);
+    const packagingDefault = defaultPackaging(weight);
+    const commissionDefault = estimateCommission(data.product.title ?? "", data.product.category ?? "");
+    const plannedPriceDefault = productCostRub ? defaultSellingPrice(productCostRub) : "";
+    const importedSource = sourceOverride ?? data.fieldSources.unitCost ?? "apify";
+
+    setFieldSources({
+      ...data.fieldSources,
+      productTitle: sourceOverride ?? data.fieldSources.title ?? "apify",
+      selectedQuantity: sourceOverride ?? data.fieldSources.moq ?? "apify",
+      productCostRub: importedSource,
+      exchangeRate: exchangeRates.source === "cbr" ? "cbr" : "reserve",
+      supplierDeliveryCost: supplierDeliveryRub ? importedSource : "missing",
+      logisticsEstimate: "wb_tariff",
+      packagingCost: "default",
+      plannedSellingPrice: plannedPriceDefault ? "default" : "missing",
+      commissionRate: "wb_tariff",
+      adBudgetPercent: "default",
+      taxPercent: "default",
+      returnReservePercent: "default",
+      storageCost: "default",
+    });
+
+    setFieldNotes({
+      productCostRub: sourceCost ? `${sourceCost} ${sourceCurrency} × ${exchangeRate.toFixed(2)}` : "",
+      plannedSellingPrice: plannedPriceDefault ? "расчётный ориентир: себестоимость × 3.5" : "",
+      logisticsEstimate: "оценка по тарифу WB, подтвердите в актуальном калькуляторе",
+      packagingCost: "расчётный минимум",
+      exchangeRate: exchangeRates.source === "cbr" ? "курс ЦБ РФ, кэш 4 часа" : "резервный курс",
+      commissionRate: "локальная таблица комиссий WB",
+    });
+
+    setFields((current) => ({
+      ...current,
+      productTitle: data.product?.title ?? "",
+      supplierName: data.product?.supplierName ?? "",
+      productCostRub: productCostRub ? String(productCostRub) : "",
+      plannedSellingPrice: plannedPriceDefault ? String(plannedPriceDefault) : "",
+      commissionRate: String(commissionDefault),
+      packagingCost: String(packagingDefault),
+      supplierDeliveryCost: supplierDeliveryRub ? String(supplierDeliveryRub) : "",
+      logisticsEstimate: String(logisticsDefault),
+      weight: weight ? String(weight) : "",
+      dimensions,
+      selectedQuantity: String(data.product?.selectedQuantity ?? data.product?.moq ?? 100),
+      exchangeRate: String(exchangeRate),
+    }));
+
+    const draft = createDraftFromImport(data);
+    draft.product.productCostRub = productCostRub || null;
+    draft.product.plannedSellingPrice = typeof plannedPriceDefault === "number" ? plannedPriceDefault : null;
+    draft.product.packagingCost = packagingDefault;
+    draft.product.supplierDeliveryCost = supplierDeliveryRub ? Number(supplierDeliveryRub) : null;
+    draft.product.logisticsCost = logisticsDefault;
+    draft.product.commissionPercent = commissionDefault;
+    draft.product.exchangeRateToRub = exchangeRate;
+    draft.fieldSources = {
+      ...draft.fieldSources,
+      productCostRub: importedSource,
+      plannedSellingPrice: plannedPriceDefault ? "default" : "missing",
+      packagingCost: "default",
+      logisticsCost: "wb_tariff",
+      commissionPercent: "wb_tariff",
+      exchangeRateToRub: exchangeRates.source === "cbr" ? "cbr" : "reserve",
+    };
+    saveDraft(draft);
+    setDraftId(draft.id);
+    return draft;
+  }
+
+  function selectDemoProduct(data: SupplierImportResponse) {
+    setError("");
+    const draft = applyImportedData(data, "demo");
+    setState("import_success");
+    if (draft && data.product?.title) void lookupMarketByTitle(data.product.title, draft.id);
+  }
 
   async function importSupplier(url = supplierUrl, mode: "replace" | "missing_only" = "replace") {
     if (!url.trim()) return;
@@ -761,10 +996,15 @@ export function ProductCheckForm() {
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--c-text3)]">
           <span>Демо:</span>
-          {["Лампа LED", "Рюкзак 30L", "Чехол iPhone", "Поп-ит"].map((item) => (
-            <span key={item} className="rounded-full border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-1 font-semibold">
-              {item}
-            </span>
+          {demoImports.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => selectDemoProduct(item.data)}
+              className="rounded-full border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-1 font-semibold transition hover:border-[var(--c-border2)] hover:text-[var(--c-text)]"
+            >
+              {item.label}
+            </button>
           ))}
         </div>
         <button
