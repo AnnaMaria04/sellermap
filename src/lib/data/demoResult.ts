@@ -57,6 +57,13 @@ export const demoResultInput: RawResultInput = {
       note: "Комиссии, тарифы, логистика и возвраты будут считаться по WB_API_TOKEN.",
     },
     {
+      source: "Расчёт SellerMap",
+      status: "подключено",
+      lastUpdated: "22 мая 2026",
+      confidence: 78,
+      note: "Маржа, безопасная цена и логистика считаются внутренней моделью до подключения официальных тарифов WB.",
+    },
+    {
       source: "MPStats",
       status: "демо",
       lastUpdated: "22 мая 2026",
