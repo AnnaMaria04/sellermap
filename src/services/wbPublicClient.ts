@@ -71,10 +71,39 @@ export async function searchWbPublicProducts(query: string, limit = 30): Promise
     },
   );
 
+  const contentType = res.headers.get("content-type") ?? "";
   if (!res.ok) throw new Error(`WB public search failed: ${res.status}`);
+  if (!contentType.includes("application/json")) {
+    throw new Error("WB public search returned anti-bot/HTML response instead of JSON.");
+  }
   const data = await res.json();
   const products = Array.isArray(data?.data?.products) ? data.data.products : [];
   return products.map((product: WbRawProduct) => normalizeWbProduct(product));
+}
+
+async function getWbBasketProduct(nmId: number): Promise<CompetitorProduct | null> {
+  const vol = Math.floor(nmId / 100000);
+  const part = Math.floor(nmId / 1000);
+  const host = new URL(getWbImageUrl(nmId)).host;
+  const res = await fetch(`https://${host}/vol${vol}/part${part}/${nmId}/info/ru/card.json`, {
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) return null;
+  const product = await res.json();
+  return {
+    nmId,
+    title: String(product.imt_name ?? product.nm_name ?? "Товар WB"),
+    brand: typeof product.selling?.brand_name === "string" ? product.selling.brand_name : null,
+    sellerName: typeof product.selling?.supplier_name === "string" ? product.selling.supplier_name : null,
+    price: null,
+    rating: null,
+    reviewCount: null,
+    estimatedSales: null,
+    estimatedRevenue: null,
+    image: getWbImageUrl(nmId),
+    url: `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`,
+    source: "wb_public",
+  };
 }
 
 export async function getWbPublicProduct(nmId: number): Promise<CompetitorProduct | null> {
@@ -85,10 +114,13 @@ export async function getWbPublicProduct(nmId: number): Promise<CompetitorProduc
       next: { revalidate: 300 },
     },
   );
-  if (!res.ok) throw new Error(`WB public product failed: ${res.status}`);
+  if (!res.ok) return getWbBasketProduct(nmId);
+  if (!(res.headers.get("content-type") ?? "").includes("application/json")) {
+    return getWbBasketProduct(nmId);
+  }
   const data = await res.json();
   const product = data?.data?.products?.[0];
-  return product ? normalizeWbProduct(product) : null;
+  return product ? normalizeWbProduct(product) : getWbBasketProduct(nmId);
 }
 
 function median(values: number[]) {

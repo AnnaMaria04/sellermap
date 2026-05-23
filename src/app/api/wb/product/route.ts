@@ -16,7 +16,13 @@ export async function GET(req: NextRequest) {
       product,
       note: "Публичная карточка WB без seller token.",
     });
-  } catch {
-    return NextResponse.json({ error: "WB public product error" }, { status: 502 });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "WB public product error",
+        detail: error instanceof Error ? error.message : "unknown",
+      },
+      { status: 502 },
+    );
   }
 }
