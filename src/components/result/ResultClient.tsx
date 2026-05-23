@@ -82,6 +82,10 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
     }
   }, [draftId, router]);
 
+  if (draftId && !draft) {
+    return <MissingDraftState />;
+  }
+
   return (
     <>
       {draft && decisionData ? (
@@ -129,6 +133,27 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
         <DataSourcesPanel result={result} />
       </div>
     </>
+  );
+}
+
+function MissingDraftState() {
+  return (
+    <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-6">
+      <p className="section-kicker border-t-0 pt-0 text-[var(--c-amber)]">Отчёт не найден</p>
+      <h1 className="font-display mt-3 text-2xl font-semibold text-[var(--c-text)]">
+        Черновик анализа не загрузился
+      </h1>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--c-text2)]">
+        Этот отчёт сейчас хранится в браузере, где был создан. Если открыть ссылку в другом браузере
+        или после очистки localStorage, SellerMap не будет подставлять демо-данные вместо реального анализа.
+      </p>
+      <a
+        href="/check"
+        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]"
+      >
+        Начать новую проверку
+      </a>
+    </div>
   );
 }
 

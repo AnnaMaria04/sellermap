@@ -12,6 +12,7 @@ import { WbCategoryCommissionStep } from "@/components/WbCategoryCommissionStep"
 import type { EconomicsResult } from "@/lib/economics/calculateEconomics";
 import type { SupplierFieldSource, SupplierImportResponse, SupplierPriceTier } from "@/lib/integrations/suppliers/types";
 import { createDraftFromImport, saveDraft, updateDraftField } from "@/services/draftStorage";
+import { calculateUnitEconomics } from "@/services/economicsCalculator";
 import { formatRub } from "@/lib/utils";
 import type { CommissionMatch, CompetitorProduct, Dimensions, MarketAnalysisResult, MarketTarget, SupplierCurrency } from "@/types/sellermap";
 
@@ -56,7 +57,7 @@ const loadingSteps = [
   "Готовим черновик экономики",
 ];
 
-const steps = ["Supplier", "WB Market", "Economics", "Decision"];
+const steps = ["Поставщик", "Рынок WB", "Экономика", "Решение"];
 
 const sourceLabels: Record<SupplierFieldSource, string> = {
   apify: "Apify",
@@ -149,6 +150,16 @@ function canCalculate(fields: CalculatorFields) {
 function formatDimensions(dimensions: Dimensions | null | undefined) {
   if (!dimensions?.length || !dimensions.width || !dimensions.height) return "";
   return `${dimensions.length} x ${dimensions.width} x ${dimensions.height}`;
+}
+
+function parseDimensionsText(value: string): Dimensions | null {
+  const parts = value
+    .replace(/,/g, ".")
+    .split(/[xх*×\s]+/i)
+    .map(Number)
+    .filter((part) => Number.isFinite(part) && part > 0);
+  if (parts.length < 3) return null;
+  return { length: parts[0], width: parts[1], height: parts[2], unit: "cm" };
 }
 
 function estimateWbLogistics(weightKg: number, dimensionsText = "") {
@@ -577,6 +588,27 @@ export function ProductCheckForm() {
     if (importForDraft.product) {
       const draft = createDraftFromImport(importForDraft);
       if (nextDraftId) draft.id = nextDraftId;
+      const parsedDimensions = parseDimensionsText(finalFields.dimensions);
+      const nextEconomics = canCalculate(finalFields)
+        ? calculateUnitEconomics({
+            sellingPrice: Number(finalFields.plannedSellingPrice),
+            productCostRub: Number(finalFields.productCostRub),
+            currency: "RUB",
+            packagingCost: Number(finalFields.packagingCost),
+            supplierDeliveryCost: Number(finalFields.supplierDeliveryCost || 0),
+            commissionPercent: Number(finalFields.commissionRate),
+            wbLogisticsCost: Number(finalFields.logisticsEstimate),
+            storageCost: Number(finalFields.storageCost || 0),
+            returnReservePercent: Number(finalFields.returnReservePercent || 0),
+            taxPercent: Number(finalFields.taxPercent || 0),
+            adBudgetPercent: Number(finalFields.adBudgetPercent || 0),
+          })
+        : null;
+      draft.product.title = finalFields.productTitle || draft.product.title;
+      draft.product.supplierName = finalFields.supplierName || draft.product.supplierName;
+      draft.product.selectedQuantity = Number(finalFields.selectedQuantity) || draft.product.selectedQuantity;
+      draft.product.weight = Number(finalFields.weight) || null;
+      draft.product.dimensions = parsedDimensions;
       draft.product.productCostRub = Number(finalFields.productCostRub) || null;
       draft.product.plannedSellingPrice = Number(finalFields.plannedSellingPrice) || null;
       draft.product.packagingCost = Number(finalFields.packagingCost) || null;
@@ -591,7 +623,8 @@ export function ProductCheckForm() {
       draft.marketTarget = marketTarget;
       draft.market = market;
       draft.commission = commission;
-      draft.economics = economics;
+      draft.economics = nextEconomics ?? economics;
+      draft.missingFields = missingRequired;
       draft.fieldSources = fieldSources;
       saveDraft(draft);
       nextDraftId = draft.id;
@@ -715,9 +748,9 @@ export function ProductCheckForm() {
             specifications={imported?.product?.specifications}
             onSelect={chooseMarketTarget}
           />
-          {market?.status === "not_configured" && (
+          {market && market.status !== "success" && (
             <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-4 text-sm text-[var(--c-amber)]">
-              Competitor data unavailable: MPStats не подключён. Можно ввести конкурентов вручную.
+              Данные конкурентов недоступны: {market.warnings.join(" ") || "подключите MPStats или введите конкурентов вручную."}
             </div>
           )}
           <ManualCompetitorInput competitors={manualCompetitors} onChange={refreshManualMarket} />
