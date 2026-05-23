@@ -15,24 +15,51 @@ import { demoResult } from "@/lib/data/demoResult";
 export default function ResultPage() {
   return (
     <main className="bg-off-white">
-      <PageSection className="space-y-6 py-8">
+      <PageSection className="py-8">
+        {/* Above the fold: decision card only */}
         <ResultHeader result={demoResult} />
-        <ScoreBreakdown result={demoResult} />
-        <MarketMap result={demoResult} />
-        <MarginSimulator result={demoResult} />
-        <CompetitorCards result={demoResult} />
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-          <CardAudit result={demoResult} />
-          <div className="space-y-6">
+
+        <div className="mt-8 flex justify-center">
+          <a
+            href="#analysis"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--c-text3)] transition hover:text-[var(--c-text2)]"
+          >
+            ↓ Подробный анализ
+          </a>
+        </div>
+
+        {/* Below the fold */}
+        <div id="analysis" className="mt-6 scroll-mt-4 space-y-6">
+          {/* 1. Разбор скоринга */}
+          <ScoreBreakdown result={demoResult} />
+
+          {/* 2. Симулятор цены и маржи */}
+          <MarginSimulator result={demoResult} />
+
+          {/* 3. Карта рынка */}
+          <MarketMap result={demoResult} />
+
+          {/* 4. Конкурентный срез */}
+          <CompetitorCards result={demoResult} />
+
+          {/* AI insights + checklist — contextual follow-up to competitive analysis */}
+          <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
             <AiInsights result={demoResult} />
             <ActionChecklist result={demoResult} />
           </div>
-        </div>
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+
+          {/* 5. Аудит карточки товара */}
+          <CardAudit result={demoResult} />
+
+          {/* 6. Упаковка и логистика */}
           <PackagingLogistics result={demoResult} />
+
+          {/* 7. Поставщик */}
           <SupplierPanel result={demoResult} />
+
+          {/* 8. Источники данных */}
+          <DataSourcesPanel result={demoResult} />
         </div>
-        <DataSourcesPanel result={demoResult} />
       </PageSection>
     </main>
   );

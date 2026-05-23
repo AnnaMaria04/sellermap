@@ -1,8 +1,9 @@
-import { Download, FileCheck2, Search } from "lucide-react";
+import { FileCheck2, Search } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRub } from "@/lib/utils";
 import type { ProductResult } from "@/lib/analysis/types";
+import { riskLabel } from "./result-style";
 
 export function ResultHeader({ result }: { result: ProductResult }) {
   const scoreColor =
@@ -44,17 +45,23 @@ export function ResultHeader({ result }: { result: ProductResult }) {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <Metric label="Маржа" value={`${result.margin.marginPercent.toFixed(1)}%`} tone="warning" />
             <Metric label="Прибыль / шт" value={formatRub(result.margin.profit)} tone="positive" />
-            <Metric label="Безопасный диапазон цены" value={`${formatRub(result.margin.safePriceMin)}-${formatRub(result.margin.safePriceMax)}`} tone="positive" />
+            <Metric
+              label="Риск упаковки"
+              value={riskLabel(result.packaging.riskLevel)}
+              tone={result.packaging.riskLevel === "low" ? "positive" : result.packaging.riskLevel === "medium" ? "warning" : "negative"}
+            />
           </div>
+          <p className="mt-3 text-sm text-[var(--c-text2)]">
+            Безопасная цена:{" "}
+            <span className="font-semibold text-[var(--c-text)]">
+              {formatRub(result.margin.safePriceMin)}–{formatRub(result.margin.safePriceMax)}
+            </span>
+          </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <LinkButton href="/reports" variant="secondary">
               <FileCheck2 size={16} />
               Сохранить отчёт
             </LinkButton>
-            <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-5 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]">
-              <Download size={16} />
-              Экспорт PDF
-            </button>
             <LinkButton href="/check">
               <Search size={16} />
               Проверить другой товар
