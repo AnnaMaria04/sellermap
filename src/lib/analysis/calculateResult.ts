@@ -1,3 +1,4 @@
+import { calcWBLogistics } from "@/lib/wbLogistics";
 import type {
   AiInsights,
   CardAuditItem,
@@ -166,7 +167,7 @@ export function calculatePackagingRisk(input: PackagingInput): PackagingAnalysis
           ? 0.95
           : 1.05;
   const packagingCostPerUnit = Math.round((55 + volumeLiters * 2.6) * fragilityMultiplier);
-  const wbLogisticsEstimate = Math.round((145 + input.weightKg * 88 + volumeLiters * 1.9) * shippingMultiplier);
+  const wbLogisticsEstimate = calcWBLogistics(input.lengthCm, input.widthCm, input.heightCm, input.weightKg);
   const returnCostReserve = Math.round(wbLogisticsEstimate * 0.46);
   const marginImpactPoints = Number(((packagingCostPerUnit + wbLogisticsEstimate) / 2950 * 100).toFixed(1));
   const riskLevel = marginImpactPoints > 15 || input.fragility === "высокая" ? "high" : marginImpactPoints > 9 ? "medium" : "low";

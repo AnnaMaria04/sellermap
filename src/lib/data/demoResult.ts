@@ -1,5 +1,6 @@
 import { calculateResult } from "@/lib/analysis/calculateResult";
 import type { RawResultInput } from "@/lib/analysis/types";
+import { calcWBLogistics } from "@/lib/wbLogistics";
 
 export const demoResultInput: RawResultInput = {
   nmId: "178293402",
@@ -13,7 +14,7 @@ export const demoResultInput: RawResultInput = {
     sellingPrice: 2950,
     costPrice: 940,         // product 820 + supplier shipping 120 (landed cost)
     wbCommission: 0.20,     // travel accessories category rate
-    wbLogistics: 180,       // WB FBO per-unit logistics estimate
+    wbLogistics: calcWBLogistics(30, 20, 8, 0.42), // volume-based WB FBO: 63₽
     packagingCost: 118,
     adSpend: 8000,          // ₽/month
     storagePerMonth: 1500,  // ₽/month
