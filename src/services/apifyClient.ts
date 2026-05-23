@@ -14,10 +14,20 @@ function getApifyClient() {
 }
 
 export function getApifyActorForPlatform(platform: SupplierPlatform): string | null {
-  if (platform === "alibaba") return process.env.APIFY_ALIBABA_ACTOR_ID ?? null;
-  if (platform === "1688") return process.env.APIFY_1688_ACTOR_ID ?? null;
-  if (platform === "aliexpress") return process.env.APIFY_ALIEXPRESS_ACTOR_ID ?? null;
-  return process.env.APIFY_GENERIC_SUPPLIER_ACTOR_ID ?? null;
+  return getApifyActorsForPlatform(platform)[0] ?? null;
+}
+
+export function getApifyActorsForPlatform(platform: SupplierPlatform): string[] {
+  if (platform === "alibaba") {
+    return [process.env.APIFY_ALIBABA_ACTOR_ID, "happitap/alibaba-product-scraper", "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
+  }
+  if (platform === "1688") {
+    return [process.env.APIFY_1688_ACTOR_ID, "ecomscrape/1688-product-search-scraper", "futurizerush/1688-com-products-scraper"].filter(Boolean) as string[];
+  }
+  if (platform === "aliexpress") {
+    return [process.env.APIFY_ALIEXPRESS_ACTOR_ID, "thirdwatch/aliexpress-product-scraper", "piotrv1001/aliexpress-listings-scraper"].filter(Boolean) as string[];
+  }
+  return [process.env.APIFY_GENERIC_SUPPLIER_ACTOR_ID, "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
 }
 
 export async function runApifyActor(input: { actorId: string; payload: Record<string, unknown> }): Promise<RawSupplierProduct | null> {
@@ -34,8 +44,8 @@ export async function extractWithApify(url: string, platform: SupplierPlatform):
     return { ok: false, provider: "apify", status: "not_configured", error: "APIFY_API_TOKEN не задан." };
   }
 
-  const actorId = getApifyActorForPlatform(platform);
-  if (!actorId) {
+  const actorIds = getApifyActorsForPlatform(platform);
+  if (!actorIds.length) {
     return {
       ok: false,
       provider: "apify",
@@ -44,20 +54,26 @@ export async function extractWithApify(url: string, platform: SupplierPlatform):
     };
   }
 
+  const errors: string[] = [];
   try {
-    // Update payload shape here if selected Apify actor requires different input.
-    const raw = await runApifyActor({
-      actorId,
-      payload: {
-        startUrls: [{ url }],
-        maxItems: 1,
-        proxyConfiguration: { useApifyProxy: true },
-      },
-    });
-    if (!raw) {
-      return { ok: false, provider: "apify", status: "blocked", error: "Apify не вернул данные по ссылке." };
+    for (const actorId of actorIds) {
+      try {
+        // Update payload shape here if selected Apify actor requires different input.
+        const raw = await runApifyActor({
+          actorId,
+          payload: {
+            startUrls: [{ url }],
+            maxItems: 1,
+            proxyConfiguration: { useApifyProxy: true },
+          },
+        });
+        if (raw) return { ok: true, provider: "apify", raw };
+        errors.push(`${actorId}: no dataset item`);
+      } catch (error) {
+        errors.push(`${actorId}: ${error instanceof Error ? error.message : "failed"}`);
+      }
     }
-    return { ok: true, provider: "apify", raw };
+    return { ok: false, provider: "apify", status: "blocked", error: errors.join(" | ") || "Apify не вернул данные по ссылке." };
   } catch (error) {
     return {
       ok: false,

@@ -6,10 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ManualCompetitorInput } from "@/components/ManualCompetitorInput";
+import { MarketTargetStep } from "@/components/MarketTargetStep";
+import { WbCategoryCommissionStep } from "@/components/WbCategoryCommissionStep";
 import type { EconomicsResult } from "@/lib/economics/calculateEconomics";
 import type { SupplierFieldSource, SupplierImportResponse, SupplierPriceTier } from "@/lib/integrations/suppliers/types";
 import { createDraftFromImport, saveDraft } from "@/services/draftStorage";
 import { formatRub } from "@/lib/utils";
+import type { CommissionMatch, CompetitorProduct, MarketAnalysisResult, MarketTarget } from "@/types/sellermap";
 
 type CheckPageState =
   | "empty"
@@ -51,6 +55,8 @@ const loadingSteps = [
   "Проверяем, совпадает ли товар со ссылкой",
   "Готовим черновик экономики",
 ];
+
+const steps = ["Supplier", "WB Market", "Economics", "Decision"];
 
 const sourceLabels: Record<SupplierFieldSource, string> = {
   apify: "Apify",
@@ -136,6 +142,10 @@ export function ProductCheckForm() {
   const [fieldSources, setFieldSources] = useState<Record<string, SupplierFieldSource>>({});
   const [error, setError] = useState("");
   const [economics, setEconomics] = useState<EconomicsResult | null>(null);
+  const [marketTarget, setMarketTarget] = useState<MarketTarget | null>(null);
+  const [manualCompetitors, setManualCompetitors] = useState<CompetitorProduct[]>([]);
+  const [market, setMarket] = useState<MarketAnalysisResult | null>(null);
+  const [commission, setCommission] = useState<CommissionMatch | null>(null);
 
   const missingRequired = useMemo(() => {
     const missing: string[] = [];
@@ -147,6 +157,7 @@ export function ProductCheckForm() {
     return missing;
   }, [fields]);
   const readyForEconomics = canCalculate(fields);
+  const activeStep = imported?.product || state === "manual_mode" ? (marketTarget ? (readyForEconomics ? 4 : 3) : 2) : 1;
 
   async function importSupplier(url = supplierUrl, mode: "replace" | "missing_only" = "replace") {
     if (!url.trim()) return;
@@ -245,22 +256,57 @@ export function ProductCheckForm() {
     updateField("productCostRub", String(rubValue));
   }
 
+  async function chooseMarketTarget(target: MarketTarget) {
+    setMarketTarget(target);
+    if (target.mode === "skip") {
+      setMarket(null);
+      return;
+    }
+    const response = await fetch("/api/market/competitors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target, manualCompetitors }),
+    });
+    setMarket(await response.json());
+  }
+
+  async function refreshManualMarket(nextCompetitors: CompetitorProduct[]) {
+    setManualCompetitors(nextCompetitors);
+    if (nextCompetitors.length === 0) return;
+    const response = await fetch("/api/market/competitors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        target: { mode: "manual", source: "manual" },
+        manualCompetitors: nextCompetitors,
+      }),
+    });
+    setMarket(await response.json());
+    setMarketTarget({ mode: "manual", source: "manual" });
+  }
+
+  function applyCommission(match: CommissionMatch) {
+    setCommission(match);
+    updateField("commissionRate", String(match.commissionPercent));
+    setFieldSources((current) => ({ ...current, commissionPercent: match.source === "wb_api" ? "wb_api" : "manual" }));
+  }
+
   useEffect(() => {
     if (!canCalculate(fields)) return;
 
     const controller = new AbortController();
-    fetch("/api/wb/economics/calculate", {
+    fetch("/api/economics/calculate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
         sellingPrice: Number(fields.plannedSellingPrice),
-        productCost: Number(fields.productCostRub),
+        productCostRub: Number(fields.productCostRub),
         currency: "RUB",
         packagingCost: Number(fields.packagingCost),
         supplierDeliveryCost: Number(fields.supplierDeliveryCost || 0),
         commissionPercent: Number(fields.commissionRate),
-        logisticsCost: Number(fields.logisticsEstimate),
+        wbLogisticsCost: Number(fields.logisticsEstimate),
         storageCost: Number(fields.storageCost || 0),
         returnReservePercent: Number(fields.returnReservePercent || 0),
         taxPercent: Number(fields.taxPercent || 0),
@@ -279,8 +325,39 @@ export function ProductCheckForm() {
 
   function continueToResult() {
     let draftId = "";
-    if (imported?.product) {
-      const draft = createDraftFromImport(imported);
+    const importForDraft =
+      imported?.product
+        ? imported
+        : ({
+            source: "generic_supplier",
+            provider: "manual",
+            status: "partial",
+            confidence: 0.4,
+            product: {
+              title: fields.productTitle || "Товар",
+              supplierName: fields.supplierName || null,
+              supplierUrl,
+              productUrl: supplierUrl,
+              productImages: [],
+              priceTiers: [],
+              moq: Number(fields.selectedQuantity) || null,
+              selectedQuantity: Number(fields.selectedQuantity) || null,
+              unitCost: Number(fields.productCostRub) || null,
+              currency: "RUB",
+              variants: [],
+              specifications: {},
+              weight: Number(fields.weight) || null,
+              dimensions: null,
+              shippingEstimate: Number(fields.supplierDeliveryCost) || null,
+              leadTime: null,
+            },
+            fieldSources,
+            missingFields: missingRequired,
+            warnings: ["Данные введены вручную."],
+            rawDebug: { urlTokens: [], matchedTokens: [], providerErrors: [] },
+          } as SupplierImportResponse);
+    if (importForDraft.product) {
+      const draft = createDraftFromImport(importForDraft);
       draft.product.productCostRub = Number(fields.productCostRub) || null;
       draft.product.plannedSellingPrice = Number(fields.plannedSellingPrice) || null;
       draft.product.packagingCost = Number(fields.packagingCost) || null;
@@ -288,7 +365,15 @@ export function ProductCheckForm() {
       draft.product.logisticsCost = Number(fields.logisticsEstimate) || null;
       draft.product.commissionPercent = Number(fields.commissionRate) || null;
       draft.product.exchangeRateToRub = Number(fields.exchangeRate) || null;
+      draft.product.storageCost = Number(fields.storageCost) || 0;
+      draft.product.taxPercent = Number(fields.taxPercent) || 0;
+      draft.product.adBudgetPercent = Number(fields.adBudgetPercent) || 0;
+      draft.product.returnReservePercent = Number(fields.returnReservePercent) || 0;
+      draft.marketTarget = marketTarget;
+      draft.market = market;
+      draft.commission = commission;
       draft.economics = economics;
+      draft.fieldSources = fieldSources;
       saveDraft(draft);
       draftId = draft.id;
     }
@@ -316,8 +401,23 @@ export function ProductCheckForm() {
           Проверка товара
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--c-text2)]">
-          Начните со ссылки поставщика. SellerMap подготовит черновик экономики, а затем сравнит товар с рынком WB.
+          Начните со ссылки поставщика. SellerMap соберёт черновик экономики, сравнит товар с рынком WB и покажет, стоит ли запускать продукт.
         </p>
+      </div>
+
+      <div className="mb-6 grid gap-2 md:grid-cols-4">
+        {steps.map((step, index) => (
+          <div
+            key={step}
+            className={`rounded-lg border p-3 text-sm ${
+              activeStep >= index + 1
+                ? "border-[var(--c-green)] bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                : "border-[var(--c-border)] bg-[var(--c-bg2)] text-[var(--c-text3)]"
+            }`}
+          >
+            {index + 1}. {step}
+          </div>
+        ))}
       </div>
 
       <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
@@ -333,7 +433,7 @@ export function ProductCheckForm() {
             />
             <Button type="button" onClick={() => importSupplier()} disabled={state === "importing"}>
               {state === "importing" ? <Loader2 size={16} className="animate-spin" /> : <WandSparkles size={16} />}
-              Импортировать и проанализировать
+              Импортировать товар
             </Button>
           </div>
         </label>
@@ -397,6 +497,31 @@ export function ProductCheckForm() {
 
       {imported?.product && state !== "importing" && state !== "import_failed" && state !== "import_blocked" && state !== "identity_mismatch" && (
         <ImportedSummary imported={imported} />
+      )}
+
+      {(imported?.product || state === "manual_mode") && (
+        <div className="mt-6 space-y-5">
+          <MarketTargetStep
+            productTitle={fields.productTitle || imported?.product?.title || ""}
+            specifications={imported?.product?.specifications}
+            onSelect={chooseMarketTarget}
+          />
+          {market?.status === "not_configured" && (
+            <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-4 text-sm text-[var(--c-amber)]">
+              Competitor data unavailable: MPStats не подключён. Можно ввести конкурентов вручную.
+            </div>
+          )}
+          <ManualCompetitorInput competitors={manualCompetitors} onChange={refreshManualMarket} />
+          {market?.marketStats && (
+            <div className="grid gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4 md:grid-cols-4">
+              <Metric label="Медиана рынка" value={market.marketStats.medianPrice ? formatRub(market.marketStats.medianPrice) : "—"} />
+              <Metric label="Конкурентов" value={String(market.marketStats.competitorCount ?? 0)} />
+              <Metric label="Барьер отзывов" value={String(market.marketStats.reviewBarrier ?? "—")} />
+              <Metric label="Сложность" value={market.marketStats.marketDifficulty} />
+            </div>
+          )}
+          <WbCategoryCommissionStep title={fields.productTitle} commissionPercent={fields.commissionRate} onChange={applyCommission} />
+        </div>
       )}
 
       {showForm && (
@@ -485,7 +610,7 @@ export function ProductCheckForm() {
           <div className="flex flex-wrap gap-3">
             <Button type="button" onClick={continueToResult} disabled={!canCalculate(fields)}>
               <CheckCircle2 size={16} />
-              Перейти к проверке рынка WB
+              Сформировать решение
             </Button>
             <Button type="button" variant="secondary" onClick={reimportSupplier} disabled={!supplierUrl}>
               <RefreshCw size={16} />

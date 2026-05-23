@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
           error: "Недостаточно данных для расчёта экономики.",
           missingFields: validation.missing,
           negativeFields: validation.negative,
+          invalidPercentFields: validation.invalidPercent,
         },
         { status: 400 },
       );
     }
-
     return NextResponse.json(calculateUnitEconomics(input as EconomicsInput));
   } catch {
     return NextResponse.json({ error: "Не удалось рассчитать экономику." }, { status: 500 });

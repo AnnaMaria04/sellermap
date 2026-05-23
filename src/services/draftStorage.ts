@@ -1,4 +1,4 @@
-import type { FieldSource, ProductAnalysisDraft, SupplierImportResponse } from "@/types/sellermap";
+import type { DecisionResult, EconomicsResult, FieldSource, MarketAnalysisResult, MarketTarget, ProductAnalysisDraft, SupplierImportResponse } from "@/types/sellermap";
 
 const KEY = "sellermap:drafts";
 
@@ -26,15 +26,16 @@ export function getDraft(draftId: string) {
   return readAll()[draftId] ?? null;
 }
 
-export function createDraftFromImport(importResponse: SupplierImportResponse): ProductAnalysisDraft {
+export function createDraftFromSupplierImport(importResponse: SupplierImportResponse): ProductAnalysisDraft {
   const product = importResponse.product;
   const draft: ProductAnalysisDraft = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-    sourceUrl: product?.productUrl ?? "",
+    sourceUrl: product?.productUrl ?? null,
     sourcePlatform: importResponse.source,
     sourceProvider: importResponse.provider,
     importStatus: importResponse.status,
+    importConfidence: importResponse.confidence,
     confidence: importResponse.confidence,
     product: {
       title: product?.title ?? null,
@@ -57,11 +58,21 @@ export function createDraftFromImport(importResponse: SupplierImportResponse): P
       supplierDeliveryCost: product?.shippingEstimate ?? null,
       logisticsCost: product?.shippingEstimate ?? null,
       commissionPercent: null,
+      storageCost: 20,
+      taxPercent: 6,
+      adBudgetPercent: 10,
+      returnReservePercent: 5,
     },
+    marketTarget: null,
     fieldSources: importResponse.fieldSources,
     missingFields: importResponse.missingFields,
     warnings: importResponse.warnings,
+    commission: null,
     economics: null,
+    priceScenarios: [],
+    dataConfidence: null,
+    decision: null,
+    actionPlan: [],
     wbConnection: null,
     market: null,
     recommendations: [],
@@ -69,6 +80,8 @@ export function createDraftFromImport(importResponse: SupplierImportResponse): P
   saveDraft(draft);
   return draft;
 }
+
+export const createDraftFromImport = createDraftFromSupplierImport;
 
 export function updateDraftField(draftId: string, field: string, value: unknown, source: FieldSource) {
   const draft = getDraft(draftId);
@@ -82,6 +95,44 @@ export function updateDraftField(draftId: string, field: string, value: unknown,
   return updated;
 }
 
+export function updateMarketTarget(draftId: string, target: MarketTarget) {
+  const draft = getDraft(draftId);
+  if (!draft) return null;
+  const updated = { ...draft, marketTarget: target };
+  saveDraft(updated);
+  return updated;
+}
+
+export function updateEconomicsInput(draftId: string, partialInput: Partial<ProductAnalysisDraft["product"]>) {
+  const draft = getDraft(draftId);
+  if (!draft) return null;
+  const updated = { ...draft, product: { ...draft.product, ...partialInput } };
+  saveDraft(updated);
+  return updated;
+}
+
+export function updateMarketAnalysis(draftId: string, market: MarketAnalysisResult) {
+  const draft = getDraft(draftId);
+  if (!draft) return null;
+  const updated = { ...draft, market };
+  saveDraft(updated);
+  return updated;
+}
+
+export function updateDecision(draftId: string, decision: DecisionResult, economics?: EconomicsResult) {
+  const draft = getDraft(draftId);
+  if (!draft) return null;
+  const updated = { ...draft, decision, economics: economics ?? draft.economics };
+  saveDraft(updated);
+  return updated;
+}
+
+export function clearDraft(draftId: string) {
+  const drafts = readAll();
+  delete drafts[draftId];
+  writeAll(drafts);
+}
+
 export function mergeReimportedDraft(
   existingDraft: ProductAnalysisDraft,
   newImport: SupplierImportResponse,
@@ -91,6 +142,7 @@ export function mergeReimportedDraft(
   const merged: ProductAnalysisDraft = {
     ...existingDraft,
     importStatus: newImport.status,
+    importConfidence: newImport.confidence,
     confidence: newImport.confidence,
     missingFields: newImport.missingFields,
     warnings: newImport.warnings,
