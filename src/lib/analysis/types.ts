@@ -45,23 +45,40 @@ export type MarginSensitivity = {
   risk: RiskLevel;
 };
 
-export type MarginAnalysis = {
+export type MarginInput = {
   sellingPrice: number;
-  productCost: number;
-  supplierShippingPerUnit: number;
-  commission: number;
-  logistics: number;
-  packaging: number;
-  adsReserve: number;
-  returnReserve: number;
-  storageReserve: number;
-  taxReserve: number;
-  profit: number;
-  marginPercent: number;
+  costPrice: number;
+  wbCommission: number;    // decimal, e.g. 0.19
+  wbLogistics: number;     // ₽/unit
+  packagingCost: number;   // ₽/unit
+  adSpend: number;         // ₽/month
+  storagePerMonth: number; // ₽/month
+  returnRate: number;      // decimal, e.g. 0.09
+  unitsPerMonth: number;
+  taxRate: number;         // 0.06 (USN income) or 0.15 (USN income-expenses)
+};
+
+export type MarginAnalysis = MarginInput & {
+  // intermediate
+  effectiveUnits: number;
+  commissionPerUnit: number;
+  variableCostPerUnit: number;
+  fixedCostPerUnit: number;
+  totalCostPerUnit: number;
+  grossRevenue: number;
+  netRevenue: number;
+  tax: number;
+  taxPerUnit: number;
+  // outputs
+  profitPerUnit: number;
+  profit: number;           // = profitPerUnit (backward compat)
+  monthlyProfit: number;
+  marginPercent: number;    // = netMargin % (backward compat)
   breakEvenPrice: number;
   safePriceMin: number;
   safePriceMax: number;
-  maxAllowedAdCost: number;
+  maxAdSpend: number;
+  maxAllowedAdCost: number; // = maxAdSpend (backward compat)
   riskLabel: "опасно" | "слабая" | "рабочая" | "сильная";
   sensitivity: MarginSensitivity[];
 };
@@ -126,17 +143,7 @@ export type RawResultInput = {
   categoryId: string;
   summary: string;
   updatedAt: string;
-  marginInput: Omit<
-    MarginAnalysis,
-    | "profit"
-    | "marginPercent"
-    | "breakEvenPrice"
-    | "safePriceMin"
-    | "safePriceMax"
-    | "maxAllowedAdCost"
-    | "riskLabel"
-    | "sensitivity"
-  >;
+  marginInput: MarginInput;
   packagingInput: PackagingInput;
   dataSources: DataSourceStatus[];
   competitors: Competitor[];

@@ -11,15 +11,15 @@ export const demoResultInput: RawResultInput = {
   updatedAt: "22 мая 2026",
   marginInput: {
     sellingPrice: 2950,
-    productCost: 820,
-    supplierShippingPerUnit: 120,
-    commission: 430,
-    logistics: 238,
-    packaging: 118,
-    adsReserve: 300,
-    returnReserve: 135,
-    storageReserve: 55,
-    taxReserve: 90,
+    costPrice: 940,         // product 820 + supplier shipping 120 (landed cost)
+    wbCommission: 0.20,     // travel accessories category rate
+    wbLogistics: 180,       // WB FBO per-unit logistics estimate
+    packagingCost: 118,
+    adSpend: 8000,          // ₽/month
+    storagePerMonth: 1500,  // ₽/month
+    returnRate: 0.09,
+    unitsPerMonth: 100,
+    taxRate: 0.06,          // УСН 6% на доходы
   },
   packagingInput: {
     lengthCm: 30,
