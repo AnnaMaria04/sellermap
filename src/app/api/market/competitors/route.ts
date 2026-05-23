@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
     category?: string;
     wbNmId?: number | null;
     manualCompetitors?: CompetitorProduct[];
+    allowDirectFallback?: boolean;
   };
   const target = body.target;
   if (target?.mode === "manual" && body.manualCompetitors?.length) {
@@ -20,6 +21,8 @@ export async function POST(req: NextRequest) {
   const result =
     target?.wbNmId || body.wbNmId
       ? await getCompetitorsByNmId(Number(target?.wbNmId ?? body.wbNmId))
-      : await getCompetitorsByKeyword(target?.keyword || target?.category || body.keyword || body.category || "");
+      : await getCompetitorsByKeyword(target?.keyword || target?.category || body.keyword || body.category || "", {
+          allowDirectFallback: body.allowDirectFallback,
+        });
   return NextResponse.json(result);
 }

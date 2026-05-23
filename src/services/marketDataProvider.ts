@@ -6,7 +6,7 @@ import { getMpstatsItems } from "@/services/mpstatsClient";
 import { getWbImageUrl, getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
 import { isSupabaseConfigured, supabaseRest } from "@/services/supabaseRest";
 
-type SearchOptions = { limit?: number };
+type SearchOptions = { limit?: number; allowDirectFallback?: boolean };
 type SnapshotRow = {
   id?: string;
   keyword: string;
@@ -175,6 +175,14 @@ function failure(provider: MarketAnalysisResult["provider"], warning: string): M
   return { provider, status: "failed", competitors: [], marketStats: null, warnings: [warning] };
 }
 
+function providerErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "провайдер недоступен";
+  if (/monthly usage hard limit exceeded/i.test(message)) {
+    return "Apify WB provider недоступен: превышен месячный лимит аккаунта.";
+  }
+  return `Apify WB provider недоступен: ${message}`;
+}
+
 async function readCachedSnapshot(keyword: string): Promise<MarketAnalysisResult | null> {
   if (!isSupabaseConfigured()) return null;
   const since = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString();
@@ -239,7 +247,7 @@ async function apifySearchSimilarProducts(keyword: string, options: SearchOption
     await writeCachedSnapshot(keyword, "apify", competitors, marketStats);
     return analysisFrom("apify", competitors, ["Источник: Apify WB provider. Продажи показываются только если их возвращает провайдер; иначе используем прокси спроса по отзывам, цене и позициям."]);
   } catch (error) {
-    return failure("apify", error instanceof Error ? `Apify WB provider failed: ${error.message}` : "Apify WB provider failed.");
+    return failure("apify", providerErrorMessage(error));
   }
 }
 
@@ -285,10 +293,19 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
     if (mpstats.status === "success") return mpstats;
   }
 
-  if (ENABLE_DIRECT_WB) {
-    const direct = await getWbPublicMarketByKeyword(clean, options.limit ?? 50);
-    direct.warnings.unshift("Direct WB search is unstable and may be blocked.");
-    return direct;
+  if (ENABLE_DIRECT_WB || options.allowDirectFallback) {
+    try {
+      const direct = await getWbPublicMarketByKeyword(clean, options.limit ?? 50);
+      direct.warnings.unshift(
+        options.allowDirectFallback
+          ? "Демо-режим: Apify недоступен, использован прямой публичный поиск WB как тестовый fallback."
+          : "Direct WB search is unstable and may be blocked.",
+      );
+      return direct;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "прямой поиск WB недоступен";
+      return failure("wb_public", `Публичный fallback WB не сработал: ${detail}`);
+    }
   }
 
   return {
@@ -303,8 +320,8 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
   };
 }
 
-export async function getCompetitorsByKeyword(keyword: string): Promise<MarketAnalysisResult> {
-  return searchSimilarProducts(keyword, { limit: 50 });
+export async function getCompetitorsByKeyword(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
+  return searchSimilarProducts(keyword, { limit: options.limit ?? 50, allowDirectFallback: options.allowDirectFallback });
 }
 
 export async function getCompetitorsByNmId(nmId: number) {
