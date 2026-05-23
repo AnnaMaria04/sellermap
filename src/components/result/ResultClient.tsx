@@ -23,8 +23,8 @@ import type { MarginInput, PackagingInput, RawResultInput } from "@/lib/analysis
 import type { EconomicsInput, ProductAnalysisDraft } from "@/types/sellermap";
 
 export function ResultClient({ initialInput, draftId }: { initialInput: RawResultInput; draftId?: string }) {
-  const [input, setInput] = useState(initialInput);
   const [draft] = useState<ProductAnalysisDraft | null>(() => (draftId ? getDraft(draftId) : null));
+  const [input, setInput] = useState(() => (draft ? inputFromDraft(initialInput, draft) : initialInput));
   const result = useMemo(() => calculateResult(input), [input]);
   const decisionData = useMemo(() => {
     if (!draft) return null;
@@ -122,6 +122,76 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
       </div>
     </>
   );
+}
+
+function inputFromDraft(initialInput: RawResultInput, draft: ProductAnalysisDraft): RawResultInput {
+  const weight = draft.product.weight ?? initialInput.packagingInput.weightKg;
+  const dimensions = draft.product.dimensions;
+  const sellingPrice = draft.product.plannedSellingPrice ?? initialInput.marginInput.sellingPrice;
+  const productCost = draft.product.productCostRub ?? initialInput.marginInput.costPrice;
+  const supplierDelivery = draft.product.supplierDeliveryCost ?? 0;
+  const packagingCost = draft.product.packagingCost ?? initialInput.marginInput.packagingCost;
+  const logistics = draft.product.logisticsCost ?? initialInput.marginInput.wbLogistics;
+  const unitsPerMonth = draft.product.selectedQuantity ?? draft.product.moq ?? initialInput.marginInput.unitsPerMonth;
+
+  return {
+    ...initialInput,
+    title: draft.product.title ?? initialInput.title,
+    category: draft.product.category ?? initialInput.category,
+    competitors: draft.market?.competitors?.length
+      ? draft.market.competitors.slice(0, 8).map((competitor, index) => ({
+          name: competitor.title,
+          nmId: String(competitor.nmId ?? index),
+          imageUrl: competitor.image ?? undefined,
+          price: competitor.price ?? 0,
+          rating: competitor.rating ?? 0,
+          reviews: competitor.reviewCount ?? 0,
+          position: index + 1,
+          estimatedMonthlySales: competitor.estimatedSales ?? 0,
+          estimatedRevenue: competitor.estimatedRevenue ?? 0,
+          strength: "Реальные данные WB",
+          weakness: competitor.estimatedSales ? "Требует проверки отзывов" : "Продажи недоступны без MPStats",
+          positioning: "Публичный WB",
+          aiInsight: "Карточка используется как конкурентный ориентир по цене и отзывам.",
+          x: Math.min(92, Math.max(8, ((competitor.price ?? sellingPrice) / Math.max(sellingPrice * 1.6, 1)) * 100)),
+          y: Math.min(92, Math.max(8, ((competitor.reviewCount ?? 0) / 2000) * 100)),
+          bubbleSize: 20 + Math.min(40, Math.log10((competitor.reviewCount ?? 0) + 1) * 12),
+          riskLevel: "medium" as const,
+        }))
+      : initialInput.competitors,
+    marginInput: {
+      ...initialInput.marginInput,
+      sellingPrice,
+      costPrice: productCost + supplierDelivery,
+      wbCommission: (draft.product.commissionPercent ?? 15) / 100,
+      wbLogistics: logistics,
+      packagingCost,
+      unitsPerMonth,
+      returnRate: (draft.product.returnReservePercent ?? 5) / 100,
+      taxRate: (draft.product.taxPercent ?? 6) / 100,
+      adSpend: Math.round(sellingPrice * ((draft.product.adBudgetPercent ?? 10) / 100) * unitsPerMonth),
+    },
+    packagingInput: {
+      ...initialInput.packagingInput,
+      lengthCm: dimensions?.length ?? initialInput.packagingInput.lengthCm,
+      widthCm: dimensions?.width ?? initialInput.packagingInput.widthCm,
+      heightCm: dimensions?.height ?? initialInput.packagingInput.heightCm,
+      weightKg: weight,
+      category: draft.product.category ?? initialInput.packagingInput.category,
+      quantityPerShipment: unitsPerMonth,
+      currency: draft.product.currency === "RUB" ? "RUB" : draft.product.currency === "CNY" ? "CNY" : "USD",
+    },
+    supplier: {
+      ...initialInput.supplier,
+      supplierUrl: draft.product.supplierUrl ?? initialInput.supplier.supplierUrl,
+      supplierPrice: draft.product.unitCost ?? initialInput.supplier.supplierPrice,
+      shippingPrice: supplierDelivery,
+      unitWeightKg: weight,
+      moq: draft.product.moq ?? initialInput.supplier.moq,
+      currency: draft.product.currency === "RUB" ? "RUB" : draft.product.currency === "CNY" ? "CNY" : "USD",
+      cartonSize: dimensions ? `${dimensions.length} x ${dimensions.width} x ${dimensions.height} см` : initialInput.supplier.cartonSize,
+    },
+  };
 }
 
 function Status({ label, value }: { label: string; value: string }) {

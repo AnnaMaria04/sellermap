@@ -105,6 +105,30 @@ function amountFrom(value: unknown): number | null {
   return asNumber(value);
 }
 
+function objectValueByKeyMatch(source: Record<string, unknown>, patterns: string[]) {
+  const entry = Object.entries(source).find(([key]) => {
+    const normalized = key.toLowerCase();
+    return patterns.some((pattern) => normalized.includes(pattern));
+  });
+  return entry?.[1] ?? null;
+}
+
+function parseDimensionText(value: unknown): Dimensions | null {
+  if (typeof value !== "string") return null;
+  const raw = value.toLowerCase().replace(/,/g, ".");
+  const unit = raw.includes("mm") ? "mm" : raw.includes("m") && !raw.includes("cm") ? "m" : "cm";
+  const numbers = raw.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  if (numbers.length < 2) return null;
+  const factor = unit === "mm" ? 0.1 : unit === "m" ? 100 : 1;
+  const [length, width, height] = numbers.map((number) => Number((number * factor).toFixed(1)));
+  return {
+    length,
+    width,
+    height: height ?? width,
+    unit: "cm",
+  };
+}
+
 function asCurrency(value: unknown): SupplierCurrency {
   if (value === "CNY" || value === "USD" || value === "RUB" || value === "EUR") return value;
   const raw = String(value ?? "").toUpperCase();
@@ -230,9 +254,23 @@ export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null 
     };
   }
   if (typeof value === "string") {
-    const parts = value.match(/\d+(?:[.,]\d+)?/g)?.map((item) => Number(item.replace(",", "."))) ?? [];
-    if (parts.length >= 3) return { length: parts[0], width: parts[1], height: parts[2], unit: "cm" };
+    const parsed = parseDimensionText(value);
+    if (parsed) return parsed;
   }
+
+  const specs = normalizeSpecifications(raw);
+  const sizeValue =
+    objectValueByKeyMatch(specs, ["pen size", "package size", "dimensions", "dimension", "size"]) ??
+    objectValueByKeyMatch(
+      {
+        ...(raw.otherProperties && typeof raw.otherProperties === "object" ? raw.otherProperties as Record<string, unknown> : {}),
+        ...(raw.industryProperties && typeof raw.industryProperties === "object" ? raw.industryProperties as Record<string, unknown> : {}),
+      },
+      ["pen size", "package size", "dimensions", "dimension", "size"],
+    );
+  const parsedFromSpecs = parseDimensionText(sizeValue);
+  if (parsedFromSpecs) return parsedFromSpecs;
+
   return null;
 }
 

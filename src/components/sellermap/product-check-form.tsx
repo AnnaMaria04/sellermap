@@ -11,9 +11,9 @@ import { MarketTargetStep } from "@/components/MarketTargetStep";
 import { WbCategoryCommissionStep } from "@/components/WbCategoryCommissionStep";
 import type { EconomicsResult } from "@/lib/economics/calculateEconomics";
 import type { SupplierFieldSource, SupplierImportResponse, SupplierPriceTier } from "@/lib/integrations/suppliers/types";
-import { createDraftFromImport, saveDraft } from "@/services/draftStorage";
+import { createDraftFromImport, saveDraft, updateDraftField } from "@/services/draftStorage";
 import { formatRub } from "@/lib/utils";
-import type { CommissionMatch, CompetitorProduct, MarketAnalysisResult, MarketTarget } from "@/types/sellermap";
+import type { CommissionMatch, CompetitorProduct, Dimensions, MarketAnalysisResult, MarketTarget, SupplierCurrency } from "@/types/sellermap";
 
 type CheckPageState =
   | "empty"
@@ -62,6 +62,11 @@ const sourceLabels: Record<SupplierFieldSource, string> = {
   apify: "Apify",
   supplier_import: "Импорт",
   manual: "Ручной ввод",
+  default: "по умолчанию",
+  cbr: "ЦБ РФ",
+  reserve: "резерв",
+  wb_tariff: "тариф WB",
+  wb_market: "рынок WB",
   wb_api: "WB API",
   mpstats: "MPStats",
   yandex_gpt: "YandexGPT",
@@ -74,6 +79,11 @@ const sourceClasses: Record<SupplierFieldSource, string> = {
   apify: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
   supplier_import: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
   manual: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
+  default: "bg-[var(--c-bg3)] text-[var(--c-text3)]",
+  cbr: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
+  reserve: "bg-[var(--c-bg3)] text-[var(--c-text3)]",
+  wb_tariff: "bg-[var(--c-bg3)] text-[var(--c-text3)]",
+  wb_market: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
   wb_api: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
   mpstats: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
   yandex_gpt: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
@@ -82,25 +92,23 @@ const sourceClasses: Record<SupplierFieldSource, string> = {
   demo: "bg-[var(--c-amber-dim)] text-[var(--c-amber)]",
 };
 
-function usdToRub(value: number | null) {
-  return value ? Math.round(value * 92) : "";
+type ExchangeRates = {
+  USD: number;
+  CNY: number;
+  EUR: number;
+  source: "cbr" | "reserve";
+};
+
+function currencyToRub(value: number | null, currency: SupplierCurrency | undefined, rates: ExchangeRates) {
+  if (!value) return "";
+  if (currency === "RUB") return String(Math.round(value));
+  return String(Math.round(value * (rates[currency ?? "USD"] ?? rates.USD)));
 }
 
-function cnyToRub(value: number | null) {
-  return value ? Math.round(value * 12.8) : "";
-}
-
-function eurToRub(value: number | null) {
-  return value ? Math.round(value * 98) : "";
-}
-
-function unitCostToRub(imported: SupplierImportResponse) {
+function unitCostToRub(imported: SupplierImportResponse, rates: ExchangeRates) {
   const unitCost = imported.product?.unitCost;
   if (!unitCost) return "";
-  if (imported.product?.currency === "USD") return String(usdToRub(unitCost));
-  if (imported.product?.currency === "CNY") return String(cnyToRub(unitCost));
-  if (imported.product?.currency === "EUR") return String(eurToRub(unitCost));
-  return String(Math.round(unitCost));
+  return currencyToRub(unitCost, imported.product?.currency, rates);
 }
 
 function bestTier(tiers: SupplierPriceTier[], quantity: number) {
@@ -138,6 +146,59 @@ function canCalculate(fields: CalculatorFields) {
   );
 }
 
+function formatDimensions(dimensions: Dimensions | null | undefined) {
+  if (!dimensions?.length || !dimensions.width || !dimensions.height) return "";
+  return `${dimensions.length} x ${dimensions.width} x ${dimensions.height}`;
+}
+
+function estimateWbLogistics(weightKg: number, dimensionsText = "") {
+  const sides = dimensionsText
+    .replace(/,/g, ".")
+    .split(/[xх*×\s]+/i)
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (sides.some((side) => side > 120)) return 350;
+  if (weightKg > 5) return 180;
+  if (weightKg > 1) return 125;
+  if (weightKg > 0.5) return 90;
+  return 65;
+}
+
+function defaultPackaging(weightKg: number) {
+  if (weightKg > 2) return 80;
+  if (weightKg > 0.5) return 50;
+  return 30;
+}
+
+function estimateCommission(title = "", category = "") {
+  const text = `${title} ${category}`.toLowerCase();
+  if (/одеж|куртк|плать|брюк|футбол|пухов/.test(text)) return 22;
+  if (/обув|кроссов|ботин|сапог/.test(text)) return 20;
+  if (/электрон|науш|телефон|кабел|гаджет/.test(text)) return 12;
+  if (/красот|космет|уход|makeup|beauty/.test(text)) return 17;
+  if (/дом|декор|кухн|интерьер/.test(text)) return 17;
+  if (/игруш|toy/.test(text)) return 17;
+  if (/спорт|fitness|тренаж/.test(text)) return 17;
+  if (/авто|car/.test(text)) return 12;
+  if (/канц|офис|marker|маркер|ручк|карандаш|posca|paint marker/.test(text)) return 15;
+  return 15;
+}
+
+function defaultSellingPrice(productCostRub: number) {
+  return productCostRub > 0 ? Math.round(productCostRub * 3.5) : "";
+}
+
+function getCachedExchangeRates(): ExchangeRates {
+  if (typeof window === "undefined") return { USD: 90, CNY: 12.5, EUR: 98, source: "reserve" };
+  try {
+    const cached = JSON.parse(window.localStorage.getItem("sellermap:cbr-rates") ?? "null") as (ExchangeRates & { fetchedAt: number }) | null;
+    if (cached && Date.now() - cached.fetchedAt < 4 * 60 * 60 * 1000) return cached;
+  } catch {
+    // ignore cache parse errors
+  }
+  return { USD: 90, CNY: 12.5, EUR: 98, source: "reserve" };
+}
+
 export function ProductCheckForm() {
   const router = useRouter();
   const [state, setState] = useState<CheckPageState>("empty");
@@ -151,6 +212,9 @@ export function ProductCheckForm() {
   const [manualCompetitors, setManualCompetitors] = useState<CompetitorProduct[]>([]);
   const [market, setMarket] = useState<MarketAnalysisResult | null>(null);
   const [commission, setCommission] = useState<CommissionMatch | null>(null);
+  const [draftId, setDraftId] = useState<string>("");
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(getCachedExchangeRates);
+  const [fieldNotes, setFieldNotes] = useState<Record<string, string>>({});
 
   const missingRequired = useMemo(() => {
     const missing: string[] = [];
@@ -163,6 +227,28 @@ export function ProductCheckForm() {
   }, [fields]);
   const readyForEconomics = canCalculate(fields);
   const activeStep = imported?.product || state === "manual_mode" ? (marketTarget ? (readyForEconomics ? 4 : 3) : 2) : 1;
+
+  useEffect(() => {
+    const key = "sellermap:cbr-rates";
+    if (exchangeRates.source === "cbr") return;
+
+    fetch("https://www.cbr-xml-daily.ru/daily_json.js")
+      .then((response) => response.json())
+      .then((data) => {
+        const next: ExchangeRates = {
+          USD: Number(data?.Valute?.USD?.Value) || 90,
+          CNY: Number(data?.Valute?.CNY?.Value) || 12.5,
+          EUR: Number(data?.Valute?.EUR?.Value) || 98,
+          source: "cbr",
+        };
+        window.localStorage.setItem(key, JSON.stringify({ ...next, fetchedAt: Date.now() }));
+        setExchangeRates(next);
+        setFieldSources((current) => ({ ...current, exchangeRate: "cbr" }));
+      })
+      .catch(() => {
+        setFieldSources((current) => ({ ...current, exchangeRate: "reserve" }));
+      });
+  }, [exchangeRates.source]);
 
   async function importSupplier(url = supplierUrl, mode: "replace" | "missing_only" = "replace") {
     if (!url.trim()) return;
@@ -204,19 +290,59 @@ export function ProductCheckForm() {
 
       setImported(data);
       setSupplierUrl(data.product.supplierUrl || data.product.productUrl);
-      setFieldSources(data.fieldSources);
+      const weight = data.product.weight ?? 0;
+      const dimensions = formatDimensions(data.product.dimensions);
+      const sourceCurrency = data.product.currency;
+      const sourceCost = data.product.unitCost;
+      const exchangeRate = sourceCurrency === "RUB" ? 1 : exchangeRates[sourceCurrency] ?? exchangeRates.USD;
+      const productCostRub = Number(unitCostToRub(data, exchangeRates));
+      const supplierDeliveryRub = data.product.shippingEstimate
+        ? Math.round(data.product.shippingEstimate * exchangeRate)
+        : "";
+      const logisticsDefault = estimateWbLogistics(weight, dimensions);
+      const packagingDefault = defaultPackaging(weight);
+      const commissionDefault = estimateCommission(data.product.title ?? "", data.product.category ?? "");
+      const plannedPriceDefault = productCostRub ? defaultSellingPrice(productCostRub) : "";
+
+      setFieldSources({
+        ...data.fieldSources,
+        productTitle: data.fieldSources.title ?? "apify",
+        selectedQuantity: data.fieldSources.moq ?? "apify",
+        productCostRub: data.fieldSources.unitCost ?? "apify",
+        exchangeRate: exchangeRates.source === "cbr" ? "cbr" : "reserve",
+        supplierDeliveryCost: supplierDeliveryRub ? "apify" : "missing",
+        logisticsEstimate: "wb_tariff",
+        packagingCost: "default",
+        plannedSellingPrice: plannedPriceDefault ? "default" : "missing",
+        commissionRate: "wb_tariff",
+        adBudgetPercent: "default",
+        taxPercent: "default",
+        returnReservePercent: "default",
+        storageCost: "default",
+      });
+
+      setFieldNotes({
+        productCostRub: sourceCost ? `${sourceCost} ${sourceCurrency} × ${exchangeRate.toFixed(2)}` : "",
+        plannedSellingPrice: plannedPriceDefault ? "расчётный ориентир: себестоимость × 3.5" : "",
+        logisticsEstimate: "оценка по тарифу WB, подтвердите в актуальном калькуляторе",
+        packagingCost: "расчётный минимум",
+        exchangeRate: exchangeRates.source === "cbr" ? "курс ЦБ РФ, кэш 4 часа" : "резервный курс",
+        commissionRate: "локальная таблица комиссий WB",
+      });
+
       const mapped: Partial<CalculatorFields> = {
         productTitle: data.product.title ?? "",
         supplierName: data.product.supplierName ?? "",
-        productCostRub: unitCostToRub(data),
-        supplierDeliveryCost: data.product.shippingEstimate ? String(data.product.shippingEstimate) : "",
-        logisticsEstimate: data.product.shippingEstimate ? String(data.product.shippingEstimate) : "",
-        weight: data.product.weight ? String(data.product.weight) : "",
-        dimensions: data.product.dimensions
-          ? [data.product.dimensions.length, data.product.dimensions.width, data.product.dimensions.height].filter(Boolean).join(" x ")
-          : "",
+        productCostRub: productCostRub ? String(productCostRub) : "",
+        plannedSellingPrice: plannedPriceDefault ? String(plannedPriceDefault) : "",
+        commissionRate: String(commissionDefault),
+        packagingCost: String(packagingDefault),
+        supplierDeliveryCost: supplierDeliveryRub ? String(supplierDeliveryRub) : "",
+        logisticsEstimate: String(logisticsDefault),
+        weight: weight ? String(weight) : "",
+        dimensions,
         selectedQuantity: String(data.product.selectedQuantity ?? data.product.moq ?? 100),
-        exchangeRate: data.product.currency === "CNY" ? "12.5" : data.product.currency === "EUR" ? "98" : data.product.currency === "USD" ? "90" : "1",
+        exchangeRate: String(exchangeRate),
       };
 
       setFields((current) => {
@@ -229,6 +355,45 @@ export function ProductCheckForm() {
           ) as CalculatorFields;
         }
         return { ...current, ...mapped };
+      });
+      const draft = createDraftFromImport(data);
+      draft.product.productCostRub = productCostRub || null;
+      draft.product.plannedSellingPrice = typeof plannedPriceDefault === "number" ? plannedPriceDefault : null;
+      draft.product.packagingCost = packagingDefault;
+      draft.product.supplierDeliveryCost = supplierDeliveryRub ? Number(supplierDeliveryRub) : null;
+      draft.product.logisticsCost = logisticsDefault;
+      draft.product.commissionPercent = commissionDefault;
+      draft.product.exchangeRateToRub = exchangeRate;
+      draft.fieldSources = {
+        ...draft.fieldSources,
+        productCostRub: "apify",
+        plannedSellingPrice: plannedPriceDefault ? "default" : "missing",
+        packagingCost: "default",
+        logisticsCost: "wb_tariff",
+        commissionPercent: "wb_tariff",
+        exchangeRateToRub: exchangeRates.source === "cbr" ? "cbr" : "reserve",
+      };
+      saveDraft(draft);
+      setDraftId(draft.id);
+      void fetch("/api/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: draft.id,
+          supplier_url: data.product.supplierUrl || data.product.productUrl,
+          supplier_platform: data.source,
+          supplier_name: data.product.supplierName,
+          product_title: data.product.title,
+          moq: data.product.moq,
+          unit_cost_usd: data.product.unitCost,
+          currency: data.product.currency,
+          weight_kg: data.product.weight,
+          dimensions,
+          shipping_estimate_usd: data.product.shippingEstimate,
+          images: data.product.productImages,
+          price_tiers: data.product.priceTiers,
+          specs: data.product.specifications,
+        }),
       });
       setState(data.status === "success" ? "import_success" : "import_partial");
     } catch {
@@ -247,8 +412,25 @@ export function ProductCheckForm() {
   }
 
   function updateField(key: keyof CalculatorFields, value: string) {
-    setFields((current) => ({ ...current, [key]: value }));
-    setFieldSources((current) => ({ ...current, [key]: "manual" }));
+    setFields((current) => {
+      const next = { ...current, [key]: value };
+      if ((key === "weight" || key === "dimensions") && fieldSources.logisticsEstimate !== "manual") {
+        const weight = Number(key === "weight" ? value : current.weight);
+        if (Number.isFinite(weight) && weight > 0) next.logisticsEstimate = String(estimateWbLogistics(weight, key === "dimensions" ? value : current.dimensions));
+      }
+      if (key === "weight" && fieldSources.packagingCost !== "manual") {
+        const weight = Number(value);
+        if (Number.isFinite(weight) && weight > 0) next.packagingCost = String(defaultPackaging(weight));
+      }
+      return next;
+    });
+    setFieldSources((current) => ({
+      ...current,
+      [key]: "manual",
+      ...((key === "weight" || key === "dimensions") && current.logisticsEstimate !== "manual" ? { logisticsEstimate: "wb_tariff" as SupplierFieldSource } : {}),
+      ...(key === "weight" && current.packagingCost !== "manual" ? { packagingCost: "default" as SupplierFieldSource } : {}),
+    }));
+    setFieldNotes((current) => ({ ...current, [key]: "" }));
   }
 
   function updateQuantity(value: string) {
@@ -272,7 +454,15 @@ export function ProductCheckForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ target, manualCompetitors }),
     });
-    setMarket(await response.json());
+    const nextMarket = await response.json() as MarketAnalysisResult;
+    setMarket(nextMarket);
+    const medianPrice = nextMarket.marketStats?.medianPrice;
+    if (medianPrice && fieldSources.plannedSellingPrice !== "manual") {
+      setFields((current) => ({ ...current, plannedSellingPrice: String(medianPrice) }));
+      setFieldSources((current) => ({ ...current, plannedSellingPrice: "wb_market" }));
+      setFieldNotes((current) => ({ ...current, plannedSellingPrice: "предложение рынка: медиана WB" }));
+      if (draftId) updateDraftField(draftId, "plannedSellingPrice", medianPrice, "wb_market");
+    }
   }
 
   async function refreshManualMarket(nextCompetitors: CompetitorProduct[]) {
@@ -329,7 +519,30 @@ export function ProductCheckForm() {
   }, [fields]);
 
   function continueToResult() {
-    let draftId = "";
+    if (!Number(fields.productCostRub)) {
+      setError("Укажите себестоимость товара. Без неё расчёт невозможен.");
+      setFieldSources((current) => ({ ...current, productCostRub: "missing" }));
+      return;
+    }
+
+    let finalFields = fields;
+    if (!Number(fields.plannedSellingPrice)) {
+      const fallbackPrice =
+        market?.marketStats?.medianPrice ??
+        defaultSellingPrice(Number(fields.productCostRub));
+      if (fallbackPrice) {
+        finalFields = { ...fields, plannedSellingPrice: String(fallbackPrice) };
+        setFields(finalFields);
+        setFieldSources((current) => ({ ...current, plannedSellingPrice: market?.marketStats?.medianPrice ? "wb_market" : "default" }));
+        setFieldNotes((current) => ({
+          ...current,
+          plannedSellingPrice: market?.marketStats?.medianPrice ? "предложение рынка: медиана WB" : "расчётный ориентир: себестоимость × 3.5",
+        }));
+        setError("Цена установлена по медиане рынка — вы можете изменить её.");
+      }
+    }
+
+    let nextDraftId = draftId;
     const importForDraft =
       imported?.product
         ? imported
@@ -363,37 +576,39 @@ export function ProductCheckForm() {
           } as SupplierImportResponse);
     if (importForDraft.product) {
       const draft = createDraftFromImport(importForDraft);
-      draft.product.productCostRub = Number(fields.productCostRub) || null;
-      draft.product.plannedSellingPrice = Number(fields.plannedSellingPrice) || null;
-      draft.product.packagingCost = Number(fields.packagingCost) || null;
-      draft.product.supplierDeliveryCost = Number(fields.supplierDeliveryCost) || null;
-      draft.product.logisticsCost = Number(fields.logisticsEstimate) || null;
-      draft.product.commissionPercent = Number(fields.commissionRate) || null;
-      draft.product.exchangeRateToRub = Number(fields.exchangeRate) || null;
-      draft.product.storageCost = Number(fields.storageCost) || 0;
-      draft.product.taxPercent = Number(fields.taxPercent) || 0;
-      draft.product.adBudgetPercent = Number(fields.adBudgetPercent) || 0;
-      draft.product.returnReservePercent = Number(fields.returnReservePercent) || 0;
+      if (nextDraftId) draft.id = nextDraftId;
+      draft.product.productCostRub = Number(finalFields.productCostRub) || null;
+      draft.product.plannedSellingPrice = Number(finalFields.plannedSellingPrice) || null;
+      draft.product.packagingCost = Number(finalFields.packagingCost) || null;
+      draft.product.supplierDeliveryCost = Number(finalFields.supplierDeliveryCost) || null;
+      draft.product.logisticsCost = Number(finalFields.logisticsEstimate) || null;
+      draft.product.commissionPercent = Number(finalFields.commissionRate) || null;
+      draft.product.exchangeRateToRub = Number(finalFields.exchangeRate) || null;
+      draft.product.storageCost = Number(finalFields.storageCost) || 0;
+      draft.product.taxPercent = Number(finalFields.taxPercent) || 0;
+      draft.product.adBudgetPercent = Number(finalFields.adBudgetPercent) || 0;
+      draft.product.returnReservePercent = Number(finalFields.returnReservePercent) || 0;
       draft.marketTarget = marketTarget;
       draft.market = market;
       draft.commission = commission;
       draft.economics = economics;
       draft.fieldSources = fieldSources;
       saveDraft(draft);
-      draftId = draft.id;
+      nextDraftId = draft.id;
+      setDraftId(draft.id);
     }
     const params = new URLSearchParams({
       supplierUrl,
-      name: fields.productTitle || imported?.product?.title || "Товар поставщика",
-      cost: fields.productCostRub,
-      price: fields.plannedSellingPrice,
-      packaging: fields.packagingCost,
-      supplierShipping: fields.supplierDeliveryCost,
-      moq: fields.selectedQuantity,
-      weight: fields.weight,
-      dimensions: fields.dimensions,
+      name: finalFields.productTitle || imported?.product?.title || "Товар поставщика",
+      cost: finalFields.productCostRub,
+      price: finalFields.plannedSellingPrice,
+      packaging: finalFields.packagingCost,
+      supplierShipping: finalFields.supplierDeliveryCost,
+      moq: finalFields.selectedQuantity,
+      weight: finalFields.weight,
+      dimensions: finalFields.dimensions,
     });
-    if (draftId) params.set("draftId", draftId);
+    if (nextDraftId) params.set("draftId", nextDraftId);
     router.push(`/result?${params.toString()}`);
   }
 
@@ -531,6 +746,11 @@ export function ProductCheckForm() {
 
       {showForm && (
         <div className="mt-6 space-y-5">
+          {error && (
+            <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-4 text-sm text-[var(--c-amber)]">
+              {error}
+            </div>
+          )}
           {missingRequired.length > 0 && (
             <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-4 text-sm text-[var(--c-amber)]">
               Добавьте недостающие поля для точного расчёта маржи: {missingRequired.join(", ")}.
@@ -538,45 +758,45 @@ export function ProductCheckForm() {
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Название товара" source={fieldSources.title ?? fieldSources.productTitle}>
+            <Field label="Название товара" source={fieldSources.productTitle ?? fieldSources.title} note={fieldNotes.productTitle}>
               <Input value={fields.productTitle} onChange={(event) => updateField("productTitle", event.target.value)} />
             </Field>
-            <Field label="Поставщик" source={fieldSources.supplierName}>
+            <Field label="Поставщик" source={fieldSources.supplierName} note={fieldNotes.supplierName}>
               <Input value={fields.supplierName} onChange={(event) => updateField("supplierName", event.target.value)} />
             </Field>
-            <Field label="Партия, шт." source={fieldSources.moq}>
+            <Field label="Партия, шт." source={fieldSources.selectedQuantity ?? fieldSources.moq} note={fieldNotes.selectedQuantity}>
               <Input type="number" value={fields.selectedQuantity} onChange={(event) => updateQuantity(event.target.value)} />
             </Field>
-            <Field label="Себестоимость товара, ₽/шт." source={fieldSources.unitCost}>
+            <Field label="Себестоимость товара, ₽/шт." source={fieldSources.productCostRub ?? fieldSources.unitCost} note={fieldNotes.productCostRub}>
               <Input type="number" value={fields.productCostRub} onChange={(event) => updateField("productCostRub", event.target.value)} />
             </Field>
             {imported?.product?.currency && imported.product.currency !== "RUB" && (
-              <Field label={`${imported.product.currency}/RUB курс`} source="manual">
+              <Field label={`${imported.product.currency}/RUB курс`} source={fieldSources.exchangeRate} note={fieldNotes.exchangeRate}>
                 <Input type="number" value={fields.exchangeRate} onChange={(event) => updateField("exchangeRate", event.target.value)} />
               </Field>
             )}
-            <Field label="Плановая цена WB, ₽" source={fieldSources.manual}>
+            <Field label="Плановая цена WB, ₽" source={fieldSources.plannedSellingPrice} note={fieldNotes.plannedSellingPrice}>
               <Input type="number" value={fields.plannedSellingPrice} onChange={(event) => updateField("plannedSellingPrice", event.target.value)} />
             </Field>
-            <Field label="Комиссия WB, %" source={fieldSources.manual}>
+            <Field label="Комиссия WB, %" source={fieldSources.commissionRate} note={fieldNotes.commissionRate}>
               <Input type="number" value={fields.commissionRate} onChange={(event) => updateField("commissionRate", event.target.value)} />
             </Field>
-            <Field label="Логистика WB, ₽/шт." source={fieldSources.shippingEstimate}>
+            <Field label="Логистика WB, ₽/шт." source={fieldSources.logisticsEstimate} note={fieldNotes.logisticsEstimate}>
               <Input type="number" value={fields.logisticsEstimate} onChange={(event) => updateField("logisticsEstimate", event.target.value)} />
             </Field>
-            <Field label="Упаковка, ₽/шт." source={fieldSources.manual}>
+            <Field label="Упаковка, ₽/шт." source={fieldSources.packagingCost} note={fieldNotes.packagingCost}>
               <Input type="number" value={fields.packagingCost} onChange={(event) => updateField("packagingCost", event.target.value)} />
             </Field>
-            <Field label="Доставка поставщика, ₽/шт." source={fieldSources.shippingEstimate}>
+            <Field label="Доставка поставщика, ₽/шт." source={fieldSources.supplierDeliveryCost ?? fieldSources.shippingEstimate} note={fieldNotes.supplierDeliveryCost}>
               <Input type="number" value={fields.supplierDeliveryCost} onChange={(event) => updateField("supplierDeliveryCost", event.target.value)} />
             </Field>
-            <Field label="Вес, кг" source={fieldSources.weight}>
+            <Field label="Вес, кг" source={fieldSources.weight} note={fieldNotes.weight}>
               <Input type="number" value={fields.weight} onChange={(event) => updateField("weight", event.target.value)} />
             </Field>
-            <Field label="Габариты, см" source={fieldSources.dimensions}>
+            <Field label="Габариты, см" source={fieldSources.dimensions} note={fieldNotes.dimensions}>
               <Input value={fields.dimensions} onChange={(event) => updateField("dimensions", event.target.value)} placeholder="30 x 20 x 8" />
             </Field>
-            <Field label="Реклама, % от цены" source={fieldSources.manual}>
+            <Field label="Реклама, % от цены" source={fieldSources.adBudgetPercent} note={fieldNotes.adBudgetPercent}>
               <Input type="number" value={fields.adBudgetPercent} onChange={(event) => updateField("adBudgetPercent", event.target.value)} />
             </Field>
           </div>
@@ -726,10 +946,12 @@ function FallbackCard({ title, text }: { title: string; text: string }) {
 function Field({
   label,
   source,
+  note,
   children,
 }: {
   label: string;
   source?: SupplierFieldSource;
+  note?: string;
   children: React.ReactNode;
 }) {
   const effectiveSource = source ?? "missing";
@@ -742,6 +964,7 @@ function Field({
         </span>
       </span>
       {children}
+      {note ? <span className="mt-1 block text-xs text-[var(--c-text3)]">{note}</span> : null}
     </label>
   );
 }
