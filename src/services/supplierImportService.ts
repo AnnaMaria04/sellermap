@@ -105,12 +105,27 @@ function amountFrom(value: unknown): number | null {
   return asNumber(value);
 }
 
-function objectValueByKeyMatch(source: Record<string, unknown>, patterns: string[]) {
-  const entry = Object.entries(source).find(([key]) => {
-    const normalized = key.toLowerCase();
-    return patterns.some((pattern) => normalized.includes(pattern));
-  });
-  return entry?.[1] ?? null;
+function dimensionValueFromObject(source: Record<string, unknown>) {
+  const preferred = [
+    "package size",
+    "package dimensions",
+    "product size",
+    "product dimensions",
+    "pen size",
+    "carton size",
+    "dimensions",
+    "dimension",
+    "size",
+  ];
+  for (const pattern of preferred) {
+    const entry = Object.entries(source).find(([key]) => {
+      const normalized = key.toLowerCase();
+      if (normalized.includes("nib size") || normalized.includes("brush size")) return false;
+      return normalized.includes(pattern);
+    });
+    if (entry) return entry[1];
+  }
+  return null;
 }
 
 function parseDimensionText(value: unknown): Dimensions | null {
@@ -260,13 +275,12 @@ export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null 
 
   const specs = normalizeSpecifications(raw);
   const sizeValue =
-    objectValueByKeyMatch(specs, ["pen size", "package size", "dimensions", "dimension", "size"]) ??
-    objectValueByKeyMatch(
+    dimensionValueFromObject(specs) ??
+    dimensionValueFromObject(
       {
         ...(raw.otherProperties && typeof raw.otherProperties === "object" ? raw.otherProperties as Record<string, unknown> : {}),
         ...(raw.industryProperties && typeof raw.industryProperties === "object" ? raw.industryProperties as Record<string, unknown> : {}),
       },
-      ["pen size", "package size", "dimensions", "dimension", "size"],
     );
   const parsedFromSpecs = parseDimensionText(sizeValue);
   if (parsedFromSpecs) return parsedFromSpecs;
