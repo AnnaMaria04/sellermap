@@ -22,10 +22,10 @@ export function getApifyActorsForPlatform(platform: SupplierPlatform): string[] 
     return [process.env.APIFY_ALIBABA_ACTOR_ID, "xtracto/alibaba-product-scraper", "happitap/alibaba-product-scraper", "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
   }
   if (platform === "1688") {
-    return [process.env.APIFY_1688_ACTOR_ID, "ecomscrape/1688-product-search-scraper", "futurizerush/1688-com-products-scraper"].filter(Boolean) as string[];
+    return [process.env.APIFY_1688_ACTOR_ID, "zen-studio/1688-wholesale-scraper", "prodiger/1688-scraper", "ecomscrape/1688-product-search-scraper", "futurizerush/1688-com-products-scraper"].filter(Boolean) as string[];
   }
   if (platform === "aliexpress") {
-    return [process.env.APIFY_ALIEXPRESS_ACTOR_ID, "thirdwatch/aliexpress-product-scraper", "piotrv1001/aliexpress-listings-scraper"].filter(Boolean) as string[];
+    return [process.env.APIFY_ALIEXPRESS_ACTOR_ID, "crawlerbros/aliexpress-scraper", "coladeu/aliexpress-product-details", "thirdwatch/aliexpress-product-scraper", "piotrv1001/aliexpress-listings-scraper"].filter(Boolean) as string[];
   }
   return [process.env.APIFY_GENERIC_SUPPLIER_ACTOR_ID, "toolsnmoreapi/Alibaba-Product-and-Vender-Finder"].filter(Boolean) as string[];
 }
@@ -47,6 +47,24 @@ function payloadForActor(actorId: string, url: string) {
         useApifyProxy: true,
         apifyProxyGroups: ["RESIDENTIAL"],
       },
+    };
+  }
+
+  if (actorId === "zen-studio/1688-wholesale-scraper") {
+    const offerId = url.match(/offer\/(\d+)/i)?.[1] ?? url.match(/(\d{8,})/)?.[1];
+    return offerId
+      ? { offerIds: [offerId] }
+      : {
+          startUrls: [{ url }],
+          maxItems: 1,
+          proxyConfiguration: { useApifyProxy: true },
+        };
+  }
+
+  if (actorId === "crawlerbros/aliexpress-scraper") {
+    return {
+      startUrls: [{ url }],
+      type: "product",
     };
   }
 
