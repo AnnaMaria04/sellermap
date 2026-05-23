@@ -3,7 +3,7 @@ import "server-only";
 import { ApifyClient } from "apify-client";
 import type { CompetitorProduct, MarketAnalysisResult, MarketStats, ProviderHealth } from "@/types/sellermap";
 import { getMpstatsItems } from "@/services/mpstatsClient";
-import { getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
+import { getWbImageUrl, getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
 import { isSupabaseConfigured, supabaseRest } from "@/services/supabaseRest";
 
 type SearchOptions = { limit?: number };
@@ -104,6 +104,9 @@ function pick(row: Record<string, unknown>, keys: string[]) {
 function normalizeApifyRows(raw: unknown[], keyword: string): CompetitorProduct[] {
   return raw.map((entry, index) => {
     const row = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
+    const sizes = Array.isArray(row.sizes) ? row.sizes : [];
+    const firstSize = sizes[0] && typeof sizes[0] === "object" ? sizes[0] as Record<string, unknown> : {};
+    const sizePrice = firstSize.price && typeof firstSize.price === "object" ? firstSize.price as Record<string, unknown> : {};
     const priceObject = pick(row, ["price", "salePrice", "finalPrice"]);
     const seller = pick(row, ["seller", "supplier", "sellerInfo"]);
     const sellerRecord = seller && typeof seller === "object" ? seller as Record<string, unknown> : {};
@@ -111,23 +114,24 @@ function normalizeApifyRows(raw: unknown[], keyword: string): CompetitorProduct[
     const price =
       typeof priceObject === "object" && priceObject !== null
         ? normalizeNumber(pick(priceObject as Record<string, unknown>, ["value", "amount", "price", "sale", "current"]))
-        : normalizeNumber(priceObject ?? pick(row, ["priceRub", "salePriceRub", "currentPrice", "discountPrice"]));
+        : normalizeNumber(priceObject ?? pick(row, ["priceRub", "salePriceRub", "currentPrice", "discountPrice"]))
+          ?? (normalizeNumber(pick(sizePrice, ["product", "basic"])) ? Math.round(Number(normalizeNumber(pick(sizePrice, ["product", "basic"]))) / 100) : null);
     return {
       nmId,
       title: String(pick(row, ["title", "name", "productName"]) ?? "Товар WB"),
       brand: typeof pick(row, ["brand", "brandName"]) === "string" ? String(pick(row, ["brand", "brandName"])) : null,
       sellerName: String(pick(row, ["sellerName", "supplierName"]) ?? sellerRecord.name ?? sellerRecord.supplierName ?? "") || null,
       price,
-      rating: normalizeNumber(pick(row, ["rating", "reviewRating", "stars"])),
-      reviewCount: normalizeNumber(pick(row, ["reviewCount", "reviews", "feedbacks", "comments"])),
+      rating: normalizeNumber(pick(row, ["rating", "reviewRating", "review_rating", "nm_review_rating", "stars"])),
+      reviewCount: normalizeNumber(pick(row, ["reviewCount", "reviews", "feedbacks", "nm_feedbacks", "comments"])),
       estimatedSales: normalizeNumber(pick(row, ["estimatedMonthlySales", "sales", "sales30d", "orders"])),
       estimatedRevenue: normalizeNumber(pick(row, ["estimatedRevenue", "revenue", "revenue30d"])),
-      image: typeof pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"]) === "string" ? String(pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"])) : null,
+      image: typeof pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"]) === "string" ? String(pick(row, ["image", "imageUrl", "img", "thumbnail", "photo"])) : nmId ? getWbImageUrl(nmId) : null,
       url: typeof pick(row, ["url", "productUrl", "link"]) === "string" ? String(pick(row, ["url", "productUrl", "link"])) : nmId ? `https://www.wildberries.ru/catalog/${nmId}/detail.aspx` : null,
       source: "apify" as const,
       searchKeyword: keyword,
       searchPosition: index + 1,
-      stockSignal: normalizeNumber(pick(row, ["stock", "stockSignal", "quantity", "totalQuantity"])),
+      stockSignal: normalizeNumber(pick(row, ["stock", "stockSignal", "quantity", "totalQuantity", "total_quantity"])),
     } as CompetitorProduct;
   }).filter((product) => product.title !== "Товар WB" || product.nmId || product.price);
 }
@@ -205,6 +209,11 @@ async function writeCachedSnapshot(keyword: string, provider: string, competitor
 function apifyPayload(keyword: string, limit: number) {
   const searchUrl = `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(keyword)}`;
   return {
+    // stealth_mode/wildberries-product-search-scraper expects these fields.
+    urls: [searchUrl],
+    max_items_per_url: limit,
+    ignore_url_failures: true,
+    // Keep common aliases so another WB actor can be swapped via APIFY_WB_SEARCH_ACTOR_ID.
     query: keyword,
     keyword,
     search: keyword,
