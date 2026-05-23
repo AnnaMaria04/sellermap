@@ -159,7 +159,7 @@ export type MarketTarget = {
   source: "user" | "generated" | "manual";
 };
 
-export type MarketDataProviderName = "mpstats" | "manual" | "demo" | "none";
+export type MarketDataProviderName = "mpstats" | "wb_public" | "manual" | "demo" | "none";
 
 export type CompetitorProduct = {
   nmId?: number | null;

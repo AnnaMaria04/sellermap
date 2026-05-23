@@ -1,5 +1,6 @@
 import type { CompetitorProduct, MarketAnalysisResult, MarketStats } from "@/types/sellermap";
 import { getMpstatsItems } from "@/services/mpstatsClient";
+import { getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
 
 function median(values: number[]) {
   if (!values.length) return null;
@@ -77,7 +78,8 @@ function notConfigured(): MarketAnalysisResult {
 }
 
 export async function getCompetitorsByKeyword(keyword: string): Promise<MarketAnalysisResult> {
-  if (!process.env.MPSTATS_API_KEY) return notConfigured();
+  if (!keyword.trim()) return notConfigured();
+  if (!process.env.MPSTATS_API_KEY) return getWbPublicMarketByKeyword(keyword);
   const result = await getMpstatsItems({ market: "wb", keyword, startRow: 0, endRow: 30 });
   if (!result.ok) {
     return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };
@@ -87,7 +89,7 @@ export async function getCompetitorsByKeyword(keyword: string): Promise<MarketAn
 }
 
 export async function getCompetitorsByNmId(nmId: number) {
-  if (!process.env.MPSTATS_API_KEY) return notConfigured();
+  if (!process.env.MPSTATS_API_KEY) return getWbPublicMarketByNmId(nmId);
   const result = await getMpstatsItems({ market: "wb", ids: String(nmId), startRow: 0, endRow: 30 });
   if (!result.ok) {
     return { provider: "mpstats", status: result.status === "not_configured" ? "not_configured" : "failed", competitors: [], marketStats: null, warnings: [result.error] };

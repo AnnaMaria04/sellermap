@@ -2,5 +2,25 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "functions": {
+    "src/app/api/supplier/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/supplier/import/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/supplier/test-apify/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/wb/search/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/wb/product/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/wb/analytics/route.ts": {
+      "maxDuration": 15
+    }
+  }
 }
