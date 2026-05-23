@@ -3,6 +3,7 @@ import { PageSection } from "@/components/sellermap/section";
 import { calculatePackagingRisk } from "@/lib/analysis/calculateResult";
 import type { RawResultInput } from "@/lib/analysis/types";
 import { demoResultInput } from "@/lib/data/demoResult";
+import { redirect } from "next/navigation";
 
 type ResultSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -94,8 +95,11 @@ export function buildInputFromParams(params: Record<string, string | string[] | 
 
 export default async function ResultPage({ searchParams }: { searchParams: ResultSearchParams }) {
   const params = await searchParams;
-  const initialInput = buildInputFromParams(params);
   const draftId = firstValue(params.draftId);
+  if (draftId && Object.keys(params).length > 1) {
+    redirect(`/result/${draftId}`);
+  }
+  const initialInput = buildInputFromParams(params);
 
   return (
     <main className="bg-off-white">

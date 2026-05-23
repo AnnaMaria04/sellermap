@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const WB_REGIONS = "80,38,83,4,64,33,68,70,30,40,86,75,69,22,1,31,66,110,48,71,114";
-
 function getBasketNum(nmId: number): string {
   const vol = Math.floor(nmId / 100000);
   if (vol <= 143) return "01";

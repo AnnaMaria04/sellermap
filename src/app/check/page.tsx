@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, BarChart3, Calculator, CheckCircle2, ChevronDown, Loader2, Package2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { getWBCommission } from "@/lib/wbCommissions";
 import { calcWBLogistics } from "@/lib/wbLogistics";
@@ -314,9 +315,9 @@ export default function CheckPage() {
               <button onClick={reset} className="text-sm text-[var(--c-text3)] hover:text-[var(--c-text2)]">
                 ← Проверить другой товар
               </button>
-              <a href="/result" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
+              <Link href="/result" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
                 Получить полный отчёт →
-              </a>
+              </Link>
             </div>
           </div>
         )}
