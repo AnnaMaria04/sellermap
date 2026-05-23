@@ -8,15 +8,20 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { EconomicsResult } from "@/lib/economics/calculateEconomics";
 import type { SupplierFieldSource, SupplierImportResponse, SupplierPriceTier } from "@/lib/integrations/suppliers/types";
+import { createDraftFromImport, saveDraft } from "@/services/draftStorage";
 import { formatRub } from "@/lib/utils";
 
 type CheckPageState =
   | "empty"
+  | "validating_url"
   | "importing"
   | "import_success"
   | "import_partial"
+  | "import_blocked"
+  | "identity_mismatch"
   | "import_failed"
-  | "manual_mode";
+  | "manual_mode"
+  | "ready_to_calculate";
 
 type CalculatorFields = {
   productTitle: string;
@@ -34,28 +39,41 @@ type CalculatorFields = {
   weight: string;
   dimensions: string;
   selectedQuantity: string;
+  exchangeRate: string;
 };
 
 const loadingSteps = [
-  "Проверяем страницу поставщика",
-  "Извлекаем ценовые уровни",
-  "Собираем изображения",
-  "Читаем MOQ и спецификации",
-  "Готовим калькулятор",
+  "Определяем площадку",
+  "Запускаем импорт через Apify",
+  "Извлекаем название и изображения",
+  "Ищем MOQ и ценовые уровни",
+  "Ищем характеристики, вес и габариты",
+  "Проверяем, совпадает ли товар со ссылкой",
+  "Готовим черновик экономики",
 ];
 
 const sourceLabels: Record<SupplierFieldSource, string> = {
-  supplier_link: "Автозаполнено",
-  mock: "Требует подтверждения",
+  apify: "Apify",
+  supplier_import: "Импорт",
   manual: "Ручной ввод",
+  wb_api: "WB API",
+  mpstats: "MPStats",
+  yandex_gpt: "YandexGPT",
+  rule_based: "Правила",
   missing: "Не заполнено",
+  demo: "Демо",
 };
 
 const sourceClasses: Record<SupplierFieldSource, string> = {
-  supplier_link: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
-  mock: "bg-[var(--c-amber-dim)] text-[var(--c-amber)]",
+  apify: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
+  supplier_import: "bg-[var(--c-green-dim)] text-[var(--c-green)]",
   manual: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
+  wb_api: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
+  mpstats: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
+  yandex_gpt: "bg-[var(--c-blue-dim)] text-[var(--c-blue)]",
+  rule_based: "bg-[var(--c-amber-dim)] text-[var(--c-amber)]",
   missing: "bg-[var(--c-red-dim)] text-[var(--c-red)]",
+  demo: "bg-[var(--c-amber-dim)] text-[var(--c-amber)]",
 };
 
 function usdToRub(value: number | null) {
@@ -67,10 +85,10 @@ function cnyToRub(value: number | null) {
 }
 
 function unitCostToRub(imported: SupplierImportResponse) {
-  const unitCost = imported.product.unitCost;
+  const unitCost = imported.product?.unitCost;
   if (!unitCost) return "";
-  if (imported.product.currency === "USD") return String(usdToRub(unitCost));
-  if (imported.product.currency === "CNY") return String(cnyToRub(unitCost));
+  if (imported.product?.currency === "USD") return String(usdToRub(unitCost));
+  if (imported.product?.currency === "CNY") return String(cnyToRub(unitCost));
   return String(Math.round(unitCost));
 }
 
@@ -95,6 +113,7 @@ function initialFields(): CalculatorFields {
     weight: "",
     dimensions: "",
     selectedQuantity: "100",
+    exchangeRate: "90",
   };
 }
 
@@ -131,6 +150,14 @@ export function ProductCheckForm() {
 
   async function importSupplier(url = supplierUrl, mode: "replace" | "missing_only" = "replace") {
     if (!url.trim()) return;
+    setState("validating_url");
+    try {
+      new URL(url);
+    } catch {
+      setError("Укажите корректную ссылку поставщика.");
+      setState("import_failed");
+      return;
+    }
     setState("importing");
     setError("");
 
@@ -141,24 +168,39 @@ export function ProductCheckForm() {
         body: JSON.stringify({ url }),
       });
       const data = (await response.json()) as SupplierImportResponse & { error?: string };
-      if (!response.ok || data.status === "failed") {
+      if (data.status === "blocked" || data.status === "not_configured") {
+        setImported(data);
+        setError(data.error ?? "Автоматический импорт не смог прочитать страницу поставщика.");
+        setState("import_blocked");
+        return;
+      }
+      if (data.status === "identity_mismatch") {
+        setImported(data);
+        setError(data.error ?? "Найденные данные не похожи на товар из ссылки.");
+        setState("identity_mismatch");
+        return;
+      }
+      if (!response.ok || data.status === "failed" || !data.product) {
         setError(data.error ?? "Не удалось импортировать данные поставщика.");
         setState("import_failed");
         return;
       }
 
       setImported(data);
-      setSupplierUrl(data.product.supplierUrl);
+      setSupplierUrl(data.product.supplierUrl || data.product.productUrl);
       setFieldSources(data.fieldSources);
       const mapped: Partial<CalculatorFields> = {
-        productTitle: data.product.title,
-        supplierName: data.product.supplierName,
+        productTitle: data.product.title ?? "",
+        supplierName: data.product.supplierName ?? "",
         productCostRub: unitCostToRub(data),
         supplierDeliveryCost: data.product.shippingEstimate ? String(data.product.shippingEstimate) : "",
         logisticsEstimate: data.product.shippingEstimate ? String(data.product.shippingEstimate) : "",
         weight: data.product.weight ? String(data.product.weight) : "",
-        dimensions: data.product.dimensions ?? "",
-        selectedQuantity: String(data.product.selectedQuantity),
+        dimensions: data.product.dimensions
+          ? [data.product.dimensions.length, data.product.dimensions.width, data.product.dimensions.height].filter(Boolean).join(" x ")
+          : "",
+        selectedQuantity: String(data.product.selectedQuantity ?? data.product.moq ?? 100),
+        exchangeRate: data.product.currency === "CNY" ? "12.5" : data.product.currency === "USD" ? "90" : "1",
       };
 
       setFields((current) => {
@@ -195,11 +237,11 @@ export function ProductCheckForm() {
 
   function updateQuantity(value: string) {
     updateField("selectedQuantity", value);
-    if (!imported) return;
+    if (!imported?.product) return;
     const tier = bestTier(imported.product.priceTiers, Number(value));
     if (!tier) return;
     const rubValue =
-      tier.currency === "USD" ? usdToRub(tier.price) : tier.currency === "CNY" ? cnyToRub(tier.price) : Math.round(tier.price);
+      tier.currency === "RUB" ? Math.round(tier.price) : Math.round(tier.price * Number(fields.exchangeRate || (tier.currency === "CNY" ? 12.5 : 90)));
     updateField("productCostRub", String(rubValue));
   }
 
@@ -226,16 +268,33 @@ export function ProductCheckForm() {
       }),
     })
       .then((response) => response.json())
-      .then((data) => setEconomics(data.error ? null : data))
+      .then((data) => {
+        setEconomics(data.error ? null : data);
+        if (!data.error) setState("ready_to_calculate");
+      })
       .catch(() => undefined);
 
     return () => controller.abort();
   }, [fields]);
 
   function continueToResult() {
+    let draftId = "";
+    if (imported?.product) {
+      const draft = createDraftFromImport(imported);
+      draft.product.productCostRub = Number(fields.productCostRub) || null;
+      draft.product.plannedSellingPrice = Number(fields.plannedSellingPrice) || null;
+      draft.product.packagingCost = Number(fields.packagingCost) || null;
+      draft.product.supplierDeliveryCost = Number(fields.supplierDeliveryCost) || null;
+      draft.product.logisticsCost = Number(fields.logisticsEstimate) || null;
+      draft.product.commissionPercent = Number(fields.commissionRate) || null;
+      draft.product.exchangeRateToRub = Number(fields.exchangeRate) || null;
+      draft.economics = economics;
+      saveDraft(draft);
+      draftId = draft.id;
+    }
     const params = new URLSearchParams({
       supplierUrl,
-      name: fields.productTitle || imported?.product.title || "Товар поставщика",
+      name: fields.productTitle || imported?.product?.title || "Товар поставщика",
       cost: fields.productCostRub,
       price: fields.plannedSellingPrice,
       packaging: fields.packagingCost,
@@ -244,10 +303,11 @@ export function ProductCheckForm() {
       weight: fields.weight,
       dimensions: fields.dimensions,
     });
+    if (draftId) params.set("draftId", draftId);
     router.push(`/result?${params.toString()}`);
   }
 
-  const showForm = ["import_success", "import_partial", "manual_mode"].includes(state);
+  const showForm = ["import_success", "import_partial", "manual_mode", "ready_to_calculate"].includes(state);
 
   return (
     <Card className="p-6 lg:p-8">
@@ -289,7 +349,7 @@ export function ProductCheckForm() {
         </button>
       </div>
 
-      {state === "importing" && (
+      {(state === "validating_url" || state === "importing") && (
         <div className="mt-5 grid gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
           {loadingSteps.map((step) => (
             <p key={step} className="flex items-center gap-2 text-sm text-[var(--c-text2)]">
@@ -298,6 +358,24 @@ export function ProductCheckForm() {
             </p>
           ))}
         </div>
+      )}
+
+      {state === "import_blocked" && (
+        <FallbackState
+          title="Автоматический импорт не смог прочитать страницу поставщика."
+          text={error || "Apify или HTML/meta импорт недоступен для этой страницы."}
+          onRetry={() => importSupplier()}
+          onManual={() => setState("manual_mode")}
+        />
+      )}
+
+      {state === "identity_mismatch" && (
+        <FallbackState
+          title="Найденные данные не похожи на товар из ссылки. Мы не применили эти данные."
+          text={`URL tokens: ${imported?.rawDebug.urlTokens.join(", ") || "не найдены"}. Совпадения: ${imported?.rawDebug.matchedTokens.join(", ") || "нет"}.`}
+          onRetry={() => importSupplier()}
+          onManual={() => setState("manual_mode")}
+        />
       )}
 
       {state === "import_failed" && (
@@ -317,7 +395,7 @@ export function ProductCheckForm() {
         </div>
       )}
 
-      {imported && state !== "importing" && state !== "import_failed" && (
+      {imported?.product && state !== "importing" && state !== "import_failed" && state !== "import_blocked" && state !== "identity_mismatch" && (
         <ImportedSummary imported={imported} />
       )}
 
@@ -342,6 +420,11 @@ export function ProductCheckForm() {
             <Field label="Себестоимость товара, ₽/шт." source={fieldSources.unitCost}>
               <Input type="number" value={fields.productCostRub} onChange={(event) => updateField("productCostRub", event.target.value)} />
             </Field>
+            {imported?.product?.currency && imported.product.currency !== "RUB" && (
+              <Field label={`${imported.product.currency}/RUB курс`} source="manual">
+                <Input type="number" value={fields.exchangeRate} onChange={(event) => updateField("exchangeRate", event.target.value)} />
+              </Field>
+            )}
             <Field label="Плановая цена WB, ₽" source={fieldSources.manual}>
               <Input type="number" value={fields.plannedSellingPrice} onChange={(event) => updateField("plannedSellingPrice", event.target.value)} />
             </Field>
@@ -368,7 +451,7 @@ export function ProductCheckForm() {
             </Field>
           </div>
 
-          {imported?.product.priceTiers.length ? (
+          {imported?.product?.priceTiers.length ? (
             <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
               <p className="text-sm font-semibold">Ценовые уровни поставщика</p>
               <div className="mt-3 grid gap-2 md:grid-cols-3">
@@ -419,6 +502,7 @@ export function ProductCheckForm() {
 }
 
 function ImportedSummary({ imported }: { imported: SupplierImportResponse }) {
+  if (!imported.product) return null;
   const image = imported.product.productImages[0];
   return (
     <div className="mt-5 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
@@ -433,13 +517,27 @@ function ImportedSummary({ imported }: { imported: SupplierImportResponse }) {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--c-green)]">
-            {imported.source} · уверенность {Math.round(imported.confidence * 100)}%
+            {imported.source} · {imported.provider} · уверенность {Math.round(imported.confidence * 100)}%
           </p>
-          <h2 className="font-display mt-2 text-xl font-semibold">{imported.product.title}</h2>
+          <h2 className="font-display mt-2 text-xl font-semibold">{imported.product.title || "Название не найдено"}</h2>
           <p className="mt-2 text-sm text-[var(--c-text2)]">
-            {imported.product.supplierName} · MOQ {imported.product.moq ?? "не найден"} · партия {imported.product.selectedQuantity} шт. ·{" "}
+            {imported.product.supplierName || "Поставщик не найден"} · MOQ {imported.product.moq ?? "не найден"} · партия {imported.product.selectedQuantity ?? "не выбрана"} шт. ·{" "}
             {imported.product.unitCost ? `${imported.product.unitCost} ${imported.product.currency}` : "цена не найдена"}
           </p>
+          {imported.product.productImages.length > 0 && (
+            <p className="mt-2 text-xs text-[var(--c-amber)]">
+              Изображение поставщика — требуется проверка WB. Не загружено на WB.
+            </p>
+          )}
+          {imported.warnings.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {imported.warnings.map((warning) => (
+                <span key={warning} className="rounded-full bg-[var(--c-amber-dim)] px-3 py-1 text-xs text-[var(--c-amber)]">
+                  {warning}
+                </span>
+              ))}
+            </div>
+          )}
           {imported.missingFields.length > 0 && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[var(--c-amber-dim)] px-3 py-2 text-sm text-[var(--c-amber)]">
               <Package size={15} />
@@ -448,6 +546,49 @@ function ImportedSummary({ imported }: { imported: SupplierImportResponse }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function FallbackState({
+  title,
+  text,
+  onRetry,
+  onManual,
+}: {
+  title: string;
+  text: string;
+  onRetry: () => void;
+  onManual: () => void;
+}) {
+  return (
+    <div className="mt-5 rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-4">
+      <p className="flex items-center gap-2 font-semibold text-[var(--c-amber)]">
+        <AlertTriangle size={17} />
+        {title}
+      </p>
+      <p className="mt-2 text-sm text-[var(--c-text2)]">{text}</p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <FallbackCard title="Вставить HTML страницы" text="Если Alibaba блокирует импорт, откройте страницу, скопируйте HTML и вставьте его в следующем шаге." />
+        <FallbackCard title="Загрузить скриншоты" text="Подготовлено для OCR/AI: название, цена, MOQ, характеристики и доставка." />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button type="button" onClick={onRetry}>
+          Попробовать снова
+        </Button>
+        <Button type="button" variant="secondary" onClick={onManual}>
+          Ввести вручную
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FallbackCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-3">
+      <p className="font-semibold text-[var(--c-text)]">{title}</p>
+      <p className="mt-1 text-sm text-[var(--c-text2)]">{text}</p>
     </div>
   );
 }

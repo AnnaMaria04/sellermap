@@ -1,0 +1,383 @@
+import "server-only";
+
+import { extractWithApify } from "@/services/apifyClient";
+import { extractWithHtmlMeta, extractFromPastedHtml } from "@/services/htmlSupplierExtractor";
+import type {
+  CalculatorDraft,
+  Dimensions,
+  FieldSource,
+  NormalizedSupplierProduct,
+  PriceTier,
+  RawSupplierProduct,
+  SupplierCurrency,
+  SupplierImportResponse,
+  SupplierPlatform,
+} from "@/types/sellermap";
+
+const WEAK_TOKENS = new Set([
+  "high",
+  "quality",
+  "new",
+  "hot",
+  "sale",
+  "factory",
+  "custom",
+  "wholesale",
+  "product",
+  "detail",
+  "supplier",
+  "manufacturer",
+]);
+
+const REQUIRED_IMPORT_FIELDS: Array<keyof NormalizedSupplierProduct> = ["weight", "dimensions", "shippingEstimate"];
+
+export function detectSupplierPlatform(url: string): SupplierPlatform {
+  const normalized = url.toLowerCase();
+  if (normalized.includes("alibaba.com")) return "alibaba";
+  if (normalized.includes("1688.com")) return "1688";
+  if (normalized.includes("aliexpress.com")) return "aliexpress";
+  if (normalized.includes("made-in-china.com")) return "made_in_china";
+  return "generic_supplier";
+}
+
+function tokenize(value: string | null | undefined) {
+  if (!value) return [];
+  return value
+    .split(/[^a-zA-Z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+}
+
+export function parseProductIdentityFromUrl(url: string) {
+  let pathname = "";
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return { productId: null, slug: null, tokens: [] };
+  }
+
+  const productId =
+    pathname.match(/product-detail\/[^/]*?[_-](\d+)\.html/i)?.[1] ??
+    pathname.match(/offer\/(\d+)/i)?.[1] ??
+    pathname.match(/item\/(\d+)/i)?.[1] ??
+    null;
+  const slug =
+    pathname.match(/product-detail\/([^/]+?)(?:[_-]\d+)?\.html/i)?.[1] ??
+    pathname.match(/item\/([^/]+?)(?:[_-]\d+)?\.html/i)?.[1] ??
+    null;
+  const tokens = tokenize(slug).filter((token) => !WEAK_TOKENS.has(token.toLowerCase()));
+
+  return { productId, slug, tokens };
+}
+
+export function pickFirst(raw: RawSupplierProduct, possibleKeys: string[]) {
+  for (const key of possibleKeys) {
+    const value = raw[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return null;
+}
+
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/[^\d.,]/g, "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function asCurrency(value: unknown): SupplierCurrency {
+  if (value === "CNY" || value === "USD" || value === "RUB") return value;
+  const raw = String(value ?? "").toUpperCase();
+  if (raw.includes("CNY") || raw.includes("RMB") || raw.includes("¥")) return "CNY";
+  if (raw.includes("RUB") || raw.includes("₽")) return "RUB";
+  return "USD";
+}
+
+export function normalizeImages(raw: RawSupplierProduct): string[] {
+  const value = pickFirst(raw, ["images", "imageUrls", "productImages", "photos", "gallery", "image"]);
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.startsWith("http"));
+  if (typeof value === "string" && value.startsWith("http")) return [value];
+  return [];
+}
+
+export function normalizePriceTiers(raw: RawSupplierProduct): PriceTier[] {
+  const value = pickFirst(raw, ["priceTiers", "moqPrices", "prices"]);
+  if (Array.isArray(value)) {
+    return value
+      .map((tier) => {
+        const item = tier as Record<string, unknown>;
+        const price = asNumber(pickFirst(item, ["price", "unitPrice", "value"]));
+        const minQty = asNumber(pickFirst(item, ["minQty", "quantity", "minOrder", "from"])) ?? 1;
+        if (!price) return null;
+        return {
+          minQty,
+          maxQty: asNumber(pickFirst(item, ["maxQty", "to"])) ?? null,
+          price,
+          currency: asCurrency(pickFirst(item, ["currency", "priceCurrency"])),
+        };
+      })
+      .filter((tier): tier is PriceTier => Boolean(tier));
+  }
+
+  const price = asNumber(pickFirst(raw, ["price", "minPrice", "unitPrice"]));
+  return price
+    ? [
+        {
+          minQty: normalizeMOQ(raw) ?? 1,
+          maxQty: null,
+          price,
+          currency: asCurrency(pickFirst(raw, ["currency", "priceCurrency"])),
+        },
+      ]
+    : [];
+}
+
+export function normalizeMOQ(raw: RawSupplierProduct): number | null {
+  return asNumber(pickFirst(raw, ["moq", "minOrder", "minimumOrderQuantity", "minOrderQuantity"]));
+}
+
+export function normalizeSpecifications(raw: RawSupplierProduct): Record<string, unknown> {
+  const value = pickFirst(raw, ["specs", "specifications", "attributes", "productAttributes"]);
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null {
+  const value = pickFirst(raw, ["dimensions", "packageDimensions", "size"]);
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const item = value as Record<string, unknown>;
+    return {
+      length: asNumber(pickFirst(item, ["length", "l"])),
+      width: asNumber(pickFirst(item, ["width", "w"])),
+      height: asNumber(pickFirst(item, ["height", "h"])),
+      unit: "cm",
+    };
+  }
+  if (typeof value === "string") {
+    const parts = value.match(/\d+(?:[.,]\d+)?/g)?.map((item) => Number(item.replace(",", "."))) ?? [];
+    if (parts.length >= 3) return { length: parts[0], width: parts[1], height: parts[2], unit: "cm" };
+  }
+  return null;
+}
+
+export function normalizeWeight(raw: RawSupplierProduct): number | null {
+  return asNumber(pickFirst(raw, ["weight", "productWeight", "packageWeight"]));
+}
+
+export function calculateBestPriceTier(priceTiers: PriceTier[], selectedQuantity?: number | null) {
+  const quantity = selectedQuantity ?? priceTiers[0]?.minQty ?? null;
+  const tier =
+    quantity === null
+      ? null
+      : priceTiers.find((item) => quantity >= item.minQty && (item.maxQty === null || quantity <= item.maxQty)) ??
+        priceTiers[0] ??
+        null;
+  return { selectedQuantity: quantity, unitCost: tier?.price ?? null, tier };
+}
+
+export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierPlatform, provider: string): NormalizedSupplierProduct {
+  const priceTiers = normalizePriceTiers(raw);
+  const selected = calculateBestPriceTier(priceTiers, normalizeMOQ(raw));
+  const title = pickFirst(raw, ["title", "name", "productName", "product_title"]);
+  const supplierName = pickFirst(raw, ["supplier", "supplierName", "companyName", "sellerName", "manufacturer"]);
+  return {
+    title: typeof title === "string" ? title : null,
+    supplierName: typeof supplierName === "string" ? supplierName : null,
+    supplierUrl: typeof raw.supplierUrl === "string" ? raw.supplierUrl : "",
+    productUrl: typeof raw.productUrl === "string" ? raw.productUrl : "",
+    productImages: normalizeImages(raw),
+    priceTiers,
+    moq: normalizeMOQ(raw),
+    selectedQuantity: selected.selectedQuantity,
+    unitCost: selected.unitCost,
+    currency: selected.tier?.currency ?? asCurrency(pickFirst(raw, ["currency", "priceCurrency"])),
+    variants: Array.isArray(raw.variants) ? raw.variants.filter((item): item is string => typeof item === "string") : [],
+    specifications: { ...normalizeSpecifications(raw), source, provider },
+    weight: normalizeWeight(raw),
+    dimensions: normalizeDimensions(raw),
+    shippingEstimate: asNumber(pickFirst(raw, ["shippingEstimate", "shipping", "deliveryCost"])),
+    leadTime: asNumber(pickFirst(raw, ["leadTime", "leadTimeDays", "deliveryTime"])),
+    imageAltTexts: Array.isArray(raw.imageAltTexts) ? raw.imageAltTexts.filter((item): item is string => typeof item === "string") : [],
+    category: typeof raw.category === "string" ? raw.category : null,
+  };
+}
+
+export function detectMissingFields(product: NormalizedSupplierProduct): string[] {
+  return REQUIRED_IMPORT_FIELDS.filter((field) => {
+    const value = product[field];
+    if (field === "dimensions") {
+      return !product.dimensions?.length || !product.dimensions.width || !product.dimensions.height;
+    }
+    return value === null || value === "";
+  });
+}
+
+export function validateProductIdentity(input: {
+  urlTokens: string[];
+  productTitle?: string | null;
+  supplierName?: string | null;
+  imageAltTexts?: string[];
+  category?: string | null;
+}) {
+  const haystack = [input.productTitle, input.supplierName, input.category, ...(input.imageAltTexts ?? [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const matchedTokens = input.urlTokens.filter((token) => haystack.includes(token.toLowerCase()));
+  const strongMatches = matchedTokens.filter((token) => token.length >= 3 && /[A-Z0-9]/.test(token));
+  const ok = strongMatches.length >= 1 || matchedTokens.length >= 2 || input.urlTokens.length === 0;
+  return {
+    ok,
+    confidence: ok ? Math.min(0.92, 0.45 + matchedTokens.length * 0.14 + strongMatches.length * 0.18) : 0.12,
+    matchedTokens,
+    reason: ok ? undefined : "Не найдено совпадений между URL и извлечёнными данными.",
+  };
+}
+
+export function mapSupplierDataToCalculator(product: NormalizedSupplierProduct): CalculatorDraft {
+  return {
+    productCost: product.unitCost,
+    plannedSellingPrice: null,
+    commissionPercent: null,
+    logisticsCost: product.shippingEstimate,
+    packagingCost: null,
+    supplierDeliveryCost: product.shippingEstimate,
+    weight: product.weight,
+    dimensions: product.dimensions,
+    selectedQuantity: product.selectedQuantity,
+    currency: product.currency,
+    exchangeRateToRub: product.currency === "RUB" ? 1 : null,
+  };
+}
+
+export function buildSafeImportFailure(reason: string, providerErrors: unknown[] = []): SupplierImportResponse {
+  return {
+    source: "generic_supplier",
+    provider: "none",
+    status: "failed",
+    confidence: 0,
+    product: null,
+    fieldSources: {},
+    missingFields: [],
+    warnings: [],
+    error: reason,
+    rawDebug: { urlTokens: [], matchedTokens: [], providerErrors: providerErrors.map(String) },
+  };
+}
+
+function sourceMap(product: NormalizedSupplierProduct, source: FieldSource): Record<string, FieldSource> {
+  return {
+    title: product.title ? source : "missing",
+    supplierName: product.supplierName ? source : "missing",
+    productImages: product.productImages.length > 0 ? source : "missing",
+    moq: product.moq ? source : "missing",
+    unitCost: product.unitCost ? source : "missing",
+    weight: product.weight ? source : "missing",
+    dimensions: product.dimensions ? source : "missing",
+    shippingEstimate: product.shippingEstimate ? source : "missing",
+  };
+}
+
+async function responseFromRaw(url: string, raw: RawSupplierProduct, source: SupplierPlatform, provider: "apify" | "html_meta", providerErrors: string[]): Promise<SupplierImportResponse> {
+  const identity = parseProductIdentityFromUrl(url);
+  const product = normalizeSupplierData({ ...raw, supplierUrl: url, productUrl: url }, source, provider);
+  const validation = validateProductIdentity({
+    urlTokens: identity.tokens,
+    productTitle: product.title,
+    supplierName: product.supplierName,
+    imageAltTexts: product.imageAltTexts,
+    category: product.category,
+  });
+
+  if (!validation.ok) {
+    return {
+      source,
+      provider,
+      status: "identity_mismatch",
+      confidence: validation.confidence,
+      product: null,
+      fieldSources: {},
+      missingFields: [],
+      warnings: ["Найденные данные не похожи на товар из ссылки. Мы не применили эти данные."],
+      error: validation.reason,
+      rawDebug: { urlTokens: identity.tokens, matchedTokens: validation.matchedTokens, providerErrors },
+    };
+  }
+
+  const missingFields = detectMissingFields(product);
+  return {
+    source,
+    provider,
+    status: missingFields.length > 0 ? "partial" : "success",
+    confidence: Number(Math.min(0.95, validation.confidence + (provider === "apify" ? 0.16 : 0.04)).toFixed(2)),
+    product,
+    fieldSources: sourceMap(product, provider === "apify" ? "apify" : "supplier_import"),
+    missingFields,
+    warnings: [
+      ...(missingFields.length ? ["Часть полей не найдена автоматически и требует ручного заполнения."] : []),
+      ...(product.currency !== "RUB" ? ["Цена поставщика в USD/CNY. Для финального расчёта нужен курс валюты."] : []),
+    ],
+    rawDebug: { urlTokens: identity.tokens, matchedTokens: validation.matchedTokens, providerErrors },
+  };
+}
+
+export async function importWithProviderChain(url: string): Promise<SupplierImportResponse> {
+  const source = detectSupplierPlatform(url);
+  const providerErrors: string[] = [];
+  const apify = await extractWithApify(url, source);
+  if (apify.ok) return responseFromRaw(url, apify.raw, source, "apify", providerErrors);
+  providerErrors.push(apify.error);
+
+  const html = await extractWithHtmlMeta(url);
+  if (html) return responseFromRaw(url, html, source, "html_meta", providerErrors);
+
+  if (apify.status === "not_configured") {
+    return {
+      source,
+      provider: "apify",
+      status: "not_configured",
+      confidence: 0,
+      product: null,
+      fieldSources: {},
+      missingFields: [],
+      warnings: ["Apify не настроен. Добавьте APIFY_API_TOKEN и actor ID в переменные окружения."],
+      error: apify.error,
+      rawDebug: { urlTokens: parseProductIdentityFromUrl(url).tokens, matchedTokens: [], providerErrors },
+    };
+  }
+
+  return {
+    source,
+    provider: "apify",
+    status: "blocked",
+    confidence: 0,
+    product: null,
+    fieldSources: {},
+    missingFields: [],
+    warnings: ["Автоматический импорт не смог прочитать страницу поставщика."],
+    error: "Страница поставщика заблокировала импорт или не вернула данные.",
+    rawDebug: { urlTokens: parseProductIdentityFromUrl(url).tokens, matchedTokens: [], providerErrors },
+  };
+}
+
+export async function importSupplierProduct(input: {
+  url: string;
+  preferredProvider?: "auto" | "apify" | "html_meta";
+}): Promise<SupplierImportResponse> {
+  if (!/^https?:\/\//i.test(input.url)) {
+    return buildSafeImportFailure("Укажите корректную ссылку поставщика.");
+  }
+  if (input.preferredProvider === "html_meta") {
+    const html = await extractWithHtmlMeta(input.url);
+    if (!html) return buildSafeImportFailure("HTML/meta импорт не вернул данные.");
+    return responseFromRaw(input.url, html, detectSupplierPlatform(input.url), "html_meta", []);
+  }
+  return importWithProviderChain(input.url);
+}
+
+export async function importSupplierFromHtml(originalUrl: string, html: string) {
+  const raw = extractFromPastedHtml(originalUrl, html);
+  if (!raw) return buildSafeImportFailure("В HTML не найдены данные товара.");
+  return responseFromRaw(originalUrl, raw, detectSupplierPlatform(originalUrl), "html_meta", []);
+}

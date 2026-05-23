@@ -95,11 +95,12 @@ function buildInputFromParams(params: Record<string, string | string[] | undefin
 export default async function ResultPage({ searchParams }: { searchParams: ResultSearchParams }) {
   const params = await searchParams;
   const initialInput = buildInputFromParams(params);
+  const draftId = firstValue(params.draftId);
 
   return (
     <main className="bg-off-white">
       <PageSection className="py-8">
-        <ResultClient initialInput={initialInput} />
+        <ResultClient initialInput={initialInput} draftId={draftId} />
       </PageSection>
     </main>
   );
