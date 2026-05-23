@@ -7,6 +7,8 @@ export type ApifyExtractionResult =
   | { ok: true; provider: "apify"; raw: RawSupplierProduct }
   | { ok: false; provider: "apify"; status: "not_configured" | "failed" | "blocked"; error: string };
 
+type RawAcceptanceResult = boolean | { ok: boolean; reason?: string };
+
 function getApifyClient() {
   const token = process.env.APIFY_API_TOKEN;
   if (!token) return null;
@@ -36,7 +38,8 @@ export async function runApifyActor(input: { actorId: string; payload: Record<st
   const run = await client.actor(input.actorId).call(input.payload);
   if (!run.defaultDatasetId) return null;
   const { items } = await client.dataset(run.defaultDatasetId).listItems({ limit: 1 });
-  return (items[0] as RawSupplierProduct | undefined) ?? null;
+  const raw = items[0] as RawSupplierProduct | undefined;
+  return raw && Object.keys(raw).length ? raw : null;
 }
 
 function payloadForActor(actorId: string, url: string) {
@@ -68,6 +71,11 @@ function payloadForActor(actorId: string, url: string) {
     };
   }
 
+  if (actorId === "coladeu/aliexpress-product-details") {
+    const productId = url.match(/\/item\/(\d+)/i)?.[1] ?? url.match(/(\d{8,})/)?.[1];
+    return productId ? { productIds: [productId] } : { productUrls: [url] };
+  }
+
   return {
     startUrls: [{ url }],
     maxItems: 1,
@@ -75,7 +83,11 @@ function payloadForActor(actorId: string, url: string) {
   };
 }
 
-export async function extractWithApify(url: string, platform: SupplierPlatform): Promise<ApifyExtractionResult> {
+export async function extractWithApify(
+  url: string,
+  platform: SupplierPlatform,
+  options: { acceptRaw?: (raw: RawSupplierProduct) => RawAcceptanceResult } = {},
+): Promise<ApifyExtractionResult> {
   if (!process.env.APIFY_API_TOKEN) {
     return { ok: false, provider: "apify", status: "not_configured", error: "APIFY_API_TOKEN не задан." };
   }
@@ -99,7 +111,14 @@ export async function extractWithApify(url: string, platform: SupplierPlatform):
           actorId,
           payload: payloadForActor(actorId, url),
         });
-        if (raw) return { ok: true, provider: "apify", raw };
+        if (raw) {
+          const accepted = options.acceptRaw?.(raw) ?? true;
+          const ok = typeof accepted === "boolean" ? accepted : accepted.ok;
+          const reason = typeof accepted === "boolean" ? undefined : accepted.reason;
+          if (ok) return { ok: true, provider: "apify", raw };
+          errors.push(`${actorId}: ${reason ?? "identity mismatch"}`);
+          continue;
+        }
         errors.push(`${actorId}: no dataset item`);
       } catch (error) {
         errors.push(`${actorId}: ${error instanceof Error ? error.message : "failed"}`);

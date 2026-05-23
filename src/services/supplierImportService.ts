@@ -306,24 +306,49 @@ export function detectMissingFields(product: NormalizedSupplierProduct): string[
 
 export function validateProductIdentity(input: {
   urlTokens: string[];
+  urlProductId?: string | null;
+  extractedProductId?: string | null;
+  extractedUrl?: string | null;
   productTitle?: string | null;
   supplierName?: string | null;
   imageAltTexts?: string[];
   category?: string | null;
 }) {
+  const extractedIdentity = [input.extractedProductId, input.extractedUrl].filter(Boolean).join(" ");
+  const productIdMatched = Boolean(input.urlProductId && extractedIdentity.includes(input.urlProductId));
   const haystack = [input.productTitle, input.supplierName, input.category, ...(input.imageAltTexts ?? [])]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-  const matchedTokens = input.urlTokens.filter((token) => haystack.includes(token.toLowerCase()));
+  const matchedTokens = input.urlTokens.filter((token) => haystack.includes(token.toLowerCase()) || extractedIdentity.includes(token));
   const strongMatches = matchedTokens.filter((token) => token.length >= 3 && /[A-Z0-9]/.test(token));
-  const ok = strongMatches.length >= 1 || matchedTokens.length >= 2 || input.urlTokens.length === 0;
+  const ok = productIdMatched || strongMatches.length >= 1 || matchedTokens.length >= 2 || input.urlTokens.length === 0;
   return {
     ok,
-    confidence: ok ? Math.min(0.92, 0.45 + matchedTokens.length * 0.14 + strongMatches.length * 0.18) : 0.12,
+    confidence: ok ? Math.min(0.92, (productIdMatched ? 0.76 : 0.45) + matchedTokens.length * 0.14 + strongMatches.length * 0.18) : 0.12,
     matchedTokens,
     reason: ok ? undefined : "Не найдено совпадений между URL и извлечёнными данными.",
   };
+}
+
+function extractedProductId(raw: RawSupplierProduct): string | null {
+  const value = pickFirst(raw, ["productId", "id", "itemId", "offerId", "product_id", "item_id"]);
+  return value === null ? null : String(value);
+}
+
+function validateRawProductIdentity(url: string, raw: RawSupplierProduct) {
+  const identity = parseProductIdentityFromUrl(url);
+  const product = normalizeSupplierData({ ...raw, supplierUrl: url, productUrl: url }, detectSupplierPlatform(url), "apify");
+  return validateProductIdentity({
+    urlTokens: identity.tokens,
+    urlProductId: identity.productId,
+    extractedProductId: extractedProductId(raw),
+    extractedUrl: typeof raw.url === "string" ? raw.url : typeof raw.productUrl === "string" ? raw.productUrl : null,
+    productTitle: product.title,
+    supplierName: product.supplierName,
+    imageAltTexts: product.imageAltTexts,
+    category: product.category,
+  });
 }
 
 export function mapSupplierDataToCalculator(product: NormalizedSupplierProduct): CalculatorDraft {
@@ -375,6 +400,9 @@ async function responseFromRaw(url: string, raw: RawSupplierProduct, source: Sup
   const product = normalizeSupplierData({ ...raw, supplierUrl: url, productUrl: url }, source, provider);
   const validation = validateProductIdentity({
     urlTokens: identity.tokens,
+    urlProductId: identity.productId,
+    extractedProductId: extractedProductId(raw),
+    extractedUrl: typeof raw.url === "string" ? raw.url : typeof raw.productUrl === "string" ? raw.productUrl : null,
     productTitle: product.title,
     supplierName: product.supplierName,
     imageAltTexts: product.imageAltTexts,
@@ -487,7 +515,12 @@ function buildUrlIdentityDraft(
 export async function importWithProviderChain(url: string): Promise<SupplierImportResponse> {
   const source = detectSupplierPlatform(url);
   const providerErrors: string[] = [];
-  const apify = await extractWithApify(url, source);
+  const apify = await extractWithApify(url, source, {
+    acceptRaw: (raw) => {
+      const validation = validateRawProductIdentity(url, raw);
+      return validation.ok ? true : { ok: false, reason: validation.reason };
+    },
+  });
   if (apify.ok) return responseFromRaw(url, apify.raw, source, "apify", providerErrors);
   providerErrors.push(apify.error);
 
