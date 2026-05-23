@@ -138,6 +138,43 @@ function renderedText(raw: RawSupplierProduct) {
   }
 }
 
+function renderedStrings(raw: RawSupplierProduct): string[] {
+  const output: string[] = [];
+  const visit = (value: unknown, depth = 0) => {
+    if (depth > 8 || value === null || value === undefined) return;
+    if (typeof value === "string") {
+      const trimmed = value.replace(/\s+/g, " ").trim();
+      if (trimmed) output.push(trimmed);
+      return;
+    }
+    if (typeof value === "number") {
+      output.push(String(value));
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, depth + 1));
+      return;
+    }
+    if (typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach((item) => visit(item, depth + 1));
+    }
+  };
+  visit(raw.rendered);
+  return output;
+}
+
+function valueAfterRenderedLabel(raw: RawSupplierProduct, labels: string[]) {
+  const strings = renderedStrings(raw);
+  for (let index = 0; index < strings.length; index += 1) {
+    const current = strings[index].toLowerCase();
+    const matched = labels.some((label) => current === label.toLowerCase() || current.includes(label.toLowerCase()));
+    if (!matched) continue;
+    const next = strings.slice(index + 1, index + 6).find((value) => /\d/.test(value));
+    if (next) return next;
+  }
+  return null;
+}
+
 function valueAfterLabel(text: string, labels: string[]) {
   if (!text) return null;
   const normalized = text.replace(/\\u0026/g, "&").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
@@ -367,6 +404,13 @@ export function normalizeDimensions(raw: RawSupplierProduct): Dimensions | null 
     "Package dimensions",
     "Carton size",
     "Box size",
+  ]) ?? valueAfterRenderedLabel(raw, [
+    "Single package size",
+    "Package size",
+    "Single package dimensions",
+    "Package dimensions",
+    "Carton size",
+    "Box size",
   ]);
   const parsedRenderedPackageSize = parseDimensionText(renderedPackageSize);
   if (parsedRenderedPackageSize) return parsedRenderedPackageSize;
@@ -410,6 +454,12 @@ export function normalizeWeight(raw: RawSupplierProduct): number | null {
   if (parsed !== null) return parsed;
 
   const renderedWeight = valueAfterLabel(renderedText(raw), [
+    "Single gross weight",
+    "Gross weight",
+    "Package weight",
+    "Single package weight",
+    "Unit weight",
+  ]) ?? valueAfterRenderedLabel(raw, [
     "Single gross weight",
     "Gross weight",
     "Package weight",
