@@ -34,6 +34,15 @@ export async function POST(req: NextRequest) {
       platform,
       result.provider,
     );
+    const renderedText = (() => {
+      try {
+        return typeof result.raw.rendered === "string" ? result.raw.rendered : JSON.stringify(result.raw.rendered ?? "");
+      } catch {
+        return "";
+      }
+    })();
+    const packagingIndex = renderedText.toLowerCase().indexOf("single package");
+    const grossWeightIndex = renderedText.toLowerCase().indexOf("single gross");
 
     return NextResponse.json({
       platform,
@@ -53,6 +62,13 @@ export async function POST(req: NextRequest) {
         dimensions: normalized.dimensions,
         shippingEstimate: normalized.shippingEstimate,
         missingFields: detectMissingFields(normalized),
+      },
+      renderedDiagnostics: {
+        type: typeof result.raw.rendered,
+        hasSinglePackage: packagingIndex >= 0,
+        hasSingleGrossWeight: grossWeightIndex >= 0,
+        packageSnippet: packagingIndex >= 0 ? renderedText.slice(Math.max(0, packagingIndex - 120), packagingIndex + 220) : null,
+        weightSnippet: grossWeightIndex >= 0 ? renderedText.slice(Math.max(0, grossWeightIndex - 120), grossWeightIndex + 220) : null,
       },
     });
   } catch {
