@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ActionChecklist } from "@/components/result/ActionChecklist";
 import { AiInsights } from "@/components/result/AiInsights";
 import { CardAudit } from "@/components/result/CardAudit";
@@ -23,6 +24,7 @@ import type { MarginInput, PackagingInput, RawResultInput } from "@/lib/analysis
 import type { EconomicsInput, ProductAnalysisDraft } from "@/types/sellermap";
 
 export function ResultClient({ initialInput, draftId }: { initialInput: RawResultInput; draftId?: string }) {
+  const router = useRouter();
   const [draft] = useState<ProductAnalysisDraft | null>(() => (draftId ? getDraft(draftId) : null));
   const [input, setInput] = useState(() => (draft ? inputFromDraft(initialInput, draft) : initialInput));
   const result = useMemo(() => calculateResult(input), [input]);
@@ -73,6 +75,12 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
       packagingInput,
     }));
   }, []);
+
+  useEffect(() => {
+    if (draftId && typeof window !== "undefined" && window.location.pathname === "/result") {
+      router.replace(`/result/${draftId}`);
+    }
+  }, [draftId, router]);
 
   return (
     <>

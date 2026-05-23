@@ -6,7 +6,7 @@ import { demoResultInput } from "@/lib/data/demoResult";
 
 type ResultSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function firstValue(value: string | string[] | undefined) {
+export function firstValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
@@ -30,7 +30,7 @@ function parseDimensions(value: string | string[] | undefined) {
   return { lengthCm: parts[0], widthCm: parts[1], heightCm: parts[2] };
 }
 
-function buildInputFromParams(params: Record<string, string | string[] | undefined>): RawResultInput {
+export function buildInputFromParams(params: Record<string, string | string[] | undefined>): RawResultInput {
   const input: RawResultInput = {
     ...demoResultInput,
     marginInput: { ...demoResultInput.marginInput },

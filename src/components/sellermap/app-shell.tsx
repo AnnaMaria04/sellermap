@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   ["Проверка товара", "/check"],
-  ["Отчёт", "/result"],
   ["Дашборд", "/dashboard"],
   ["Отчёты", "/reports"],
   ["Обновления", "/updates"],

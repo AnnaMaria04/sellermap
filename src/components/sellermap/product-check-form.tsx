@@ -596,20 +596,9 @@ export function ProductCheckForm() {
       saveDraft(draft);
       nextDraftId = draft.id;
       setDraftId(draft.id);
+      window.localStorage.setItem("sellermap:lastDraftId", draft.id);
     }
-    const params = new URLSearchParams({
-      supplierUrl,
-      name: finalFields.productTitle || imported?.product?.title || "Товар поставщика",
-      cost: finalFields.productCostRub,
-      price: finalFields.plannedSellingPrice,
-      packaging: finalFields.packagingCost,
-      supplierShipping: finalFields.supplierDeliveryCost,
-      moq: finalFields.selectedQuantity,
-      weight: finalFields.weight,
-      dimensions: finalFields.dimensions,
-    });
-    if (nextDraftId) params.set("draftId", nextDraftId);
-    router.push(`/result?${params.toString()}`);
+    router.push(nextDraftId ? `/result/${nextDraftId}` : "/result");
   }
 
   const showForm = ["import_success", "import_partial", "manual_mode", "ready_to_calculate"].includes(state);
