@@ -3,6 +3,7 @@ import "server-only";
 import { ApifyClient } from "apify-client";
 import type { CompetitorProduct, MarketAnalysisResult, MarketStats, ProviderHealth } from "@/types/sellermap";
 import { ownWbCollectorProvider } from "@/lib/providers/market/own-wb-collector-provider";
+import { callOwnCollectorSearch } from "@/lib/providers/market/own-wb-client";
 import type { WBProduct } from "@/lib/providers/market/types";
 import { getMpstatsItems } from "@/services/mpstatsClient";
 import { getWbImageUrl, getWbPublicMarketByKeyword, getWbPublicMarketByNmId } from "@/services/wbPublicClient";
@@ -295,12 +296,17 @@ async function writeCachedSnapshot(keyword: string, provider: string, competitor
 
 async function ownCollectorSearchSimilarProducts(keyword: string, options: SearchOptions = {}): Promise<MarketAnalysisResult> {
   try {
-    const products = await ownWbCollectorProvider.searchSimilarProducts(keyword, { limit: options.limit ?? 50 });
-    const competitors = products.map(ownWbToCompetitor);
+    const response = await callOwnCollectorSearch(keyword, options.limit ?? 50);
+    const competitors = response.items.map((product) => ownWbToCompetitor({
+      ...product,
+      source: "own-wb",
+      searchKeyword: product.searchKeyword || keyword,
+    }));
     const marketStats = getMarketStats(competitors);
     await writeCachedSnapshot(keyword, "own-wb", competitors, marketStats);
     return analysisFrom("own-wb", competitors, [
       "Источник: собственный WB collector. Точные продажи конкурентов не извлекаются; используем прокси спроса по цене, отзывам и позиции.",
+      ...response.warnings,
     ]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "own WB collector недоступен";
@@ -390,7 +396,7 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
   if (MARKET_PROVIDER === "own-wb" || MARKET_PROVIDER === "auto" || MARKET_PROVIDER === "apify") {
     providersTried.push("own-wb");
     const own = await ownCollectorSearchSimilarProducts(clean, options);
-    if (own.status === "success") return { ...own, warnings: [...own.warnings, `Провайдеры проверены: ${providersTried.join(" → ")}`] };
+    if (own.competitors.length) return { ...own, warnings: [...own.warnings, `Провайдеры проверены: ${providersTried.join(" → ")}`] };
   }
 
   let apify: MarketAnalysisResult = { provider: "apify", status: "failed", competitors: [], marketStats: null, warnings: ["Apify fallback skipped."] };

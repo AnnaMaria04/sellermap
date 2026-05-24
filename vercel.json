@@ -21,6 +21,25 @@
     },
     "src/app/api/wb/analytics/route.ts": {
       "maxDuration": 15
+    },
+    "src/app/api/tracking/keywords/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/tracking/snapshot/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/tracking/seed/route.ts": {
+      "maxDuration": 15
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/tracking/keywords",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/tracking/snapshot",
+      "schedule": "30 3 * * *"
+    }
+  ]
 }

@@ -12,7 +12,8 @@ type TrackedProductRow = {
 };
 
 function unauthorized(req: NextRequest) {
-  const secret = req.headers.get("x-cron-secret") ?? req.nextUrl.searchParams.get("secret");
+  const authorization = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const secret = req.headers.get("x-cron-secret") ?? authorization ?? req.nextUrl.searchParams.get("secret");
   return Boolean(process.env.CRON_SECRET && secret !== process.env.CRON_SECRET);
 }
 

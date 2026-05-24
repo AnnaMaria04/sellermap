@@ -1,10 +1,12 @@
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { config } from "../config.js";
 import type { WBProduct, WorkerSearchResponse } from "../types.js";
 import { errorMessage } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 import { withTimeout } from "../utils/rate-limit.js";
 import { normalizeSearchItem } from "../normalizers/wb-normalizer.js";
+
+const SEARCH_CARD_SELECTOR = "article, .product-card, [data-nm-id], [data-card-index], [class*='product-card']";
 
 async function fetchPublicSearch(query: string, limit: number): Promise<WBProduct[]> {
   const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?query=${encodeURIComponent(query)}&resultset=catalog&limit=${limit}&sort=popular&curr=rub&lang=ru&dest=-1257786`;
@@ -23,35 +25,90 @@ async function fetchPublicSearch(query: string, limit: number): Promise<WBProduc
     .slice(0, limit);
 }
 
+function extractProductsFromPayload(payload: unknown): unknown[] {
+  if (!payload || typeof payload !== "object") return [];
+  const row = payload as Record<string, unknown>;
+  const data = row.data && typeof row.data === "object" ? row.data as Record<string, unknown> : null;
+  const candidates = [
+    data?.products,
+    data?.cards,
+    row.products,
+    row.cards,
+    row.items,
+    row.result,
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
+async function evaluateSearchCards(page: Page, limit: number) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await page.evaluate((max) => {
+        const cards = [...document.querySelectorAll("article, .product-card, [data-nm-id], [data-card-index], [class*='product-card']")].slice(0, max);
+        return cards.map((card) => {
+          const root = card as HTMLElement;
+          const link = root.querySelector<HTMLAnchorElement>("a[href*='/catalog/']");
+          const image = root.querySelector<HTMLImageElement>("img");
+          const text = root.innerText;
+          const price = root.querySelector("[class*='price'], ins, .price__lower-price")?.textContent ?? text.match(/\d[\d\s]*\s?₽/)?.[0] ?? null;
+          const rating = text.match(/\d[,.]\d/)?.[0] ?? null;
+          const reviews = text.match(/\d[\d\s]*(?:отзыв|оцен)/i)?.[0] ?? null;
+          return {
+            url: link?.href ?? null,
+            title: link?.textContent?.trim() || image?.alt || text.split("\n").find(Boolean) || "",
+            imageUrl: image?.src ?? null,
+            price,
+            rating,
+            reviews,
+            nmId: root.dataset.nmId ?? root.getAttribute("data-nm-id") ?? null,
+          };
+        });
+      }, limit);
+    } catch (error) {
+      lastError = error;
+      const message = errorMessage(error);
+      if (!/Execution context was destroyed|navigation|Target closed/i.test(message)) throw error;
+      await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => undefined);
+      await page.waitForTimeout(800 + attempt * 700);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Browser DOM extraction failed.");
+}
+
 async function collectWithBrowser(query: string, limit: number): Promise<WBProduct[]> {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ userAgent: config.userAgent });
+    const responseProducts: WBProduct[][] = [];
+    page.on("response", async (response) => {
+      const url = response.url();
+      if (!/search\.wb\.ru|catalog|cards/i.test(url)) return;
+      const contentType = response.headers()["content-type"] ?? "";
+      if (!contentType.includes("json")) return;
+      try {
+        const payload = await response.json();
+        const products = extractProductsFromPayload(payload)
+          .map((item, index) => normalizeSearchItem(item, query, index + 1))
+          .filter((item): item is WBProduct => Boolean(item))
+          .slice(0, limit);
+        if (products.length) responseProducts.push(products);
+      } catch {
+        // Ignore non-product JSON payloads from the page.
+      }
+    });
     await page.goto(`https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`, {
       waitUntil: "domcontentloaded",
       timeout: config.timeoutMs,
     });
-    await page.waitForTimeout(2500);
-    const rawItems = await page.evaluate((max) => {
-      const cards = [...document.querySelectorAll("article, .product-card, [data-nm-id], [data-card-index]")].slice(0, max);
-      return cards.map((card) => {
-        const root = card as HTMLElement;
-        const link = root.querySelector<HTMLAnchorElement>("a[href*='/catalog/']");
-        const image = root.querySelector<HTMLImageElement>("img");
-        const text = root.innerText;
-        const price = root.querySelector("[class*='price'], ins, .price__lower-price")?.textContent ?? text.match(/\d[\d\s]*\s?₽/)?.[0] ?? null;
-        const rating = text.match(/\d[,.]\d/)?.[0] ?? null;
-        const reviews = text.match(/\d[\d\s]*(?:отзыв|оцен)/i)?.[0] ?? null;
-        return {
-          url: link?.href ?? null,
-          title: link?.textContent?.trim() || image?.alt || text.split("\n").find(Boolean) || "",
-          imageUrl: image?.src ?? null,
-          price,
-          rating,
-          reviews,
-        };
-      });
-    }, limit);
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => undefined);
+    await page.waitForSelector(SEARCH_CARD_SELECTOR, { timeout: 8000 }).catch(() => undefined);
+    await page.waitForTimeout(1200);
+    if (responseProducts[0]?.length) return responseProducts[0].slice(0, limit);
+    const rawItems = await evaluateSearchCards(page, limit);
     return rawItems
       .map((item, index) => normalizeSearchItem(item, query, index + 1))
       .filter((item): item is WBProduct => Boolean(item))
@@ -65,37 +122,30 @@ export async function collectWbSearch(query: string, limit: number): Promise<Wor
   const started = Date.now();
   const warnings: string[] = [];
   logger.info({ query, limit }, "SEARCH_STARTED");
+  let items: WBProduct[] = [];
+  let collector = "public-json";
   try {
-    let items: WBProduct[] = [];
-    let collector = "public-json";
+    items = await withTimeout(fetchPublicSearch(query, limit));
+  } catch (error) {
+    warnings.push(`FAST_PATH_FAILED: ${errorMessage(error)}`);
+    collector = "playwright-dom";
     try {
-      items = await withTimeout(fetchPublicSearch(query, limit));
-    } catch (error) {
-      warnings.push(`FAST_PATH_FAILED: ${errorMessage(error)}`);
-      collector = "playwright-dom";
       items = await withTimeout(collectWithBrowser(query, limit));
       warnings.push("DOM_SELECTOR_FALLBACK_USED");
+    } catch (browserError) {
+      warnings.push(`BROWSER_FALLBACK_FAILED: ${errorMessage(browserError)}`);
     }
-    if (!items.length) warnings.push("NO_RESULTS");
-    const status = items.length ? (warnings.length ? "partial" : "success") : "failed";
-    logger.info({ query, resultCount: items.length, status }, status === "failed" ? "SEARCH_FAILED" : status === "partial" ? "SEARCH_PARTIAL" : "SEARCH_SUCCESS");
-    return {
-      status,
-      source: "own-wb",
-      query,
-      items,
-      warnings,
-      debug: { durationMs: Date.now() - started, collector, resultCount: items.length },
-    };
-  } catch (error) {
-    logger.error({ query, error: errorMessage(error) }, "SEARCH_FAILED");
-    return {
-      status: "failed",
-      source: "own-wb",
-      query,
-      items: [],
-      warnings: ["SEARCH_FAILED", errorMessage(error)],
-      debug: { durationMs: Date.now() - started, collector: "failed", resultCount: 0 },
-    };
   }
+
+  if (!items.length) warnings.push("NO_RESULTS");
+  const status = items.length ? (warnings.length ? "partial" : "success") : "failed";
+  logger.info({ query, resultCount: items.length, status }, status === "failed" ? "SEARCH_FAILED" : status === "partial" ? "SEARCH_PARTIAL" : "SEARCH_SUCCESS");
+  return {
+    status,
+    source: "own-wb",
+    query,
+    items,
+    warnings,
+    debug: { durationMs: Date.now() - started, collector: items.length ? collector : "failed", resultCount: items.length },
+  };
 }

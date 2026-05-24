@@ -16,5 +16,5 @@ productRouter.post("/product", async (req, res) => {
     return;
   }
   const result = await runSerialized(() => collectWbProduct(parsed.data.nmId));
-  res.status(result.status === "failed" ? 502 : 200).json(result);
+  res.status(200).json(result);
 });

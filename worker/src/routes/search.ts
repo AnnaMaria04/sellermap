@@ -18,5 +18,5 @@ searchRouter.post("/search", async (req, res) => {
     return;
   }
   const result = await runSerialized(() => collectWbSearch(parsed.data.query, parsed.data.limit));
-  res.status(result.status === "failed" ? 502 : 200).json(result);
+  res.status(200).json(result);
 });
