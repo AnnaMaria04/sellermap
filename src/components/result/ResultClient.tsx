@@ -1,18 +1,12 @@
 "use client";
 
-<<<<<<< HEAD
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActionChecklist } from "@/components/result/ActionChecklist";
-import { AiInsights } from "@/components/result/AiInsights";
-=======
-import { useCallback, useMemo, useState } from "react";
 import { ScoreRing } from "@/components/result/ScoreRing";
 import { CostBar } from "@/components/result/CostBar";
 import { MarketHistogram } from "@/components/result/MarketHistogram";
 import { PriceRatingScatter } from "@/components/result/PriceRatingScatter";
 import { CompetitorTable } from "@/components/result/CompetitorTable";
->>>>>>> 94645ad (Implement SellerMap Result v2 design: tabbed layout, ScoreRing, CostBar, histogram, scatter chart)
 import { CardAudit } from "@/components/result/CardAudit";
 import { ActionChecklist } from "@/components/result/ActionChecklist";
 import { calculateResult } from "@/lib/analysis/calculateResult";
@@ -107,7 +101,6 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
   );
 }
 
-<<<<<<< HEAD
 function MissingDraftState() {
   return (
     <div className="rounded-xl border border-[var(--c-amber)]/40 bg-[var(--c-amber-dim)] p-6">
@@ -125,7 +118,10 @@ function MissingDraftState() {
       >
         Начать новую проверку
       </a>
-=======
+    </div>
+  );
+}
+
 /* ── Hero ── */
 function HeroSection({ result }: { result: ProductResult }) {
   const m = result.margin;
@@ -180,13 +176,10 @@ function HeroSection({ result }: { result: ProductResult }) {
           </div>
         </div>
       </div>
->>>>>>> 94645ad (Implement SellerMap Result v2 design: tabbed layout, ScoreRing, CostBar, histogram, scatter chart)
     </div>
   );
 }
 
-<<<<<<< HEAD
-=======
 /* ── KPI Row ── */
 function KpiRow({ result }: { result: ProductResult }) {
   const m = result.margin;
@@ -485,7 +478,6 @@ function PillBadge({ label, level }: { label: string; level: "low" | "medium" | 
 }
 
 /* ── inputFromDraft (keep existing logic unchanged) ── */
->>>>>>> 94645ad (Implement SellerMap Result v2 design: tabbed layout, ScoreRing, CostBar, histogram, scatter chart)
 function inputFromDraft(initialInput: RawResultInput, draft: ProductAnalysisDraft): RawResultInput {
   const weight = draft.product.weight ?? initialInput.packagingInput.weightKg;
   const dimensions = draft.product.dimensions;
@@ -554,165 +546,3 @@ function inputFromDraft(initialInput: RawResultInput, draft: ProductAnalysisDraf
     },
   };
 }
-<<<<<<< HEAD
-
-function Status({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-[var(--c-bg3)] p-3">
-      <p className="text-xs text-[var(--c-text3)]">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-[var(--c-text)]">{value}</p>
-    </div>
-  );
-}
-
-function DecisionDashboard({
-  draft,
-  decisionData,
-}: {
-  draft: ProductAnalysisDraft;
-  decisionData: {
-    dataConfidence: ReturnType<typeof calculateDataConfidence>;
-    decision: ReturnType<typeof analyzeDecision>;
-    priceScenarios: ReturnType<typeof generatePriceScenarios>;
-  };
-}) {
-  const { decision, dataConfidence, priceScenarios } = decisionData;
-  return (
-    <div className="mb-6 space-y-6">
-      <div className="rounded-xl border border-[var(--c-green)]/40 bg-[var(--c-green-dim)] p-6">
-        <p className="section-kicker border-t-0 pt-0">Решение по запуску</p>
-        <div className="mt-4 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <h1 className="font-display text-3xl font-semibold text-[var(--c-text)] md:text-5xl">{decision.label}</h1>
-            <p className="mt-3 text-sm text-[var(--c-text2)]">{decision.topReasons.join(" · ")}</p>
-          </div>
-          <div className="font-display text-5xl font-semibold text-[var(--c-green)]">
-            {decision.overallScore}<span className="text-2xl text-[var(--c-text3)]">/100</span>
-          </div>
-        </div>
-        <div className="mt-4 inline-flex rounded-full bg-[var(--c-bg3)] px-3 py-1 text-xs text-[var(--c-text2)]">
-          Уверенность анализа: {dataConfidence.score}% · {dataConfidence.level}
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-5">
-        <Status label="Прибыль" value={String(decision.scores.profit)} />
-        <Status label="Рынок" value={String(decision.scores.market)} />
-        <Status label="Конкуренция" value={String(decision.scores.competition)} />
-        <Status label="Риск" value={String(decision.scores.risk)} />
-        <Status label="Готовность" value={String(decision.scores.launchReadiness)} />
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
-        <Status label="Спрос" value={draft.market?.marketStats ? "proxy" : "нет данных"} />
-        <Status label="Конкуренция" value={draft.market?.marketStats?.marketDifficulty ?? "—"} />
-        <Status label="Медиана WB" value={draft.market?.marketStats?.medianPrice ? `${draft.market.marketStats.medianPrice} ₽` : "—"} />
-        <Status label="Рекоменд. вход" value={draft.economics ? `${draft.economics.safePriceMin} ₽` : "—"} />
-        <Status label="Прибыль / шт." value={draft.economics ? `${draft.economics.profitPerUnit} ₽` : "—"} />
-        <Status label="Маржа" value={draft.economics ? `${draft.economics.marginPercent}%` : "—"} />
-        <Status label="Барьер отзывов" value={draft.market?.marketStats?.reviewBarrier ? String(draft.market.marketStats.reviewBarrier) : "—"} />
-        <Status label="Источник" value={draft.market?.provider ?? "—"} />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[0.85fr_1fr]">
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <p className="section-kicker border-t-0 pt-0">Товар поставщика</p>
-          <div className="mt-4 flex gap-4">
-            <div className="h-24 w-24 overflow-hidden rounded-lg bg-[var(--c-bg3)]">
-              {draft.product.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={draft.product.images[0]} alt="" className="h-full w-full object-cover" />
-              ) : null}
-            </div>
-            <div>
-              <p className="font-semibold">{draft.product.title || "Название не найдено"}</p>
-              <p className="mt-1 text-sm text-[var(--c-text2)]">{draft.product.supplierName || "Поставщик не найден"}</p>
-              <p className="mt-2 text-xs text-[var(--c-amber)]">Изображение поставщика: нужна проверка WB, не загружено на WB.</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <p className="section-kicker border-t-0 pt-0">Экономика</p>
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <Status label="Прибыль / шт." value={draft.economics ? `${draft.economics.profitPerUnit} ₽` : "—"} />
-            <Status label="Маржа" value={draft.economics ? `${draft.economics.marginPercent}%` : "—"} />
-            <Status label="Безубыточность" value={draft.economics ? `${draft.economics.breakEvenPrice} ₽` : "—"} />
-            <Status label="Мин. безопасная" value={draft.economics ? `${draft.economics.minimumSafePrice} ₽` : "—"} />
-          </div>
-        </div>
-      </div>
-
-      <EconomicsWaterfall economics={draft.economics} sellingPrice={draft.product.plannedSellingPrice} />
-      <PriceScenarioSimulator scenarios={priceScenarios} />
-
-      {draft.market?.competitors?.length ? (
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <p className="section-kicker border-t-0 pt-0">Карта конкурентов WB</p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {draft.market.competitors.slice(0, 12).map((competitor, index) => (
-              <div key={`${competitor.nmId ?? index}`} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
-                <div className="flex gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-[var(--c-bg2)]">
-                    {competitor.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={competitor.image} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="max-h-10 overflow-hidden text-sm font-semibold text-[var(--c-text)]">{competitor.title}</p>
-                    <p className="mt-1 text-xs text-[var(--c-text2)]">
-                      {competitor.price ? `${competitor.price} ₽` : "цена —"} · {competitor.rating ?? "—"}★ · {competitor.reviewCount ?? 0} отзывов
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--c-text3)]">Позиция {competitor.searchPosition ?? index + 1}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-[var(--c-text3)]">
-            Месячные продажи не показываются как факт, если провайдер их не возвращает. SellerMap использует прокси спроса по отзывам, позициям и ценам.
-          </p>
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <p className="section-kicker border-t-0 pt-0">Недостающие данные</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(dataConfidence.missingCriticalFields.length ? dataConfidence.missingCriticalFields : ["Критичных пропусков нет"]).map((item) => (
-              <span key={item} className="rounded-full bg-[var(--c-amber-dim)] px-3 py-1 text-xs text-[var(--c-amber)]">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <p className="section-kicker border-t-0 pt-0">План действий</p>
-          <div className="mt-3 space-y-2">
-            {decision.nextActions.slice(0, 6).map((action) => (
-              <div key={action.title} className="rounded-lg bg-[var(--c-bg3)] p-3">
-                <p className="font-semibold">{action.title}</p>
-                <p className="mt-1 text-xs text-[var(--c-text2)]">{action.action}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-        <p className="section-kicker border-t-0 pt-0">Качество данных</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-4">
-          <Status label="Поставщик" value={draft.importStatus ?? "manual"} />
-          <Status label="WB источник" value={draft.market?.provider ?? "нет"} />
-          <Status label="Конкурентов" value={String(draft.market?.competitors?.length ?? 0)} />
-          <Status label="Продажи" value="proxy / недоступны как факт" />
-        </div>
-        <p className="mt-3 text-xs text-[var(--c-text3)]">
-          Это не официальные продажи WB. Оценки строятся по доступным marketplace-сигналам и станут точнее после накопления исторических снимков.
-        </p>
-      </div>
-    </div>
-  );
-}
-=======
->>>>>>> 94645ad (Implement SellerMap Result v2 design: tabbed layout, ScoreRing, CostBar, histogram, scatter chart)
