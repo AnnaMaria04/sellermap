@@ -21,6 +21,7 @@ export type ScoreBreakdownItem = {
 export type Competitor = {
   name: string;
   nmId: string;
+  sellerName?: string | null;
   imageUrl?: string;
   price: number;
   rating: number;

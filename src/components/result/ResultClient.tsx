@@ -326,6 +326,13 @@ function MarginTab({ result }: { result: ProductResult; onInputChange: (m: Margi
 /* ── MARKET TAB ── */
 function MarketTab({ result }: { result: ProductResult }) {
   const m = result.margin;
+  const sellers = [...result.competitors.reduce((map, competitor) => {
+    const seller = competitor.sellerName || "Неизвестный продавец";
+    map.set(seller, (map.get(seller) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>()).entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
   const sortedByPrice = [...result.competitors].sort((a, b) => a.price - b.price);
   const priceMin = sortedByPrice[0]?.price ?? 0;
   const priceMax = sortedByPrice[sortedByPrice.length - 1]?.price ?? 0;
@@ -350,8 +357,20 @@ function MarketTab({ result }: { result: ProductResult }) {
       <PriceRatingScatter competitors={result.competitors} ourPrice={m.sellingPrice} />
       <Hr />
 
-      <Sh title="Конкурентный срез" sub="Отсортировано по продажам в месяц" />
+      <Sh title="Конкурентный срез" sub="Отсортировано по глубине отзывов; точные продажи не показываются без лицензированного провайдера" />
       <CompetitorTable competitors={result.competitors} ourPrice={m.sellingPrice} />
+      <Hr />
+
+      <Sh title="Лидирующие продавцы" sub="Кто чаще всего встречается среди похожих карточек в текущем срезе WB" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+        {sellers.map(([seller, count], index) => (
+          <div key={seller} style={{ padding: "12px 14px", borderRadius: 8, background: "var(--c-bg2)", border: "1px solid var(--c-border)" }}>
+            <div style={{ fontSize: 10, color: "var(--c-text3)", marginBottom: 4 }}>#{index + 1} продавец</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seller}</div>
+            <div style={{ marginTop: 6, fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "var(--c-green)" }}>{count} карточек в выборке</div>
+          </div>
+        ))}
+      </div>
       <Hr />
 
       <Sh title="Ценовые сегменты" />

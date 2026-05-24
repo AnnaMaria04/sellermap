@@ -2,6 +2,7 @@ import "server-only";
 
 import { extractWithApify } from "@/services/apifyClient";
 import { extractWithHtmlMeta, extractFromPastedHtml } from "@/services/htmlSupplierExtractor";
+import { inferSupplierTitleFromUrl, parseSupplierDimensionText } from "@/lib/supplierParsing";
 import type {
   CalculatorDraft,
   Dimensions,
@@ -29,7 +30,7 @@ const WEAK_TOKENS = new Set([
   "manufacturer",
 ]);
 
-const REQUIRED_IMPORT_FIELDS: Array<keyof NormalizedSupplierProduct> = ["weight", "dimensions", "shippingEstimate"];
+const REQUIRED_IMPORT_FIELDS: Array<keyof NormalizedSupplierProduct> = ["unitCost", "moq", "weight", "dimensions", "shippingEstimate"];
 
 export function detectSupplierPlatform(url: string): SupplierPlatform {
   const normalized = url.toLowerCase();
@@ -68,14 +69,6 @@ export function parseProductIdentityFromUrl(url: string) {
   const tokens = tokenize(slug).filter((token) => !WEAK_TOKENS.has(token.toLowerCase()));
 
   return { productId, slug, tokens };
-}
-
-function titleFromSlug(slug: string | null) {
-  if (!slug) return null;
-  return slug
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 export function pickFirst(raw: RawSupplierProduct, possibleKeys: string[]) {
@@ -234,19 +227,7 @@ function dimensionsFromObject(value: unknown): Dimensions | null {
 }
 
 function parseDimensionText(value: unknown): Dimensions | null {
-  if (typeof value !== "string") return null;
-  const raw = value.toLowerCase().replace(/,/g, ".");
-  const unit = raw.includes("mm") ? "mm" : raw.includes("m") && !raw.includes("cm") ? "m" : "cm";
-  const numbers = raw.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  if (numbers.length < 2) return null;
-  const factor = unit === "mm" ? 0.1 : unit === "m" ? 100 : 1;
-  const [length, width, height] = numbers.map((number) => Number((number * factor).toFixed(1)));
-  return {
-    length,
-    width,
-    height: height ?? width,
-    unit: "cm",
-  };
+  return parseSupplierDimensionText(value);
 }
 
 function asCurrency(value: unknown): SupplierCurrency {
@@ -507,6 +488,7 @@ export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierP
   const priceTiers = normalizePriceTiers(raw);
   const selected = calculateBestPriceTier(priceTiers, normalizeMOQ(raw));
   const title = pickFirst(raw, ["title", "name", "productName", "product_title", "productTitle", "subject"]);
+  const fallbackTitle = typeof raw.productUrl === "string" ? inferSupplierTitleFromUrl(raw.productUrl) : typeof raw.supplierUrl === "string" ? inferSupplierTitleFromUrl(raw.supplierUrl) : null;
   const supplierValue = pickFirst(raw, ["supplier", "supplierName", "companyName", "sellerName", "manufacturer", "vendorName"]);
   const supplierName =
     typeof supplierValue === "string"
@@ -515,7 +497,7 @@ export function normalizeSupplierData(raw: RawSupplierProduct, source: SupplierP
         ? pickFirst(supplierValue as RawSupplierProduct, ["name", "companyName", "supplierName"])
         : null;
   return {
-    title: typeof title === "string" ? title : null,
+    title: typeof title === "string" ? title : fallbackTitle,
     supplierName: typeof supplierName === "string" ? supplierName : null,
     supplierUrl: typeof raw.supplierUrl === "string" ? raw.supplierUrl : "",
     productUrl: typeof raw.productUrl === "string" ? raw.productUrl : "",
@@ -714,7 +696,7 @@ function buildUrlIdentityDraft(
   reason: string,
 ): SupplierImportResponse {
   const identity = parseProductIdentityFromUrl(url);
-  const title = titleFromSlug(identity.slug);
+  const title = inferSupplierTitleFromUrl(url);
 
   if (!title) {
     return {

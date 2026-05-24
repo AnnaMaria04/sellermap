@@ -53,6 +53,7 @@ function defaultFx(currency?: string | null) {
 function logisticsEstimate(product: SupplierProduct) {
   const weight = product.grossWeightKg ?? 0;
   const sides = product.packageSize ? [product.packageSize.lengthCm, product.packageSize.widthCm, product.packageSize.heightCm] : [];
+  if (!product.grossWeightKg && !product.packageSize) return 150;
   if (sides.some((side) => (side ?? 0) > 120)) return 350;
   if (weight > 5) return 180;
   if (weight > 1) return 125;
@@ -87,7 +88,7 @@ export function buildEconomicsInput(
   const targetPriceRub =
     overrides.targetPriceRub ??
     market.priceStats.median ??
-    Math.round(supplierUnitCost * fxRate * 3.5);
+    (supplierUnitCost > 0 ? Math.round(supplierUnitCost * fxRate * 3.5) : 0);
   return {
     supplierUnitCost,
     currency,
@@ -148,7 +149,7 @@ export function calculateUnitEconomics(input: UnitEconomicsInput, market?: Marke
     customsBufferRub: Math.round(customsBufferRub),
     totalCostRub: Math.round(totalCostRub),
     profitPerUnitRub: Math.round(profitPerUnitRub),
-    marginPercent: Number(((profitPerUnitRub / input.targetPriceRub) * 100).toFixed(1)),
+    marginPercent: input.targetPriceRub > 0 ? Number(((profitPerUnitRub / input.targetPriceRub) * 100).toFixed(1)) : 0,
     breakEvenPriceRub,
     minimumSafePriceRub,
     safePriceMaxRub: premiumCeilingRub ?? Math.round(input.targetPriceRub * 1.25),
@@ -165,6 +166,8 @@ export function calculateUnitEconomics(input: UnitEconomicsInput, market?: Marke
       scenario("Логистика выше", { wbLogisticsRub: input.wbLogisticsRub + 50 }),
     ],
     warnings: [
+      ...(input.supplierUnitCost <= 0 ? ["Себестоимость поставщика не найдена. Финальную маржу считать нельзя."] : []),
+      ...(input.wbLogisticsRub === 150 ? ["Логистика WB рассчитана резервно: вес и габариты упаковки не подтверждены."] : []),
       ...(profitPerUnitRub < 0 ? ["Текущая цена даёт убыток."] : []),
       ...(profitPerUnitRub / input.targetPriceRub < 0.2 ? ["Маржа ниже 20%, запуск рискован."] : []),
       ...(!market?.priceStats.median ? ["Медиана рынка недоступна, цена рассчитана от себестоимости."] : []),
@@ -184,6 +187,6 @@ function calculateUnitEconomicsNoSensitivity(input: UnitEconomicsInput) {
   const profitPerUnitRub = input.targetPriceRub - totalCostRub;
   return {
     profitPerUnitRub: Math.round(profitPerUnitRub),
-    marginPercent: Number(((profitPerUnitRub / input.targetPriceRub) * 100).toFixed(1)),
+    marginPercent: input.targetPriceRub > 0 ? Number(((profitPerUnitRub / input.targetPriceRub) * 100).toFixed(1)) : 0,
   };
 }

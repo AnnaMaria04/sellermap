@@ -4,6 +4,7 @@ import { calculateUnitEconomics, buildEconomicsInput } from "../src/lib/analysis
 import { makeDecision } from "../src/lib/analysis/decision-engine";
 import { analyzeMarket } from "../src/lib/analysis/market-analysis";
 import { fingerprintSupplierProduct } from "../src/lib/analysis/product-fingerprint";
+import { inferSupplierTitleFromUrl, parseSupplierDimensionText, parseSupplierWeightKg } from "../src/lib/supplierParsing";
 import type { SupplierProduct } from "../src/lib/providers/supplier/types";
 import type { WBProduct } from "../src/lib/providers/market/types";
 
@@ -59,4 +60,26 @@ test("decision engine returns an actionable verdict", () => {
   assert.ok(["strong_opportunity", "can_test", "research_more", "risky", "reject"].includes(decision.verdict));
   assert.equal(typeof decision.opportunityScore, "number");
   assert.ok(decision.mainReasons.length >= 3);
+});
+
+test("Alibaba URL fallback creates a useful product identity", () => {
+  const title = inferSupplierTitleFromUrl("https://www.alibaba.com/product-detail/UNI-POSCA-PC-3M-High-Quality_1601453694879.html");
+  assert.equal(title, "UNI POSCA PC 3M High Quality");
+});
+
+test("supplier normalization prefers package dimensions and gross weight", () => {
+  const dimensions = parseSupplierDimensionText("15X1X1 cm");
+  const weight = parseSupplierWeightKg("0.030 kg");
+  assert.deepEqual(dimensions, { length: 15, width: 1, height: 1, unit: "cm" });
+  assert.equal(weight, 0.03);
+});
+
+test("decision blocks launch verdict when supplier cost is missing", () => {
+  const noCostSupplier = { ...supplier, supplierPriceMin: null };
+  const fingerprint = fingerprintSupplierProduct(noCostSupplier);
+  const market = analyzeMarket(noCostSupplier, fingerprint, competitors);
+  const economics = calculateUnitEconomics(buildEconomicsInput(noCostSupplier, market, { fxRate: 90, targetPriceRub: 790 }), market);
+  const decision = makeDecision({ supplier: noCostSupplier, fingerprint, market, economics });
+  assert.equal(decision.verdict, "needs_more_data");
+  assert.ok(decision.mainRisks.includes("Нет подтверждённой цены поставщика"));
 });

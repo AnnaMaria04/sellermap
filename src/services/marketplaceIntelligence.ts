@@ -182,6 +182,7 @@ export function analysisRowToResultInput(row: MarketAnalysisRow): RawResultInput
   const competitors = (market?.competitors ?? []).slice(0, 12).map((product, index) => ({
     name: product.title,
     nmId: product.nmId,
+    sellerName: product.sellerName,
     imageUrl: product.imageUrl ?? undefined,
     price: product.priceRub ?? 0,
     rating: product.rating ?? 0,
@@ -234,7 +235,12 @@ export function analysisRowToResultInput(row: MarketAnalysisRow): RawResultInput
         status: "подключено",
         lastUpdated: formatDate(row.created_at),
         confidence: decision?.confidenceLevel === "high" ? 82 : decision?.confidenceLevel === "medium" ? 62 : 38,
-        note: "Конкуренты WB собраны через provider ladder; продажи конкурентов не заявляются как точные.",
+        note: [
+          "Конкуренты WB собраны через provider ladder; продажи конкурентов не заявляются как точные.",
+          market?.sellerConcentration.topSellers.length
+            ? `Лидеры выдачи: ${market.sellerConcentration.topSellers.slice(0, 3).map((seller) => `${seller.sellerName} (${seller.productCount})`).join(", ")}.`
+            : null,
+        ].filter(Boolean).join(" "),
       },
       {
         source: "SellerMap flywheel",

@@ -47,6 +47,8 @@ export function makeDecision(input: {
   economics: UnitEconomicsResult;
 }): DecisionResult {
   const { supplier, fingerprint, market, economics } = input;
+  const missingSupplierCost = !Number.isFinite(supplier.supplierPriceMin ?? NaN) || (supplier.supplierPriceMin ?? 0) <= 0 || economics.supplierUnitCost <= 0;
+  const missingPackaging = !supplier.packageSize || !supplier.grossWeightKg;
   const competitionRisk = 100 - market.competition.competitionScore;
   const concentrationScore =
     market.sellerConcentration.concentrationLevel === "low"
@@ -57,7 +59,7 @@ export function makeDecision(input: {
           ? 35
           : 45;
   const differentiationPotential = Math.min(90, 45 + fingerprint.differentiationAngles.length * 12);
-  const opportunityScore = Math.round(
+  const rawOpportunityScore = Math.round(
     market.demand.demandScore * 0.25 +
       marginScore(economics.marginPercent) * 0.25 +
       competitionRisk * 0.2 +
@@ -65,9 +67,12 @@ export function makeDecision(input: {
       pricePositionScore(economics, market) * 0.1 +
       differentiationPotential * 0.05,
   );
+  const opportunityScore = missingSupplierCost ? Math.min(45, rawOpportunityScore) : missingPackaging ? Math.min(70, rawOpportunityScore) : rawOpportunityScore;
   const missingMarket = market.competitors.length < 5;
   const verdict =
-    missingMarket
+    missingSupplierCost
+      ? "needs_more_data"
+      : missingMarket
       ? "research_more"
       : economics.marginPercent < 10 || opportunityScore < 55
         ? "reject"
@@ -76,13 +81,13 @@ export function makeDecision(input: {
           : opportunityScore >= 70 && economics.marginPercent >= 18
             ? "can_test"
           : "risky";
-  const confidenceLevel = missingMarket ? "low" : market.confidenceLevel;
+  const confidenceLevel = missingSupplierCost || missingMarket ? "low" : missingPackaging && market.confidenceLevel === "high" ? "medium" : market.confidenceLevel;
   const batch =
       verdict === "strong_opportunity"
       ? { min: 50, max: 100, reason: "Маржа и рыночные сигналы достаточны для аккуратного теста." }
       : verdict === "risky" || verdict === "can_test"
         ? { min: 20, max: 50, reason: "Есть спрос, но нужно ограничить риск первой закупки." }
-        : verdict === "research_more"
+        : verdict === "research_more" || verdict === "needs_more_data"
           ? { min: 10, max: 20, reason: "Недостаточно данных рынка, допустим только минимальный тест." }
           : { min: 0, max: 0, reason: "Покупку лучше отложить до улучшения экономики или дифференциации." };
 
@@ -96,7 +101,9 @@ export function makeDecision(input: {
           ? "Можно тестировать"
           : verdict === "research_more"
             ? "Нужно исследовать"
-            : verdict === "reject"
+            : verdict === "needs_more_data"
+              ? "Нужно больше данных"
+              : verdict === "reject"
               ? "Отклонить"
               : verdict === "risky"
           ? "Рискованно"
@@ -105,13 +112,14 @@ export function makeDecision(input: {
     suggestedFirstBatchSize: batch,
     mainReasons: [
       `Спрос: ${market.demand.demandLevel}, score ${market.demand.demandScore}/100`,
-      `Маржа: ${economics.marginPercent}% при цене ${economics.targetPriceRub} ₽`,
+      missingSupplierCost ? "Себестоимость поставщика не найдена — маржа заблокирована" : `Маржа: ${economics.marginPercent}% при цене ${economics.targetPriceRub} ₽`,
       `Медиана WB: ${market.priceStats.median ? `${market.priceStats.median} ₽` : "нет данных"}`,
     ],
     mainRisks: [
+      ...(missingSupplierCost ? ["Нет подтверждённой цены поставщика"] : []),
       `Конкуренция: ${market.competition.competitionLevel}`,
       `Барьер отзывов: ${market.reviewStats.entryReviewBarrier}`,
-      ...(supplier.packageSize ? [] : ["Габариты упаковки не подтверждены"]),
+      ...(missingPackaging ? ["Вес или габариты упаковки не подтверждены"] : []),
     ].slice(0, 3),
     improvementActions: [
       "Подтвердить вес, габариты упаковки и доставку у поставщика.",
