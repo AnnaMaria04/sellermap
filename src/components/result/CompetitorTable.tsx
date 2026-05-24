@@ -1,5 +1,6 @@
 "use client";
 import type { Competitor } from "@/lib/analysis/types";
+import { formatRub } from "@/lib/utils";
 
 export function CompetitorTable({ competitors, ourPrice }: { competitors: Competitor[]; ourPrice: number }) {
   const rows = [...competitors].sort((a, b) => b.estimatedMonthlySales - a.estimatedMonthlySales);
@@ -21,7 +22,7 @@ export function CompetitorTable({ competitors, ourPrice }: { competitors: Compet
         }}>
           <span style={{ fontSize: 13, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
           <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, textAlign: "right", color: c.price < ourPrice ? "var(--c-red)" : c.price > ourPrice ? "var(--c-green)" : "var(--c-text)" }}>
-            {c.price.toLocaleString("ru")} ₽
+            {formatRub(Math.round(c.price))}
           </span>
           <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, textAlign: "right", color: c.rating >= 4.5 ? "var(--c-green)" : c.rating >= 4 ? "var(--c-text)" : "var(--c-amber)" }}>
             {c.rating > 0 ? `★${c.rating}` : "—"}

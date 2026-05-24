@@ -1,17 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ScoreRing } from "@/components/result/ScoreRing";
 import { CostBar } from "@/components/result/CostBar";
 import { MarketHistogram } from "@/components/result/MarketHistogram";
 import { PriceRatingScatter } from "@/components/result/PriceRatingScatter";
 import { CompetitorTable } from "@/components/result/CompetitorTable";
-import { CardAudit } from "@/components/result/CardAudit";
-import { ActionChecklist } from "@/components/result/ActionChecklist";
 import { calculateResult } from "@/lib/analysis/calculateResult";
+import { formatRub } from "@/lib/utils";
 import { getDraft } from "@/services/draftStorage";
-import type { MarginInput, PackagingInput, ProductResult, RawResultInput } from "@/lib/analysis/types";
+import type { MarginInput, ProductResult, RawResultInput } from "@/lib/analysis/types";
 import type { ProductAnalysisDraft } from "@/types/sellermap";
 
 type Tab = "margin" | "market" | "audit" | "insights";
@@ -34,6 +34,10 @@ function riskColor(r: string) {
 function riskLabel(r: string) {
   return r === "low" ? "низкий" : r === "medium" ? "средний" : "высокий";
 }
+function rub(value: number | null | undefined) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? formatRub(Math.round(numeric)) : "—";
+}
 
 export function ResultClient({ initialInput, draftId }: { initialInput: RawResultInput; draftId?: string }) {
   const router = useRouter();
@@ -44,9 +48,6 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
 
   const updateMargin = useCallback((marginInput: MarginInput) => {
     setInput((c) => ({ ...c, marginInput }));
-  }, []);
-  const updatePackaging = useCallback((packagingInput: PackagingInput) => {
-    setInput((c) => ({ ...c, packagingInput }));
   }, []);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
     <div style={{ minHeight: "100vh", background: "var(--c-bg)" }}>
       {/* Breadcrumb */}
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "18px 28px 0", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--c-text2)" }}>
-        <a href="/result" style={{ color: "var(--c-text2)" }}>Отчёты</a>
+        <Link href="/reports" style={{ color: "var(--c-text2)" }}>Отчёты</Link>
         <span style={{ color: "var(--c-text3)" }}>›</span>
         <span style={{ color: "var(--c-text)" }}>{result.title}</span>
         <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "var(--c-bg2)", border: "1px solid var(--c-border)", fontSize: 11, color: "var(--c-text2)", flexShrink: 0 }}>
@@ -112,12 +113,12 @@ function MissingDraftState() {
         Этот отчёт сейчас хранится в браузере, где был создан. Если открыть ссылку в другом браузере
         или после очистки localStorage, SellerMap не будет подставлять демо-данные вместо реального анализа.
       </p>
-      <a
+      <Link
         href="/check"
         className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]"
       >
         Начать новую проверку
-      </a>
+      </Link>
     </div>
   );
 }
@@ -158,7 +159,7 @@ function HeroSection({ result }: { result: ProductResult }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
             {[
               ["Маржа", `${m.marginPercent.toFixed(1)}%`, m.marginPercent >= 20 ? "low" : m.marginPercent >= 12 ? "medium" : "high"],
-              ["Прибыль / шт", `${m.profitPerUnit} ₽`, m.profitPerUnit >= 200 ? "low" : m.profitPerUnit > 0 ? "medium" : "high"],
+              ["Прибыль / шт", rub(m.profitPerUnit), m.profitPerUnit >= 200 ? "low" : m.profitPerUnit > 0 ? "medium" : "high"],
               ["Риск упаковки", riskLabel(result.packaging.riskLevel), result.packaging.riskLevel],
             ].map(([k, v, r]) => (
               <div key={String(k)} style={{ padding: "10px 12px", background: "var(--c-bg3)", borderRadius: 8, border: "1px solid var(--c-border)" }}>
@@ -168,11 +169,11 @@ function HeroSection({ result }: { result: ProductResult }) {
             ))}
           </div>
           <div style={{ fontSize: 12, color: "var(--c-text2)", marginBottom: 16 }}>
-            Безопасная цена: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--c-text)", fontWeight: 600 }}>{m.safePriceMin.toLocaleString("ru")} – {m.safePriceMax.toLocaleString("ru")} ₽</span>
+            Безопасная цена: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--c-text)", fontWeight: 600 }}>{rub(m.safePriceMin)} – {rub(m.safePriceMax)}</span>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--c-border2)", background: "transparent", color: "var(--c-text)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>↓ Сохранить отчёт</button>
-            <a href="/check" style={{ padding: "9px 18px", borderRadius: 8, background: "var(--c-green)", color: "var(--c-bg)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>↗ Проверить другой товар</a>
+            <Link href="/check" style={{ padding: "9px 18px", borderRadius: 8, background: "var(--c-green)", color: "var(--c-bg)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>↗ Проверить другой товар</Link>
           </div>
         </div>
       </div>
@@ -184,9 +185,9 @@ function HeroSection({ result }: { result: ProductResult }) {
 function KpiRow({ result }: { result: ProductResult }) {
   const m = result.margin;
   const kpis = [
-    { label: "Прибыль / шт", value: `${m.profitPerUnit} ₽`, sub: `Маржа ${m.marginPercent.toFixed(1)}%`, risk: m.marginPercent >= 20 ? "low" : m.marginPercent >= 12 ? "medium" : "high" },
-    { label: "Прибыль / месяц", value: m.monthlyProfit.toLocaleString("ru") + " ₽", sub: `при ${m.unitsPerMonth} прод.`, risk: undefined },
-    { label: "Точка безубыточности", value: m.breakEvenPrice.toLocaleString("ru") + " ₽", sub: "мин. цена", risk: undefined },
+    { label: "Прибыль / шт", value: rub(m.profitPerUnit), sub: `Маржа ${m.marginPercent.toFixed(1)}%`, risk: m.marginPercent >= 20 ? "low" : m.marginPercent >= 12 ? "medium" : "high" },
+    { label: "Прибыль / месяц", value: rub(m.monthlyProfit), sub: `при ${m.unitsPerMonth} прод.`, risk: undefined },
+    { label: "Точка безубыточности", value: rub(m.breakEvenPrice), sub: "мин. цена", risk: undefined },
     { label: "Конкурентов", value: String(result.competitors.length), sub: "в выборке", risk: undefined },
   ];
   return (
@@ -218,7 +219,7 @@ function Hr() {
 }
 
 /* ── MARGIN TAB ── */
-function MarginTab({ result, onInputChange }: { result: ProductResult; onInputChange: (m: MarginInput) => void }) {
+function MarginTab({ result }: { result: ProductResult; onInputChange: (m: MarginInput) => void }) {
   const m = result.margin;
   const p = result.packaging;
 
@@ -241,16 +242,16 @@ function MarginTab({ result, onInputChange }: { result: ProductResult; onInputCh
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--c-green)", letterSpacing: ".04em", marginBottom: 4 }}>Безопасная цена</div>
           <div style={{ fontSize: 13, color: "var(--c-text)", fontWeight: 500 }}>Минимальная цена для маржи ≥15%</div>
           {m.sellingPrice < m.safePriceMin && (
-            <div style={{ fontSize: 12, color: "var(--c-red)", marginTop: 3 }}>Текущая цена {m.sellingPrice.toLocaleString("ru")} ₽ — ниже безопасного порога</div>
+            <div style={{ fontSize: 12, color: "var(--c-red)", marginTop: 3 }}>Текущая цена {rub(m.sellingPrice)} — ниже безопасного порога</div>
           )}
         </div>
         <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 20 }}>
-          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 32, fontWeight: 700, color: "var(--c-green)", lineHeight: 1 }}>{m.safePriceMin.toLocaleString("ru")} ₽</div>
-          <div style={{ fontSize: 11, color: "var(--c-text2)", marginTop: 3 }}>до {m.safePriceMax.toLocaleString("ru")} ₽</div>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 32, fontWeight: 700, color: "var(--c-green)", lineHeight: 1 }}>{rub(m.safePriceMin)}</div>
+          <div style={{ fontSize: 11, color: "var(--c-text2)", marginTop: 3 }}>до {rub(m.safePriceMax)}</div>
         </div>
       </div>
 
-      <Sh title={`Структура цены ${m.sellingPrice.toLocaleString("ru")} ₽`} sub="Из чего складывается розничная цена — наведите на сегмент для деталей" />
+      <Sh title={`Структура цены ${rub(m.sellingPrice)}`} sub="Из чего складывается розничная цена — наведите на сегмент для деталей" />
       <CostBar costs={costs} />
       <Hr />
 
@@ -265,7 +266,7 @@ function MarginTab({ result, onInputChange }: { result: ProductResult; onInputCh
               <div style={{ height: 6, borderRadius: 3, background: "var(--c-bg3)", overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${Math.round((a / maxDelta) * 100)}%`, borderRadius: 3, background: bc, transition: "width .5s ease" }} />
               </div>
-              <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: bc, textAlign: "right" }}>{r.profitDelta} ₽</span>
+              <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: bc, textAlign: "right" }}>{rub(r.profitDelta)}</span>
               <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "var(--c-text2)", textAlign: "right" }}>→ {(m.marginPercent + r.marginDelta).toFixed(1)}%</span>
             </div>
           );
@@ -287,8 +288,8 @@ function MarginTab({ result, onInputChange }: { result: ProductResult; onInputCh
         {[
           ["Габариты", `${p.lengthCm}×${p.widthCm}×${p.heightCm} см`],
           ["Вес", `${p.weightKg} кг`],
-          ["Упаковка/шт", `${p.packagingCostPerUnit} ₽`],
-          ["Логистика WB", `${p.wbLogisticsEstimate} ₽`],
+          ["Упаковка/шт", rub(p.packagingCostPerUnit)],
+          ["Логистика WB", rub(p.wbLogisticsEstimate)],
         ].map(([k, v]) => (
           <div key={String(k)}>
             <div style={{ fontSize: 10, color: "var(--c-text2)", marginBottom: 2 }}>{k}</div>
@@ -346,7 +347,7 @@ function MarketTab({ result }: { result: ProductResult }) {
                 {seg.ours && <span style={{ fontSize: 10, color: "var(--c-green)", background: "rgba(31,209,131,0.12)", padding: "1px 5px", borderRadius: 3, fontWeight: 600 }}>мы</span>}
               </div>
               <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "var(--c-text2)", marginTop: 2 }}>
-                {seg.range[0].toLocaleString("ru")} – {seg.range[1].toLocaleString("ru")} ₽
+                {rub(seg.range[0])} – {rub(seg.range[1])}
               </div>
             </div>
             <div style={{ height: 5, background: "var(--c-bg3)", borderRadius: 3, overflow: "hidden" }}>
@@ -414,7 +415,8 @@ function InsightsTab({ result }: { result: ProductResult }) {
   });
   const toggle = (i: number) => {
     const n = new Set(done);
-    n.has(i) ? n.delete(i) : n.add(i);
+    if (n.has(i)) n.delete(i);
+    else n.add(i);
     setDone(n);
     try { localStorage.setItem("sm-actions", JSON.stringify([...n])); } catch { /* ignore */ }
   };

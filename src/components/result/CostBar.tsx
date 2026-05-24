@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { formatRub } from "@/lib/utils";
 
 export type CostSegment = { label: string; value: number; color: string };
 
@@ -15,7 +16,7 @@ export function CostBar({ costs }: { costs: CostSegment[] }) {
             onMouseEnter={() => setTip(i)} onMouseLeave={() => setTip(null)}>
             {tip === i && (
               <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", background: "var(--c-bg3)", border: "1px solid var(--c-border2)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "var(--c-text)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 10 }}>
-                {c.label}: {c.value} ₽ ({Math.round((c.value / total) * 100)}%)
+                {c.label}: {formatRub(Math.round(c.value))} ({Math.round((c.value / total) * 100)}%)
               </div>
             )}
           </div>
@@ -25,7 +26,7 @@ export function CostBar({ costs }: { costs: CostSegment[] }) {
         {costs.map((c, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 9, height: 9, borderRadius: 2, background: c.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: "var(--c-text2)" }}>{c.label}: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--c-text)", fontWeight: 500 }}>{c.value} ₽</span></span>
+            <span style={{ fontSize: 11, color: "var(--c-text2)" }}>{c.label}: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--c-text)", fontWeight: 500 }}>{formatRub(Math.round(c.value))}</span></span>
           </div>
         ))}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, BarChart3, Calculator, CheckCircle2, ChevronDown, Loader2, Package2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { getWBCommission } from "@/lib/wbCommissions";
 import { calcWBLogistics } from "@/lib/wbLogistics";
@@ -66,6 +67,27 @@ function calcPreview(sellingPrice: number, costPrice: number, category: string) 
   const profit = sellingPrice - totalCost;
   const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
   return { commission, commissionRub, logistics, packaging, profit, margin };
+}
+
+function buildResultHref(phase: Phase, costInput: string, category: string) {
+  if (phase.name !== "done") return "/result";
+  const params = new URLSearchParams();
+  const cost = Number(costInput);
+
+  if (phase.supplier?.kind === "wb") {
+    params.set("name", phase.supplier.name);
+    params.set("category", phase.supplier.category);
+    params.set("price", String(Math.round(phase.supplier.price)));
+  } else if (phase.market?.query) {
+    params.set("name", phase.market.query);
+  }
+
+  if (phase.market?.medianPrice) params.set("price", String(Math.round(phase.market.medianPrice)));
+  if (Number.isFinite(cost) && cost > 0) params.set("cost", String(Math.round(cost)));
+  if (category) params.set("category", category);
+
+  const query = params.toString();
+  return query ? `/result?${query}` : "/result";
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
@@ -179,6 +201,14 @@ export default function CheckPage() {
 
         {phase.name === "idle" && (
           <div className="mx-auto max-w-xl">
+            <Link href="/" className="mx-auto mb-8 flex w-fit items-center gap-2 text-[var(--c-text)]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--c-green)] shadow-[0_0_28px_rgba(31,209,131,0.22)]">
+                <svg width="18" height="16" viewBox="0 0 13 11" fill="none" aria-hidden="true">
+                  <path d="M1 10L6.5 1L12 10H1Z" fill="currentColor" className="text-[var(--c-bg)]" />
+                </svg>
+              </span>
+              <span className="font-display text-lg font-bold tracking-tight">SellerMap</span>
+            </Link>
             <h1 className="font-display text-center text-4xl font-semibold tracking-tight text-[var(--c-text)] sm:text-5xl">
               Стоит ли брать товар?
             </h1>
@@ -314,7 +344,7 @@ export default function CheckPage() {
               <button onClick={reset} className="text-sm text-[var(--c-text3)] hover:text-[var(--c-text2)]">
                 ← Проверить другой товар
               </button>
-              <a href="/result" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
+              <a href={buildResultHref(phase, costInput, costCategory)} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
                 Получить полный отчёт →
               </a>
             </div>

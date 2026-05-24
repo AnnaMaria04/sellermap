@@ -1,6 +1,7 @@
 "use client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell, ResponsiveContainer } from "recharts";
 import type { Competitor } from "@/lib/analysis/types";
+import { formatRub } from "@/lib/utils";
 
 function buildBuckets(competitors: Competitor[], ourPrice: number) {
   const prices = competitors.map((c) => c.price).filter((p) => p > 0);
@@ -59,7 +60,7 @@ export function MarketHistogram({ competitors, ourPrice }: { competitors: Compet
       </div>
       <div style={{ display: "flex", gap: 20, fontSize: 11, color: "var(--c-text2)", justifyContent: "center", flexWrap: "wrap", marginTop: 8 }}>
         {[["P25", p25], ["Медиана", median], ["P75", p75], ["Наша", ourPrice]].map(([k, v]) => (
-          <span key={String(k)}>{k}: <span style={{ fontFamily: "JetBrains Mono, monospace", color: k === "Наша" || k === "Медиана" ? "var(--c-green)" : "var(--c-text)", fontWeight: 600 }}>{Number(v).toLocaleString("ru")} ₽</span></span>
+          <span key={String(k)}>{k}: <span style={{ fontFamily: "JetBrains Mono, monospace", color: k === "Наша" || k === "Медиана" ? "var(--c-green)" : "var(--c-text)", fontWeight: 600 }}>{formatRub(Math.round(Number(v)))}</span></span>
         ))}
       </div>
     </div>
