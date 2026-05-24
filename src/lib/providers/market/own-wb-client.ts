@@ -17,6 +17,7 @@ export type WorkerProductResponse = {
 };
 
 const DEFAULT_TIMEOUT_MS = 55_000;
+const OWN_COLLECTOR_MAX_RESULTS = 30;
 
 export function ownCollectorBaseUrl() {
   return process.env.OWN_WB_COLLECTOR_BASE_URL?.replace(/\/$/, "") ?? null;
@@ -59,12 +60,13 @@ export async function ownCollectorFetch(path: string, init?: RequestInit, timeou
 }
 
 export async function callOwnCollectorSearch(query: string, limit: number) {
+  const safeLimit = Math.max(1, Math.min(limit, OWN_COLLECTOR_MAX_RESULTS));
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const response = await ownCollectorFetch("/search", {
         method: "POST",
-        body: JSON.stringify({ query, limit }),
+        body: JSON.stringify({ query, limit: safeLimit }),
       });
       if (!response.ok) throw new Error(`Own WB collector returned ${response.status}`);
       return (await response.json()) as WorkerSearchResponse;
