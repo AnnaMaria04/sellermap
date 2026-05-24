@@ -22,6 +22,12 @@
     "src/app/api/wb/analytics/route.ts": {
       "maxDuration": 15
     },
+    "src/app/api/check/wb-search/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/check/analyze/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/tracking/keywords/route.ts": {
       "maxDuration": 60
     },

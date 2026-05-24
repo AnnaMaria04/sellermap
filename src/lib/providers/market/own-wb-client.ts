@@ -16,7 +16,7 @@ export type WorkerProductResponse = {
   warnings: string[];
 };
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 55_000;
 
 export function ownCollectorBaseUrl() {
   return process.env.OWN_WB_COLLECTOR_BASE_URL?.replace(/\/$/, "") ?? null;

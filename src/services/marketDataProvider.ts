@@ -386,6 +386,7 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
   if (cached) return cached;
 
   const providersTried: string[] = ["cache"];
+  const ownWarnings: string[] = [];
 
   if (MARKET_PROVIDER === "mpstats") {
     providersTried.push("mpstats");
@@ -397,9 +398,10 @@ export async function searchSimilarProducts(keyword: string, options: SearchOpti
     providersTried.push("own-wb");
     const own = await ownCollectorSearchSimilarProducts(clean, options);
     if (own.competitors.length) return { ...own, warnings: [...own.warnings, `Провайдеры проверены: ${providersTried.join(" → ")}`] };
+    ownWarnings.push(...own.warnings);
   }
 
-  let apify: MarketAnalysisResult = { provider: "apify", status: "failed", competitors: [], marketStats: null, warnings: ["Apify fallback skipped."] };
+  let apify: MarketAnalysisResult = { provider: "apify", status: "failed", competitors: [], marketStats: null, warnings: [...ownWarnings, "Apify fallback skipped."] };
   if (ENABLE_APIFY_FALLBACK) {
     providersTried.push("apify");
     apify = await apifySearchSimilarProducts(clean, options);
