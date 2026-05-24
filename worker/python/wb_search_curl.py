@@ -49,14 +49,17 @@ def proxy_candidates(proxy: str | None) -> list[str | None]:
     if "__" in parsed.username:
         return candidates
 
-    attempts = int(os.environ.get("WB_COLLECTOR_PROXY_ATTEMPTS", "6"))
+    attempts = int(os.environ.get("WB_COLLECTOR_PROXY_ATTEMPTS", "14"))
     base_session = f"{int(time.time())}{random.randint(1000, 9999)}"
     for offset in range(attempts):
-        username = f"{parsed.username}__cr.ru;sessid.sellermap{base_session}{offset}"
+        username = f"{parsed.username}__cr.ru;sessid.sellermap{base_session}{offset}{random.randint(100, 999)}"
         netloc = f"{username}:{parsed.password}@{parsed.hostname}"
         if parsed.port:
             netloc += f":{parsed.port}"
         candidates.append(urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)))
+    sticky_candidates = candidates[1:]
+    random.shuffle(sticky_candidates)
+    candidates = [proxy, *sticky_candidates]
     return candidates
 
 
@@ -74,8 +77,9 @@ async def main() -> int:
         "Referer": f"https://www.wildberries.ru/catalog/0/search.aspx?search={encoded_query}",
     }
 
+    candidates = proxy_candidates(proxy)
     last_error: dict[str, Any] = {"ok": False, "error": "WB curl_cffi search did not run"}
-    for attempt, candidate_proxy in enumerate(proxy_candidates(proxy), start=1):
+    for attempt, candidate_proxy in enumerate(candidates, start=1):
         try:
             async with AsyncSession(impersonate="chrome124", timeout=8) as session:
                 # Warm-up establishes normal public-site cookies before the JSON request.
@@ -95,6 +99,7 @@ async def main() -> int:
                         "contentType": content_type,
                         "error": f"WB curl_cffi search returned {response.status_code}",
                         "attempt": attempt,
+                        "attemptsTotal": len(candidates),
                         "bodyPreview": response.text[:240],
                     }
                     continue
@@ -111,7 +116,7 @@ async def main() -> int:
                 }, ensure_ascii=False), flush=True)
                 return 0
         except Exception as exc:
-            last_error = {"ok": False, "error": str(exc), "attempt": attempt}
+            last_error = {"ok": False, "error": str(exc), "attempt": attempt, "attemptsTotal": len(candidates)}
 
     print(json.dumps(last_error, ensure_ascii=False), flush=True)
     return 0

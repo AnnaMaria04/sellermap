@@ -18,6 +18,8 @@ type CurlSearchOutput = {
   status?: number;
   products?: unknown[];
   error?: string;
+  attempt?: number;
+  attemptsTotal?: number;
 };
 
 function buildSearchApiUrl(query: string, limit: number, page = 1) {
@@ -66,13 +68,14 @@ async function fetchPublicSearch(query: string, limit: number): Promise<WBProduc
 
 async function fetchCurlCffiSearch(query: string, limit: number): Promise<WBProduct[]> {
   const { stdout } = await execFileAsync("python3", ["python/wb_search_curl.py", query, String(limit)], {
-    timeout: Math.max(config.timeoutMs, 45000),
+    timeout: Math.max(config.timeoutMs, 60000),
     env: process.env,
     maxBuffer: 1024 * 1024 * 5,
   });
   const result = JSON.parse(stdout) as CurlSearchOutput;
   if (!result.ok) {
-    throw new Error(result.error ?? `WB curl_cffi search returned ${result.status ?? "unknown"}`);
+    const attemptSuffix = result.attempt ? ` after ${result.attempt}/${result.attemptsTotal ?? "?"} proxy attempts` : "";
+    throw new Error(`${result.error ?? `WB curl_cffi search returned ${result.status ?? "unknown"}`}${attemptSuffix}`);
   }
   return (result.products ?? [])
     .map((item, index) => normalizeSearchItem(item, query, index + 1))
@@ -183,7 +186,7 @@ export async function collectWbSearch(query: string, limit: number): Promise<Wor
   let items: WBProduct[] = [];
   let collector = "curl-cffi";
   try {
-    items = await withTimeout(fetchCurlCffiSearch(query, limit), Math.max(config.timeoutMs, 45000));
+    items = await withTimeout(fetchCurlCffiSearch(query, limit), Math.max(config.timeoutMs, 60000));
   } catch (error) {
     warnings.push(`CURL_CFFI_FAILED: ${errorMessage(error)}`);
     try {
