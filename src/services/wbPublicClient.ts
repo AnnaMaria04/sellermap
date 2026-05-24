@@ -70,17 +70,39 @@ export function normalizeWbProduct(product: WbRawProduct): CompetitorProduct {
 
 export async function searchWbPublicProducts(query: string, limit = 30): Promise<CompetitorProduct[]> {
   if (!query.trim()) return [];
-  const encoded = encodeURIComponent(query);
+  const params = new URLSearchParams({
+    appType: "1",
+    curr: "rub",
+    dest: WB_DEST,
+    lang: "ru",
+    page: "1",
+    query,
+    resultset: "catalog",
+    sort: "popular",
+    spp: "30",
+    suppressSpellcheck: "false",
+    inheritFilters: "false",
+    limit: String(limit),
+  });
   const res = await fetch(
-    `https://search.wb.ru/exactmatch/ru/common/v9/search?query=${encoded}&resultset=catalog&limit=${limit}&sort=popular&curr=rub&lang=ru&dest=${WB_DEST}`,
+    `https://u-search.wb.ru/exactmatch/ru/common/v18/search?${params}`,
     {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Accept: "application/json,text/plain,*/*",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        Origin: "https://www.wildberries.ru",
+        Referer: `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`,
+      },
       next: { revalidate: 300 },
     },
   );
 
   const contentType = res.headers.get("content-type") ?? "";
-  if (!res.ok) throw new Error(`WB public search failed: ${res.status}`);
+  if (!res.ok) {
+    const blocked = res.status === 403 || res.status === 429;
+    throw new Error(blocked ? `WB u-search v18 failed: ${res.status}; cloud IP likely blocked.` : `WB u-search v18 failed: ${res.status}`);
+  }
   if (!contentType.includes("application/json")) {
     throw new Error("WB public search returned anti-bot/HTML response instead of JSON.");
   }

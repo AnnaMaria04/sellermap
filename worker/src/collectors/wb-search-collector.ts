@@ -7,17 +7,44 @@ import { withTimeout } from "../utils/rate-limit.js";
 import { normalizeSearchItem } from "../normalizers/wb-normalizer.js";
 
 const SEARCH_CARD_SELECTOR = "article, .product-card, [data-nm-id], [data-card-index], [class*='product-card']";
+const WB_DEST = "-1257786";
+
+function buildSearchApiUrl(query: string, limit: number, page = 1) {
+  const params = new URLSearchParams({
+    appType: "1",
+    curr: "rub",
+    dest: WB_DEST,
+    lang: "ru",
+    page: String(page),
+    query,
+    resultset: "catalog",
+    sort: "popular",
+    spp: "30",
+    suppressSpellcheck: "false",
+    inheritFilters: "false",
+    limit: String(limit),
+  });
+  return `https://u-search.wb.ru/exactmatch/ru/common/v18/search?${params}`;
+}
 
 async function fetchPublicSearch(query: string, limit: number): Promise<WBProduct[]> {
-  const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?query=${encodeURIComponent(query)}&resultset=catalog&limit=${limit}&sort=popular&curr=rub&lang=ru&dest=-1257786`;
+  const url = buildSearchApiUrl(query, limit);
   const response = await fetch(url, {
     headers: {
-      "User-Agent": config.userAgent,
+      "User-Agent": config.userAgent || "Mozilla/5.0",
       Accept: "application/json,text/plain,*/*",
+      "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+      Origin: "https://www.wildberries.ru",
+      Referer: `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`,
     },
     signal: AbortSignal.timeout(config.timeoutMs),
   });
-  if (!response.ok) throw new Error(`WB public search returned ${response.status}`);
+  if (!response.ok) {
+    const message = response.status === 403 || response.status === 429
+      ? `WB u-search v18 returned ${response.status}; cloud IP is likely blocked`
+      : `WB u-search v18 returned ${response.status}`;
+    throw new Error(message);
+  }
   const json = (await response.json()) as { data?: { products?: unknown[] } };
   return (json.data?.products ?? [])
     .map((item, index) => normalizeSearchItem(item, query, index + 1))
@@ -86,7 +113,7 @@ async function collectWithBrowser(query: string, limit: number): Promise<WBProdu
     const responseProducts: WBProduct[][] = [];
     page.on("response", async (response) => {
       const url = response.url();
-      if (!/search\.wb\.ru|catalog|cards/i.test(url)) return;
+      if (!/u-search\.wb\.ru|search\.wb\.ru|catalog|cards/i.test(url)) return;
       const contentType = response.headers()["content-type"] ?? "";
       if (!contentType.includes("json")) return;
       try {
