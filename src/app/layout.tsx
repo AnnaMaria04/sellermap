@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geologica, Unbounded } from "next/font/google";
+import { Geologica, Unbounded, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
 
@@ -13,6 +13,12 @@ const unbounded = Unbounded({
   variable: "--font-display",
   subsets: ["latin", "cyrillic"],
   weight: ["600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
-      className={`${geologica.variable} ${unbounded.variable} h-full antialiased`}
+      className={`${geologica.variable} ${unbounded.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AppShell>{children}</AppShell>

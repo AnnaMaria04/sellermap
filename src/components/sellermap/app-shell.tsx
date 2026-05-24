@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Map, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { LinkButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -17,35 +15,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-[var(--c-border)] bg-[rgba(12,14,15,0.92)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 font-display text-sm font-semibold">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
-              <Map size={20} />
-            </span>
-            <span>
-              Seller<span className="text-[var(--c-green)]">Map</span>
+    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+      <header
+        className="sticky top-0 z-40 border-b border-[var(--c-border)] backdrop-blur-xl"
+        style={{ height: "var(--nav-h)", background: "rgba(8,8,22,0.92)" }}
+      >
+        <div className="mx-auto flex h-full max-w-[1060px] items-center px-7">
+          {/* Logo */}
+          <Link href="/" className="mr-7 flex items-center gap-2 shrink-0">
+            <div
+              className="flex items-center justify-center rounded-[7px]"
+              style={{ width: 26, height: 26, background: "var(--c-green)" }}
+            >
+              <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
+                <path d="M1 10L6.5 1L12 10H1Z" fill="white" fillOpacity=".92" />
+              </svg>
+            </div>
+            <span
+              className="font-display"
+              style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", letterSpacing: "-.02em" }}
+            >
+              SellerMap
             </span>
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {nav.map(([label, href]) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
-                  pathname === href && "bg-[var(--c-bg3)] text-[var(--c-text)]",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
+
+          {/* Nav links */}
+          <nav className="hidden flex-1 items-center gap-0.5 md:flex overflow-hidden">
+            {nav.map(([label, href]) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "rounded-[5px] px-3 py-[5px] text-[13px] transition-all whitespace-nowrap",
+                    active
+                      ? "bg-[var(--c-bg3)] font-semibold text-[var(--c-text)]"
+                      : "font-normal text-[var(--c-text2)] hover:bg-[var(--c-bg2)] hover:text-[var(--c-text)]",
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
-          <LinkButton href="/check" className="h-10 px-4">
-            <Search size={16} />
-            Анализ
-          </LinkButton>
+
+          {/* CTA */}
+          <Link
+            href="/check"
+            className="ml-auto shrink-0 rounded-[5px] px-[14px] py-[7px] text-[13px] font-semibold text-[var(--c-bg)] transition hover:opacity-80"
+            style={{ background: "var(--c-green)" }}
+          >
+            + Новый анализ
+          </Link>
         </div>
       </header>
       {children}

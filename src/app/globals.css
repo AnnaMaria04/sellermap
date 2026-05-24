@@ -1,22 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --c-bg: #0c0e0f;
-  --c-bg2: #141618;
-  --c-bg3: #1c1f21;
-  --c-border: rgba(255,255,255,0.07);
-  --c-border2: rgba(255,255,255,0.13);
-  --c-text: #f0ede8;
-  --c-text2: #9a9690;
-  --c-text3: #5a5754;
-  --c-green: #1fd183;
-  --c-green-dim: rgba(31,209,131,0.10);
-  --c-amber: #f5a623;
-  --c-amber-dim: rgba(245,166,35,0.10);
-  --c-red: #f05050;
-  --c-red-dim: rgba(240,80,80,0.10);
-  --c-blue: #4d9fff;
-  --c-blue-dim: rgba(77,159,255,0.10);
+  /* Navy dark palette — from SellerMap Result v2 design */
+  --c-bg:    #080816;
+  --c-bg1:   #0e0e22;
+  --c-bg2:   #13132a;
+  --c-bg3:   #1a1a36;
+  --c-bg4:   #222240;
+  --c-border:  rgba(255,255,255,0.042);
+  --c-border2: rgba(255,255,255,0.08);
+  --c-border3: rgba(255,255,255,0.15);
+  --c-text:  #e2e2f4;
+  --c-text2: #9898c4;
+  --c-text3: #545478;
+  /* Brand green — keep as primary accent */
+  --c-green:        #1fd183;
+  --c-green-dim:    rgba(31,209,131,0.11);
+  --c-green-border: rgba(31,209,131,0.28);
+  /* Semantic */
+  --c-amber:     #fbbf24;
+  --c-amber-dim: rgba(251,191,36,0.11);
+  --c-red:       #f87171;
+  --c-red-dim:   rgba(248,113,113,0.11);
+  --c-blue:      #60a5fa;
+  --c-blue-dim:  rgba(96,165,250,0.11);
+  /* Tailwind alias */
   --background: var(--c-bg);
   --foreground: var(--c-text);
   --charcoal: var(--c-text);
@@ -30,6 +38,7 @@
   --risk: var(--c-red);
   --font-geologica: 'Geologica', sans-serif;
   --font-unbounded: 'Unbounded', sans-serif;
+  --nav-h: 50px;
 }
 
 @theme inline {
@@ -45,7 +54,7 @@
   --color-warning: var(--warning);
   --color-risk: var(--risk);
   --font-sans: "Geologica", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geologica", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 body {
@@ -53,7 +62,21 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), var(--font-geologica);
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Dot-grid background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.042) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+#__next { position: relative; z-index: 1; }
 
 * {
   box-sizing: border-box;
