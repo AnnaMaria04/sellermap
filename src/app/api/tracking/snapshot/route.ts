@@ -12,9 +12,10 @@ type TrackedProductRow = {
 };
 
 function unauthorized(req: NextRequest) {
+  if (!process.env.CRON_SECRET) return process.env.NODE_ENV === "production";
   const authorization = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const secret = req.headers.get("x-cron-secret") ?? authorization ?? req.nextUrl.searchParams.get("secret");
-  return Boolean(process.env.CRON_SECRET && secret !== process.env.CRON_SECRET);
+  return secret !== process.env.CRON_SECRET;
 }
 
 export async function POST(req: NextRequest) {
