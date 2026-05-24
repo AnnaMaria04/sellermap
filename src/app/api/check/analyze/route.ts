@@ -37,7 +37,9 @@ export async function POST(req: NextRequest) {
   }
 
   const fingerprint = fingerprintSupplierProduct(supplierProduct);
-  const marketLookup = await searchMarketProducts(fingerprint.ruKeywords, 80);
+  const analyzeKeywordLimit = Number(process.env.CHECK_ANALYZE_KEYWORD_LIMIT ?? 1);
+  const analyzeResultLimit = Number(process.env.CHECK_ANALYZE_RESULT_LIMIT ?? 30);
+  const marketLookup = await searchMarketProducts(fingerprint.ruKeywords.slice(0, analyzeKeywordLimit), analyzeResultLimit);
   warnings.push(...marketLookup.warnings);
   const marketAnalysis = analyzeMarket(supplierProduct, fingerprint, marketLookup.products);
   warnings.push(...marketAnalysis.warnings);
