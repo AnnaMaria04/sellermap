@@ -62,26 +62,28 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--c-bg)" }}>
-      {/* Breadcrumb */}
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "18px 28px 0", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--c-text2)" }}>
-        <Link href="/reports" style={{ color: "var(--c-text2)" }}>Отчёты</Link>
-        <span style={{ color: "var(--c-text3)" }}>›</span>
-        <span style={{ color: "var(--c-text)" }}>{result.title}</span>
-        <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "var(--c-bg2)", border: "1px solid var(--c-border)", fontSize: 11, color: "var(--c-text2)", flexShrink: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--c-green)", display: "inline-block" }} />
-          {result.updatedAt}
+      <div className="main-wrap">
+        {/* Breadcrumb */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, fontSize: 12, color: "var(--c-text2)" }}>
+          <Link href="/reports" style={{ color: "var(--c-text2)" }}>Отчёты</Link>
+          <span style={{ color: "var(--c-text3)" }}>›</span>
+          <span style={{ color: "var(--c-text)" }}>{result.title}</span>
+          <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "var(--c-bg2)", border: "1px solid var(--c-border2)", fontSize: 11, color: "var(--c-text2)", flexShrink: 0 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--c-green)", display: "inline-block" }} />
+            {result.updatedAt}
+          </div>
         </div>
+
+        {/* Hero */}
+        <HeroSection result={result} />
+
+        {/* KPI Row */}
+        <KpiRow result={result} />
       </div>
 
-      {/* Hero */}
-      <HeroSection result={result} />
-
-      {/* KPI Row */}
-      <KpiRow result={result} />
-
       {/* Sticky Tab Bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(12,14,15,0.94)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--c-border)" }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0 28px", display: "flex", gap: 1, overflowX: "auto" }}>
+      <div style={{ position: "sticky", top: "var(--nav-h)", zIndex: 50, background: "rgba(8,8,22,0.94)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--c-border)" }}>
+        <div className="tab-bar-inner">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{ padding: "11px 16px", fontSize: 13, fontWeight: tab === t.id ? 600 : 400, color: tab === t.id ? "var(--c-text)" : "var(--c-text2)", background: "none", border: "none", borderBottom: tab === t.id ? "2px solid var(--c-green)" : "2px solid transparent", marginBottom: -1, cursor: "pointer", transition: "all .14s", whiteSpace: "nowrap" }}>
@@ -92,7 +94,7 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
       </div>
 
       {/* Tab Content */}
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "28px 28px 80px" }}>
+      <div className="content-wrap">
         {tab === "margin" && <MarginTab result={result} onInputChange={updateMargin} />}
         {tab === "market" && <MarketTab result={result} />}
         {tab === "audit" && <AuditTabView result={result} />}
@@ -129,10 +131,9 @@ function HeroSection({ result }: { result: ProductResult }) {
   const s = result.score;
   const col = scoreColor(s);
   return (
-    <div style={{ maxWidth: 1060, margin: "14px auto 0", padding: "0 28px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", borderRadius: 16, overflow: "hidden", border: "1px solid var(--c-border)", background: "var(--c-bg2)" }}>
+    <div className="hero-grid" style={{ borderRadius: "var(--r-xl)", overflow: "hidden", border: "1px solid var(--c-border2)", background: "var(--c-bg1)", marginBottom: 14 }}>
         {/* Score panel */}
-        <div style={{ padding: "32px 24px", borderRight: "1px solid var(--c-border)", display: "flex", flexDirection: "column", gap: 14, position: "relative", background: "var(--c-bg2)" }}>
+        <div className="hero-score-panel" style={{ padding: "32px 24px", borderRight: "1px solid var(--c-border2)", display: "flex", flexDirection: "column", gap: 14, position: "relative", background: "var(--c-bg1)" }}>
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "var(--c-green)", borderRadius: "3px 0 0 3px" }} />
           <div style={{ fontSize: 10, fontWeight: 700, color: "var(--c-text2)", textTransform: "uppercase", letterSpacing: ".1em" }}>Итоговое решение</div>
           <div style={{ lineHeight: 1 }}>
@@ -149,14 +150,14 @@ function HeroSection({ result }: { result: ProductResult }) {
         </div>
 
         {/* Product info */}
-        <div style={{ padding: "24px 28px" }}>
+        <div className="hero-product-panel" style={{ padding: "24px 28px" }}>
           <div style={{ fontSize: 11, color: "var(--c-text2)", marginBottom: 10 }}>
             арт. {result.nmId} · {result.category} · обновлено: {result.updatedAt}
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--c-text)", lineHeight: 1.2, marginBottom: 6, letterSpacing: "-.02em" }}>{result.title}</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--c-text)", lineHeight: 1.2, marginBottom: 6, letterSpacing: "-.02em" }}>{result.title}</h1>
           <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", marginBottom: 4, lineHeight: 1.4 }}>{result.verdict}</p>
           <p style={{ fontSize: 12, color: "var(--c-text2)", lineHeight: 1.65, marginBottom: 18, maxWidth: 560 }}>{result.summary}</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+          <div className="hero-metric-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
             {[
               ["Маржа", `${m.marginPercent.toFixed(1)}%`, m.marginPercent >= 20 ? "low" : m.marginPercent >= 12 ? "medium" : "high"],
               ["Прибыль / шт", rub(m.profitPerUnit), m.profitPerUnit >= 200 ? "low" : m.profitPerUnit > 0 ? "medium" : "high"],
@@ -171,13 +172,12 @@ function HeroSection({ result }: { result: ProductResult }) {
           <div style={{ fontSize: 12, color: "var(--c-text2)", marginBottom: 16 }}>
             Безопасная цена: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--c-text)", fontWeight: 600 }}>{rub(m.safePriceMin)} – {rub(m.safePriceMax)}</span>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--c-border2)", background: "transparent", color: "var(--c-text)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>↓ Сохранить отчёт</button>
-            <Link href="/check" style={{ padding: "9px 18px", borderRadius: 8, background: "var(--c-green)", color: "var(--c-bg)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>↗ Проверить другой товар</Link>
+          <div className="hero-action-row" style={{ display: "flex", gap: 10 }}>
+            <button style={{ padding: "9px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--c-border3)", background: "transparent", color: "var(--c-text)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>↓ Сохранить отчёт</button>
+            <Link href="/check" style={{ padding: "9px 18px", borderRadius: "var(--r-md)", background: "var(--c-green)", color: "var(--c-bg)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>↗ Проверить другой товар</Link>
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
@@ -191,16 +191,14 @@ function KpiRow({ result }: { result: ProductResult }) {
     { label: "Конкурентов", value: String(result.competitors.length), sub: "в выборке", risk: undefined },
   ];
   return (
-    <div style={{ maxWidth: 1060, margin: "0 auto", padding: "12px 28px 0" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+    <div className="kpis-grid">
         {kpis.map((kpi) => (
-          <div key={kpi.label} style={{ background: "var(--c-bg2)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 18 }}>
+          <div key={kpi.label} style={{ background: "var(--c-bg1)", border: "1px solid var(--c-border)", borderRadius: "var(--r-md)", padding: 18 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text2)", marginBottom: 5 }}>{kpi.label}</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: kpi.risk ? riskColor(kpi.risk) : "var(--c-text)", lineHeight: 1.1 }}>{kpi.value}</div>
             {kpi.sub && <div style={{ fontSize: 11, color: "var(--c-text2)", marginTop: 4 }}>{kpi.sub}</div>}
           </div>
         ))}
-      </div>
     </div>
   );
 }
@@ -261,13 +259,13 @@ function MarginTab({ result }: { result: ProductResult; onInputChange: (m: Margi
           const a = Math.abs(r.marginDelta);
           const bc = a < 4 ? "var(--c-text3)" : a < 8 ? "var(--c-amber)" : "var(--c-red)";
           return (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "156px 1fr 72px 70px", alignItems: "center", gap: 14, padding: "9px 12px", borderRadius: 6, background: i % 2 === 0 ? "var(--c-bg2)" : "transparent" }}>
+            <div key={i} className="sens-row" style={{ display: "grid", gridTemplateColumns: "156px 1fr 72px 70px", alignItems: "center", gap: 14, padding: "9px 12px", borderRadius: 6, background: i % 2 === 0 ? "var(--c-bg2)" : "transparent" }}>
               <span style={{ fontSize: 13, color: "var(--c-text)" }}>{r.label}</span>
               <div style={{ height: 6, borderRadius: 3, background: "var(--c-bg3)", overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${Math.round((a / maxDelta) * 100)}%`, borderRadius: 3, background: bc, transition: "width .5s ease" }} />
               </div>
               <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: bc, textAlign: "right" }}>{rub(r.profitDelta)}</span>
-              <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "var(--c-text2)", textAlign: "right" }}>→ {(m.marginPercent + r.marginDelta).toFixed(1)}%</span>
+              <span className="sens-last" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "var(--c-text2)", textAlign: "right" }}>→ {(m.marginPercent + r.marginDelta).toFixed(1)}%</span>
             </div>
           );
         })}
@@ -284,7 +282,7 @@ function MarginTab({ result }: { result: ProductResult; onInputChange: (m: Margi
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--c-amber)", marginBottom: 8 }}>Риск упаковки: {riskLabel(p.riskLevel)} — {p.marginImpactPoints.toFixed(1)} п.п. маржи</div>
         <p style={{ fontSize: 13, color: "var(--c-text)", lineHeight: 1.65 }}>{p.note}</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, padding: "12px 16px", background: "var(--c-bg2)", border: "1px solid var(--c-border)", borderRadius: 8 }}>
+      <div className="packaging-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, padding: "12px 16px", background: "var(--c-bg2)", border: "1px solid var(--c-border)", borderRadius: 8 }}>
         {[
           ["Габариты", `${p.lengthCm}×${p.widthCm}×${p.heightCm} см`],
           ["Вес", `${p.weightKg} кг`],
@@ -335,7 +333,7 @@ function MarketTab({ result }: { result: ProductResult }) {
       <Sh title="Ценовые сегменты" />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {segmentShares.map((seg) => (
-          <div key={seg.label} style={{
+          <div key={seg.label} className="seg-row" style={{
             display: "grid", gridTemplateColumns: "130px 1fr 48px", alignItems: "center", gap: 16,
             padding: "11px 16px", borderRadius: 8,
             background: seg.ours ? "rgba(31,209,131,0.08)" : "var(--c-bg2)",
@@ -423,7 +421,7 @@ function InsightsTab({ result }: { result: ProductResult }) {
 
   return (
     <div style={{ animation: "fadeUp .2s ease both" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+      <div className="insights-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
         <div style={{ padding: 18, borderRadius: 8, background: "var(--c-red-dim)", border: "1px solid var(--c-red)" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--c-red)", marginBottom: 14 }}>Риски ({risks.length})</div>
           {risks.map((r, i) => (

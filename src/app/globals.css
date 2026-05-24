@@ -39,6 +39,12 @@
   --font-geologica: 'Geologica', sans-serif;
   --font-unbounded: 'Unbounded', sans-serif;
   --nav-h: 50px;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --pad: 18px;
+  --gap: 12px;
 }
 
 @theme inline {
@@ -77,6 +83,7 @@ body::before {
 }
 
 #__next { position: relative; z-index: 1; }
+body > div { position: relative; z-index: 1; }
 
 * {
   box-sizing: border-box;
@@ -124,4 +131,106 @@ body::before {
   letter-spacing: 0.08em;
   padding-top: 18px;
   text-transform: uppercase;
+}
+
+.main-wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 22px 28px 0;
+}
+
+.content-wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 28px 28px 80px;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+
+.kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+.tab-bar-inner {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  gap: 1px;
+}
+
+@media (max-width: 768px) {
+  .main-wrap {
+    padding: 16px 16px 0;
+  }
+
+  .content-wrap {
+    padding: 20px 16px 60px;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-score-panel {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--c-border2);
+  }
+
+  .hero-metric-grid,
+  .kpis-grid,
+  .packaging-grid,
+  .insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .tab-bar-inner {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 16px;
+  }
+
+  .tab-bar-inner::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sens-row {
+    grid-template-columns: 130px 1fr 62px !important;
+  }
+
+  .sens-last {
+    display: none !important;
+  }
+
+  .seg-row {
+    grid-template-columns: 110px 1fr 44px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .hero-product-panel {
+    padding: 18px 16px !important;
+  }
+
+  .hero-action-row {
+    flex-direction: column;
+  }
+
+  .hero-action-row > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-metric-grid,
+  .kpis-grid,
+  .packaging-grid,
+  .insights-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

@@ -4,15 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const nav = [
-  ["Проверка товара", "/check"],
-  ["Дашборд", "/dashboard"],
-  ["Отчёты", "/reports"],
-  ["Обновления", "/updates"],
-];
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const nav = [
+    ["Проверка товара", "/check"],
+    ...(pathname.startsWith("/result") ? ([["Отчёт", pathname]] as const) : []),
+    ["Дашборд", "/dashboard"],
+    ["Отчёты", "/reports"],
+    ["Обновления", "/updates"],
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Nav links */}
           <nav className="hidden flex-1 items-center gap-0.5 md:flex overflow-hidden">
             {nav.map(([label, href]) => {
-              const active = pathname === href;
+              const active = pathname === href || (href === pathname && pathname.startsWith("/result"));
               return (
                 <Link
                   key={href}
