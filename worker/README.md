@@ -45,9 +45,18 @@ WB_COLLECTOR_DELAY_MS=3000
 WB_COLLECTOR_TIMEOUT_MS=25000
 WB_COLLECTOR_MAX_RESULTS=30
 WB_COLLECTOR_USER_AGENT="SellerMapBot/0.1 contact: support@sellermap.local"
+WB_COLLECTOR_PROXY_URL=
 ```
 
 `WORKER_API_KEY` is required in production. All routes except `/health` require `Authorization: Bearer WORKER_API_KEY`.
+
+`WB_COLLECTOR_PROXY_URL` is optional but recommended on Railway/Render/VPS if WB blocks datacenter IPs. Use an HTTP proxy URL such as:
+
+```bash
+WB_COLLECTOR_PROXY_URL=http://username:password@host:port
+```
+
+The worker does not bypass CAPTCHA or private endpoints; the proxy only changes the public network route for Playwright browser collection.
 
 ## Safety Model
 

@@ -55,7 +55,10 @@ async function evaluateProductPage(page: Page) {
 }
 
 async function collectProductWithBrowser(nmId: string): Promise<WBProductDetail | null> {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    proxy: config.proxyUrl ? { server: config.proxyUrl } : undefined,
+  });
   try {
     const page = await browser.newPage({ userAgent: config.userAgent });
     const productUrl = buildWBProductUrl(nmId);

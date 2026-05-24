@@ -107,7 +107,10 @@ async function evaluateSearchCards(page: Page, limit: number) {
 }
 
 async function collectWithBrowser(query: string, limit: number): Promise<WBProduct[]> {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    proxy: config.proxyUrl ? { server: config.proxyUrl } : undefined,
+  });
   try {
     const page = await browser.newPage({ userAgent: config.userAgent });
     const responseProducts: WBProduct[][] = [];

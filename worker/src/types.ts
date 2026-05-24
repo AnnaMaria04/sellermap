@@ -59,4 +59,5 @@ export type CollectorConfig = {
   timeoutMs: number;
   maxResults: number;
   userAgent: string;
+  proxyUrl: string | null;
 };

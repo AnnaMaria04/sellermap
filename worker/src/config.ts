@@ -21,6 +21,7 @@ export function getConfig(): CollectorConfig {
     timeoutMs: numberEnv("WB_COLLECTOR_TIMEOUT_MS", 25000),
     maxResults: numberEnv("WB_COLLECTOR_MAX_RESULTS", 30),
     userAgent: process.env.WB_COLLECTOR_USER_AGENT ?? "SellerMapBot/0.1 contact: support@sellermap.local",
+    proxyUrl: process.env.WB_COLLECTOR_PROXY_URL ?? null,
   };
 }
 
