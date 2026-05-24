@@ -71,7 +71,7 @@ export type RawSupplierProduct = Record<string, unknown>;
 
 export type SupplierImportResponse = {
   source: SupplierPlatform;
-  provider: "apify" | "html_meta" | "manual" | "demo" | "none";
+  provider: "own_supplier" | "apify" | "html_meta" | "manual" | "demo" | "none";
   status: SupplierImportStatus;
   confidence: number;
   product: NormalizedSupplierProduct | null;

@@ -50,6 +50,57 @@ export type WorkerProductResponse = {
   };
 };
 
+export type SupplierPriceTier = {
+  minQty: number;
+  maxQty: number | null;
+  price: number;
+  currency: "USD" | "EUR" | "CNY" | "RUB";
+};
+
+export type SupplierRawProduct = {
+  title: string | null;
+  supplierName: string | null;
+  supplierUrl: string;
+  productUrl: string;
+  images: string[];
+  priceTiers: SupplierPriceTier[];
+  moq: number | null;
+  unitCost: number | null;
+  currency: "USD" | "EUR" | "CNY" | "RUB";
+  specs: Record<string, string>;
+  packageSize: string | null;
+  packageDimensions: {
+    length: number | null;
+    width: number | null;
+    height: number | null;
+    unit: "cm";
+  } | null;
+  unitWeight: number | null;
+  grossWeight: number | null;
+  shippingEstimate: number | null;
+  leadTime: number | null;
+  supplierRating: number | null;
+  tradeAssurance: string | null;
+  onTimeDelivery: string | null;
+  rendered: {
+    packagingText: string[];
+    visibleTextSample: string;
+  };
+};
+
+export type WorkerSupplierResponse = {
+  status: "success" | "partial" | "failed";
+  source: "own-supplier";
+  platform: "alibaba" | "1688" | "aliexpress" | "unknown";
+  url: string;
+  product: SupplierRawProduct | null;
+  warnings: string[];
+  debug?: {
+    durationMs: number;
+    collector: string;
+  };
+};
+
 export type CollectorConfig = {
   port: number;
   apiKey: string | null;

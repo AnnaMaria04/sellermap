@@ -2,6 +2,7 @@ import "server-only";
 
 import { extractWithApify } from "@/services/apifyClient";
 import { extractWithHtmlMeta, extractFromPastedHtml } from "@/services/htmlSupplierExtractor";
+import { extractWithOwnSupplierCollector } from "@/services/ownSupplierCollectorClient";
 import { inferSupplierTitleFromUrl, parseSupplierDimensionText } from "@/lib/supplierParsing";
 import type {
   CalculatorDraft,
@@ -629,7 +630,9 @@ function sourceMap(product: NormalizedSupplierProduct, source: FieldSource): Rec
   };
 }
 
-async function responseFromRaw(url: string, raw: RawSupplierProduct, source: SupplierPlatform, provider: "apify" | "html_meta", providerErrors: string[]): Promise<SupplierImportResponse> {
+type SupplierExtractorProvider = "own_supplier" | "apify" | "html_meta";
+
+async function responseFromRaw(url: string, raw: RawSupplierProduct, source: SupplierPlatform, provider: SupplierExtractorProvider, providerErrors: string[]): Promise<SupplierImportResponse> {
   const identity = parseProductIdentityFromUrl(url);
   const product = normalizeSupplierData({ ...raw, supplierUrl: url, productUrl: url }, source, provider);
   const validation = validateProductIdentity({
@@ -674,7 +677,7 @@ async function responseFromRaw(url: string, raw: RawSupplierProduct, source: Sup
     source,
     provider,
     status: missingFields.length > 0 ? "partial" : "success",
-    confidence: Number(Math.min(0.95, validation.confidence + (provider === "apify" ? 0.16 : 0.04)).toFixed(2)),
+    confidence: Number(Math.min(0.95, validation.confidence + (provider === "apify" || provider === "own_supplier" ? 0.16 : 0.04)).toFixed(2)),
     product,
     fieldSources: sourceMap(product, provider === "apify" ? "apify" : "supplier_import"),
     missingFields,
@@ -763,14 +766,13 @@ function buildUrlIdentityDraft(
 export async function importWithProviderChain(url: string): Promise<SupplierImportResponse> {
   const source = detectSupplierPlatform(url);
   const providerErrors: string[] = [];
-  const apify = await extractWithApify(url, source, {
-    acceptRaw: (raw) => {
-      const validation = validateRawProductIdentity(url, raw);
-      return validation.ok ? true : { ok: false, reason: validation.reason };
-    },
-  });
-  if (apify.ok) return responseFromRaw(url, apify.raw, source, "apify", providerErrors);
-  providerErrors.push(apify.error);
+
+  const ownSupplier = await extractWithOwnSupplierCollector(url);
+  if (ownSupplier.ok) {
+    providerErrors.push(...ownSupplier.warnings.map((warning) => `own-supplier: ${warning}`));
+    return responseFromRaw(url, ownSupplier.raw, source, "own_supplier", providerErrors);
+  }
+  providerErrors.push(`own-supplier: ${ownSupplier.error}`);
 
   const html = await extractWithHtmlMeta(url);
   if (html) {
@@ -784,22 +786,23 @@ export async function importWithProviderChain(url: string): Promise<SupplierImpo
     );
   }
 
-  if (apify.status === "not_configured") {
-    return buildUrlIdentityDraft(url, source, providerErrors, "Apify не настроен или недоступен. Проверьте APIFY_API_TOKEN в Vercel.");
+  if (process.env.ENABLE_APIFY_SUPPLIER_FALLBACK === "true") {
+    const apify = await extractWithApify(url, source, {
+      acceptRaw: (raw) => {
+        const validation = validateRawProductIdentity(url, raw);
+        return validation.ok ? true : { ok: false, reason: validation.reason };
+      },
+    });
+    if (apify.ok) return responseFromRaw(url, apify.raw, source, "apify", providerErrors);
+    providerErrors.push(`apify: ${apify.error}`);
   }
 
-  return {
+  return buildUrlIdentityDraft(
+    url,
     source,
-    provider: "apify",
-    status: "blocked",
-    confidence: 0,
-    product: null,
-    fieldSources: {},
-    missingFields: [],
-    warnings: ["Автоматический импорт не смог прочитать страницу поставщика."],
-    error: "Страница поставщика заблокировала импорт или не вернула данные.",
-    rawDebug: { urlTokens: parseProductIdentityFromUrl(url).tokens, matchedTokens: [], providerErrors },
-  };
+    providerErrors,
+    "Собственный импорт поставщика не смог прочитать страницу полностью. Apify отключён как основной источник; включите ENABLE_APIFY_SUPPLIER_FALLBACK=true только как временный резерв.",
+  );
 }
 
 export async function importSupplierProduct(input: {

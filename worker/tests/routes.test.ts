@@ -35,4 +35,13 @@ describe("worker routes", () => {
     });
     expect([400, 401, 503]).toContain(res.status);
   });
+
+  it("supplier validates bad input", async () => {
+    const res = await request(createApp(), "/supplier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.WORKER_API_KEY ?? ""}` },
+      body: JSON.stringify({ url: "not-a-url" }),
+    });
+    expect([400, 401, 503]).toContain(res.status);
+  });
 });

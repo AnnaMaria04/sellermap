@@ -4,6 +4,7 @@ import { batchRouter } from "./routes/batch.js";
 import { healthRouter } from "./routes/health.js";
 import { productRouter } from "./routes/product.js";
 import { searchRouter } from "./routes/search.js";
+import { supplierRouter } from "./routes/supplier.js";
 import { logger } from "./utils/logger.js";
 import { errorMessage } from "./utils/errors.js";
 
@@ -27,6 +28,7 @@ export function createApp() {
   app.use(searchRouter);
   app.use(productRouter);
   app.use(batchRouter);
+  app.use(supplierRouter);
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     logger.error({ error: errorMessage(error) }, "REQUEST_FAILED");
     res.status(500).json({ status: "failed", error: errorMessage(error) });

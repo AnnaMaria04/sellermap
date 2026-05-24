@@ -4,6 +4,7 @@ import { cacheProvider } from "@/lib/providers/market/cache-provider";
 import { directWbProvider } from "@/lib/providers/market/direct-wb-provider";
 import { mpstatsProvider } from "@/lib/providers/market/mpstats-provider";
 import { ownWbCollectorProvider } from "@/lib/providers/market/own-wb-collector-provider";
+import { isOwnSupplierCollectorConfigured } from "@/services/ownSupplierCollectorClient";
 import { isSupabaseConfigured } from "@/services/supabaseRest";
 
 export async function GET() {
@@ -23,7 +24,10 @@ export async function GET() {
       status: ownCollectorHealth?.status === "ready" ? "ok" : ownCollectorHealth?.status === "not_configured" ? "not_configured" : "failed",
     },
     supplier: {
+      ownCollectorConfigured: isOwnSupplierCollectorConfigured(),
+      ownCollectorBaseUrl: Boolean(process.env.OWN_SUPPLIER_COLLECTOR_BASE_URL ?? process.env.OWN_WB_COLLECTOR_BASE_URL),
       apifyConfigured: Boolean(process.env.APIFY_TOKEN ?? process.env.APIFY_API_TOKEN),
+      apifyFallbackEnabled: process.env.ENABLE_APIFY_SUPPLIER_FALLBACK === "true",
       alibabaActor: process.env.APIFY_ALIBABA_ACTOR_ID ?? process.env.ALIBABA_ACTOR_ID ?? null,
     },
     ai: {

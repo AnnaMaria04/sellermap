@@ -34,6 +34,17 @@ curl -X POST http://localhost:8787/product \
   -d '{"nmId":"123456789"}'
 ```
 
+Supplier product extraction:
+
+```bash
+curl -X POST http://localhost:8787/supplier \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev-secret" \
+  -d '{"url":"https://www.alibaba.com/product-detail/..."}'
+```
+
+The supplier route is the first step in moving SellerMap away from Apify. It uses the same slow worker/proxy setup to read public supplier product pages and returns normalized raw fields for the main app: title, images, price tiers, MOQ, supplier name, package dimensions, gross weight, and shipping estimate when visible.
+
 ## Environment
 
 ```bash
@@ -102,10 +113,14 @@ OWN_WB_COLLECTOR_BASE_URL=https://your-worker.example.com
 OWN_WB_COLLECTOR_API_KEY=the-same-secret
 ENABLE_OWN_WB_COLLECTOR=true
 ENABLE_APIFY_FALLBACK=false
+ENABLE_OWN_SUPPLIER_COLLECTOR=true
+OWN_SUPPLIER_COLLECTOR_BASE_URL=https://your-worker.example.com
+OWN_SUPPLIER_COLLECTOR_API_KEY=the-same-secret
+ENABLE_APIFY_SUPPLIER_FALLBACK=false
 MARKET_DATA_PROVIDER=auto
 ```
 
-Apify can remain as an explicit fallback, but keep it disabled by default for cost control. The app tries cache first, then this worker, then Apify only when `ENABLE_APIFY_FALLBACK=true`.
+Apify can remain as an explicit fallback, but keep it disabled by default for cost control. The app tries cache first, then this worker, then Apify only when `ENABLE_APIFY_FALLBACK=true`. For supplier imports the app tries the own supplier collector first, then HTML/meta fallback, then Apify only when `ENABLE_APIFY_SUPPLIER_FALLBACK=true`.
 
 For historical collection, also set:
 

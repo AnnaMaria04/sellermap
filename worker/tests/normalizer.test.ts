@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseDimensionsCm, parseWeightKg } from "../src/normalizers/supplier-normalizer.js";
 import { extractNmIdFromUrl, normalizePriceRub, normalizeReviewCount, normalizeSearchItem } from "../src/normalizers/wb-normalizer.js";
 
 describe("wb normalizer", () => {
@@ -28,5 +29,12 @@ describe("wb normalizer", () => {
 
     expect(item?.priceRub).toBe(307);
     expect(item?.originalPriceRub).toBe(2999);
+  });
+
+  it("normalizes supplier package dimensions and gross weight", () => {
+    expect(parseDimensionsCm("15X1X1 cm")).toEqual({ length: 15, width: 1, height: 1, unit: "cm" });
+    expect(parseDimensionsCm("144*15mm")).toEqual({ length: 14.4, width: 1.5, height: 0.1, unit: "cm" });
+    expect(parseWeightKg("0.030 kg")).toBe(0.03);
+    expect(parseWeightKg("420 g")).toBe(0.42);
   });
 });
