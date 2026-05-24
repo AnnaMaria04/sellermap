@@ -49,7 +49,7 @@ def proxy_candidates(proxy: str | None) -> list[str | None]:
     if "__" in parsed.username:
         return candidates
 
-    attempts = int(os.environ.get("WB_COLLECTOR_PROXY_ATTEMPTS", "14"))
+    attempts = int(os.environ.get("WB_COLLECTOR_PROXY_ATTEMPTS", "3"))
     base_session = f"{int(time.time())}{random.randint(1000, 9999)}"
     for offset in range(attempts):
         username = f"{parsed.username}__cr.ru;sessid.sellermap{base_session}{offset}{random.randint(100, 999)}"
@@ -81,7 +81,7 @@ async def main() -> int:
     last_error: dict[str, Any] = {"ok": False, "error": "WB curl_cffi search did not run"}
     for attempt, candidate_proxy in enumerate(candidates, start=1):
         try:
-            async with AsyncSession(impersonate="chrome124", timeout=8) as session:
+            async with AsyncSession(impersonate="chrome124", timeout=5) as session:
                 # Warm-up establishes normal public-site cookies before the JSON request.
                 await session.get("https://www.wildberries.ru/", headers=HEADERS, proxy=candidate_proxy)
                 await asyncio.sleep(0.8)
