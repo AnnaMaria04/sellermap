@@ -4,13 +4,15 @@ import type { WBProductDetail, WorkerProductResponse } from "../types.js";
 import { buildWBProductUrl, normalizePriceRub, normalizeRating, normalizeReviewCount, normalizeSearchItem } from "../normalizers/wb-normalizer.js";
 import { errorMessage } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
+import { buildFetchProxyDispatcher, buildPlaywrightProxy } from "../utils/proxy.js";
 import { withTimeout } from "../utils/rate-limit.js";
 
 async function fetchPublicProduct(nmId: string): Promise<WBProductDetail | null> {
   const response = await fetch(`https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&spp=30&nm=${nmId}`, {
     headers: { "User-Agent": config.userAgent, Accept: "application/json,text/plain,*/*" },
     signal: AbortSignal.timeout(config.timeoutMs),
-  });
+    dispatcher: buildFetchProxyDispatcher(),
+  } as RequestInit);
   if (!response.ok) throw new Error(`WB public product returned ${response.status}`);
   const json = (await response.json()) as { data?: { products?: unknown[] } };
   const product = normalizeSearchItem(json.data?.products?.[0], "", 1);
@@ -57,7 +59,7 @@ async function evaluateProductPage(page: Page) {
 async function collectProductWithBrowser(nmId: string): Promise<WBProductDetail | null> {
   const browser = await chromium.launch({
     headless: true,
-    proxy: config.proxyUrl ? { server: config.proxyUrl } : undefined,
+    proxy: buildPlaywrightProxy(),
   });
   try {
     const page = await browser.newPage({ userAgent: config.userAgent });

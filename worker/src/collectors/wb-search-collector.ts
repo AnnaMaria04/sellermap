@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import type { WBProduct, WorkerSearchResponse } from "../types.js";
 import { errorMessage } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
+import { buildFetchProxyDispatcher, buildPlaywrightProxy } from "../utils/proxy.js";
 import { withTimeout } from "../utils/rate-limit.js";
 import { normalizeSearchItem } from "../normalizers/wb-normalizer.js";
 
@@ -38,7 +39,8 @@ async function fetchPublicSearch(query: string, limit: number): Promise<WBProduc
       Referer: `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`,
     },
     signal: AbortSignal.timeout(config.timeoutMs),
-  });
+    dispatcher: buildFetchProxyDispatcher(),
+  } as RequestInit);
   if (!response.ok) {
     const message = response.status === 403 || response.status === 429
       ? `WB u-search v18 returned ${response.status}; cloud IP is likely blocked`
@@ -109,7 +111,7 @@ async function evaluateSearchCards(page: Page, limit: number) {
 async function collectWithBrowser(query: string, limit: number): Promise<WBProduct[]> {
   const browser = await chromium.launch({
     headless: true,
-    proxy: config.proxyUrl ? { server: config.proxyUrl } : undefined,
+    proxy: buildPlaywrightProxy(),
   });
   try {
     const page = await browser.newPage({ userAgent: config.userAgent });
