@@ -252,11 +252,14 @@ async function readCachedSnapshot(keyword: string): Promise<MarketAnalysisResult
   });
   if (!result.ok || !result.data[0]) return null;
   const row = result.data[0];
+  const products = row.products ?? [];
+  const pricedProducts = products.filter((product) => typeof product.price === "number" && product.price > 0);
+  if (products.length && pricedProducts.length === 0) return null;
   return {
     provider: "cache",
     status: "success",
-    competitors: row.products ?? [],
-    marketStats: row.market_stats ?? getMarketStats(row.products ?? []),
+    competitors: products,
+    marketStats: row.market_stats && (row.market_stats.medianPrice ?? 0) > 0 ? row.market_stats : getMarketStats(products),
     warnings: [`Кэш WB: ${row.provider}, обновлено ${new Date(row.created_at).toLocaleString("ru-RU")}`],
   };
 }
