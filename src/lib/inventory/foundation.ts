@@ -43,11 +43,17 @@ export interface InventorySnapshot {
   damagedUnits: number;
   expiredUnits: number;
   inTransitUnits: number;
+  shelfUnits?: number;
+  storeUnits?: number;
+  returnUnits?: number;
+  allocatedMarketplaceUnits?: number;
 }
 
 export interface InventoryAvailability {
   availableToSell: number;
+  availableToSellRaw: number;
   statusMap: Record<InventoryStatus, number>;
+  warnings: string[];
 }
 
 export type PurchaseOrderStatus =
@@ -85,28 +91,53 @@ export function buildSellerModuleTabs(profile: SellerOnboardingProfile): string[
   return tabs;
 }
 
+function sanitizeUnits(units: number): number {
+  if (!Number.isFinite(units)) return 0;
+  return Math.max(0, Math.floor(units));
+}
+
+/**
+ * Available-to-sell formula:
+ * physical - reserved - damaged - expired - in_transit
+ *
+ * We return both raw and clamped values so UI/analytics can display warnings
+ * while downstream sales workflows always use non-negative availability.
+ */
 export function calculateAvailableToSell(snapshot: InventorySnapshot): InventoryAvailability {
-  const availableToSell =
-    snapshot.physicalUnits -
-    snapshot.reservedUnits -
-    snapshot.damagedUnits -
-    snapshot.expiredUnits -
-    snapshot.inTransitUnits;
+  const physicalUnits = sanitizeUnits(snapshot.physicalUnits);
+  const reservedUnits = sanitizeUnits(snapshot.reservedUnits);
+  const damagedUnits = sanitizeUnits(snapshot.damagedUnits);
+  const expiredUnits = sanitizeUnits(snapshot.expiredUnits);
+  const inTransitUnits = sanitizeUnits(snapshot.inTransitUnits);
+  const onShelfUnits = sanitizeUnits(snapshot.shelfUnits ?? 0);
+  const inStoreUnits = sanitizeUnits(snapshot.storeUnits ?? 0);
+  const returnUnits = sanitizeUnits(snapshot.returnUnits ?? 0);
+  const allocatedMarketplaceUnits = sanitizeUnits(snapshot.allocatedMarketplaceUnits ?? 0);
+
+  const availableToSellRaw =
+    physicalUnits - reservedUnits - damagedUnits - expiredUnits - inTransitUnits;
+
+  const warnings: string[] = [];
+  if (availableToSellRaw < 0) {
+    warnings.push("Available stock is negative. Check reservations, damaged, or in-transit allocations.");
+  }
 
   return {
-    availableToSell,
+    availableToSell: Math.max(0, availableToSellRaw),
+    availableToSellRaw,
     statusMap: {
-      available: availableToSell,
-      reserved: snapshot.reservedUnits,
-      on_hand: snapshot.physicalUnits,
-      on_shelf: 0,
-      in_store: 0,
-      in_transit: snapshot.inTransitUnits,
-      damaged: snapshot.damagedUnits,
-      returns: 0,
-      expired: snapshot.expiredUnits,
-      allocated_marketplace: 0,
+      available: Math.max(0, availableToSellRaw),
+      reserved: reservedUnits,
+      on_hand: physicalUnits,
+      on_shelf: onShelfUnits,
+      in_store: inStoreUnits,
+      in_transit: inTransitUnits,
+      damaged: damagedUnits,
+      returns: returnUnits,
+      expired: expiredUnits,
+      allocated_marketplace: allocatedMarketplaceUnits,
     },
+    warnings,
   };
 }
 
@@ -114,11 +145,14 @@ export interface CheckDraftContext {
   checkId: string;
   createdAt: string;
   productName: string;
+  supplierUrl?: string;
+  wbQuery?: string;
 }
 
 export interface EnrichmentTask {
   source: "supplier" | "wildberries";
   priority: "high" | "normal";
+  dedupeKey: string;
 }
 
 /**
@@ -127,9 +161,24 @@ export interface EnrichmentTask {
  * 2) queue enrichment tasks
  * 3) update persisted snapshot when async worker completes
  */
-export function createEnrichmentPlan(_context: CheckDraftContext): EnrichmentTask[] {
-  return [
-    { source: "supplier", priority: "high" },
-    { source: "wildberries", priority: "normal" },
-  ];
+export function createEnrichmentPlan(context: CheckDraftContext): EnrichmentTask[] {
+  const tasks: EnrichmentTask[] = [];
+
+  if (context.supplierUrl) {
+    tasks.push({
+      source: "supplier",
+      priority: "high",
+      dedupeKey: `supplier:${context.supplierUrl}`,
+    });
+  }
+
+  if (context.wbQuery || context.productName) {
+    tasks.push({
+      source: "wildberries",
+      priority: "normal",
+      dedupeKey: `wildberries:${context.wbQuery ?? context.productName}`,
+    });
+  }
+
+  return tasks;
 }

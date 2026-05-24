@@ -1,28 +1,27 @@
 # SellerMap
 
-## Current direction
+SellerMap now keeps two parallel product tracks in one codebase:
 
-This repository keeps the existing marketplace intelligence logic and now adds an **Inventory foundation** so SellerMap can support both:
-- Marketplace product checks (existing functionality)
-- Small business inventory operations (new tab/foundation)
+1. **Marketplace Intelligence** (existing analysis flow)
+2. **Inventory for Small Business** (new foundation layer)
 
-## What was added in this iteration
+## Inventory foundation scope added
 
-- Inventory domain scaffold in `src/lib/inventory/foundation.ts`
-- Types for onboarding profile, channels, stock locations, movement records, and purchase-order statuses
-- Shared formula for available-to-sell stock:
+- Typed onboarding profile for business type, channels, and locations.
+- Inventory snapshot/availability model with explicit status map.
+- Safe available-to-sell calculation with warning support for negative raw availability.
+- Purchase-order and movement status enums for future event storage.
+- Draft-first background enrichment plan contract for `/check` async pipeline.
+
+Core formula:
 
 ```txt
 available_to_sell = physical - reserved - damaged - expired - in_transit
 ```
 
-- Starter helper for UI tab composition to keep marketplace and inventory side-by-side
-- Starter async enrichment plan primitive for cache-first `/check` flow
+## Next steps
 
-## Next implementation steps
-
-1. Create dedicated `/inventory` route and top-level tab switcher.
-2. Persist inventory entities in Supabase (products, variants, locations, movements, suppliers, purchase_orders).
-3. Switch `/check` to draft-first response + background enrichment worker updates.
-4. Add stock movement event store and analytics projections.
-5. Add import/export pipeline (CSV/Excel first).
+1. Wire a real `/inventory` route and tab switcher in UI.
+2. Persist entities in Supabase (products, variants, suppliers, purchase orders, stock movements).
+3. Move `/check` to draft response + async worker update.
+4. Add import/export and stocktake workflows.
