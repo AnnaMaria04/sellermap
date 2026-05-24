@@ -110,3 +110,5 @@ export async function POST(req: NextRequest) {
     warnings,
   });
 }
+
+export const GET = POST;

@@ -58,3 +58,5 @@ export async function POST(req: NextRequest) {
     warnings: [...new Set(warnings)],
   });
 }
+
+export const GET = POST;
