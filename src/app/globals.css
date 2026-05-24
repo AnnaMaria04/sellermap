@@ -87,6 +87,11 @@ body {
   font-family: var(--font-body), var(--font-geologica);
 }
 
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
 .section-kicker {
   border-top: 1px solid var(--c-border);
   color: var(--c-text3);

@@ -1,5 +1,4 @@
 import { ResultClient } from "@/components/result/ResultClient";
-import { PageSection } from "@/components/sellermap/section";
 import { calculatePackagingRisk } from "@/lib/analysis/calculateResult";
 import type { RawResultInput } from "@/lib/analysis/types";
 import { demoResultInput } from "@/lib/data/demoResult";
@@ -102,10 +101,8 @@ export default async function ResultPage({ searchParams }: { searchParams: Resul
   const initialInput = buildInputFromParams(params);
 
   return (
-    <main className="bg-off-white">
-      <PageSection className="py-8">
-        <ResultClient initialInput={initialInput} draftId={draftId} />
-      </PageSection>
+    <main>
+      <ResultClient initialInput={initialInput} draftId={draftId} />
     </main>
   );
 }
