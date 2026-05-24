@@ -38,7 +38,7 @@ export async function searchMarketProducts(keywords: string[], limit = 50) {
   const providersUsed: string[] = [];
   const warnings: string[] = [];
   const productsByNmId = new Map<string, WBProduct>();
-  const keywordLimit = Number(process.env.CHECK_MODE === "internal" ? process.env.INTERNAL_MAX_KEYWORDS ?? 5 : process.env.FREE_USER_MAX_KEYWORDS ?? 3);
+  const keywordLimit = Number(process.env.CHECK_MODE === "internal" ? process.env.INTERNAL_MAX_KEYWORDS ?? 5 : process.env.FREE_USER_MAX_KEYWORDS ?? 1);
   const resultLimit = Number(
     process.env.CHECK_MODE === "internal"
       ? process.env.INTERNAL_MAX_RESULTS_PER_KEYWORD ?? limit

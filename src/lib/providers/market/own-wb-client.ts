@@ -16,7 +16,7 @@ export type WorkerProductResponse = {
   warnings: string[];
 };
 
-const DEFAULT_TIMEOUT_MS = 55_000;
+const DEFAULT_TIMEOUT_MS = Number(process.env.OWN_WB_COLLECTOR_TIMEOUT_MS ?? 45_000);
 const OWN_COLLECTOR_MAX_RESULTS = 30;
 
 export function ownCollectorBaseUrl() {
@@ -62,7 +62,8 @@ export async function ownCollectorFetch(path: string, init?: RequestInit, timeou
 export async function callOwnCollectorSearch(query: string, limit: number) {
   const safeLimit = Math.max(1, Math.min(limit, OWN_COLLECTOR_MAX_RESULTS));
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const attempts = Number(process.env.OWN_WB_COLLECTOR_RETRIES ?? 1);
+  for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
     try {
       const response = await ownCollectorFetch("/search", {
         method: "POST",
@@ -79,7 +80,8 @@ export async function callOwnCollectorSearch(query: string, limit: number) {
 
 export async function callOwnCollectorProduct(nmId: string) {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const attempts = Number(process.env.OWN_WB_COLLECTOR_RETRIES ?? 1);
+  for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
     try {
       const response = await ownCollectorFetch("/product", {
         method: "POST",
