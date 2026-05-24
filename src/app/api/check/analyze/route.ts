@@ -28,9 +28,11 @@ export async function POST(req: NextRequest) {
     if (!imported.product) {
       supplierProduct = manualSupplierProduct({ supplierUrl: body.supplierUrl, ...body.manualSupplierData });
       warnings.push(imported.error ?? "Автоимпорт поставщика не дал товар, используется ручной черновик.");
+      warnings.push(...(imported.rawDebug?.providerErrors ?? []));
     } else {
       supplierProduct = supplierProductFromImport(body.supplierUrl, imported);
       warnings.push(...imported.warnings);
+      warnings.push(...(imported.rawDebug?.providerErrors ?? []));
     }
   } else {
     supplierProduct = manualSupplierProduct(body.manualSupplierData ?? {});
