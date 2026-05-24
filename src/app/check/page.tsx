@@ -27,11 +27,59 @@ type WbMarket = {
   competitors: Array<{ nmId: string; name: string; brand: string; price: number; rating: number; reviews: number; position: number; imageUrl: string }>;
 };
 
+type AnalyzeResponse = {
+  supplierProduct?: {
+    productTitle?: string;
+    platform?: string;
+    supplierName?: string | null;
+    supplierPriceMin?: number | null;
+    currency?: string | null;
+    moq?: number | null;
+    grossWeightKg?: number | null;
+    packageSize?: { lengthCm?: number | null; widthCm?: number | null; heightCm?: number | null } | null;
+  };
+  fingerprint?: {
+    ruKeywords?: string[];
+    categoryGuess?: string;
+  };
+  marketAnalysis?: {
+    competitors?: Array<{
+      nmId: string;
+      title: string;
+      brand?: string | null;
+      priceRub: number | null;
+      rating?: number | null;
+      reviewCount?: number | null;
+      imageUrl?: string | null;
+      searchPosition?: number | null;
+    }>;
+    priceStats?: { median?: number | null };
+    reviewStats?: { top10Median?: number | null };
+    demand?: { demandLevel?: "low" | "medium" | "high" | "unknown" };
+  };
+  economics?: {
+    targetPriceRub?: number;
+    supplierUnitCost?: number;
+    marginPercent?: number;
+    profitPerUnitRub?: number;
+  };
+  decision?: {
+    verdictLabel?: string;
+    opportunityScore?: number;
+  };
+  debug?: {
+    marketAnalysisId?: string | null;
+    providersUsed?: string[];
+    warnings?: string[];
+  };
+  error?: string;
+};
+
 type Phase =
   | { name: "idle" }
   | { name: "loading"; steps: Step[] }
   | { name: "needs-keyword"; supplierDomain: string }
-  | { name: "done"; supplier: SupplierCard | null; market: WbMarket | null }
+  | { name: "done"; supplier: SupplierCard | null; market: WbMarket | null; analysisId?: string | null; source?: string; warnings?: string[]; decision?: string; score?: number }
   | { name: "error"; message: string };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -69,25 +117,52 @@ function calcPreview(sellingPrice: number, costPrice: number, category: string) 
   return { commission, commissionRub, logistics, packaging, profit, margin };
 }
 
-function buildResultHref(phase: Phase, costInput: string, category: string) {
-  if (phase.name !== "done") return "/result";
-  const params = new URLSearchParams();
-  const cost = Number(costInput);
+function demandLabel(value?: "low" | "medium" | "high" | "unknown") {
+  if (value === "high") return "высокий";
+  if (value === "medium") return "средний";
+  return "низкий";
+}
 
-  if (phase.supplier?.kind === "wb") {
-    params.set("name", phase.supplier.name);
-    params.set("category", phase.supplier.category);
-    params.set("price", String(Math.round(phase.supplier.price)));
-  } else if (phase.market?.query) {
-    params.set("name", phase.market.query);
-  }
+function analysisToMarket(analysis: AnalyzeResponse, fallbackQuery: string): WbMarket | null {
+  const competitors = analysis.marketAnalysis?.competitors ?? [];
+  if (!competitors.length) return null;
+  return {
+    query: analysis.fingerprint?.ruKeywords?.[0] ?? fallbackQuery,
+    total: competitors.length,
+    medianPrice: Math.round(analysis.marketAnalysis?.priceStats?.median ?? analysis.economics?.targetPriceRub ?? 0),
+    entryBarrier: Math.round(analysis.marketAnalysis?.reviewStats?.top10Median ?? 0),
+    demandLevel: demandLabel(analysis.marketAnalysis?.demand?.demandLevel),
+    competitors: competitors.slice(0, 5).map((item, index) => ({
+      nmId: item.nmId,
+      name: item.title,
+      brand: item.brand ?? "",
+      price: item.priceRub ?? 0,
+      rating: item.rating ?? 0,
+      reviews: item.reviewCount ?? 0,
+      position: item.searchPosition ?? index + 1,
+      imageUrl: item.imageUrl ?? "",
+    })),
+  };
+}
 
-  if (phase.market?.medianPrice) params.set("price", String(Math.round(phase.market.medianPrice)));
-  if (Number.isFinite(cost) && cost > 0) params.set("cost", String(Math.round(cost)));
-  if (category) params.set("category", category);
+function analysisToSupplier(analysis: AnalyzeResponse): SupplierCard | null {
+  const supplier = analysis.supplierProduct;
+  if (!supplier?.productTitle) return { kind: "keyword" };
+  return {
+    kind: "wb",
+    nmId: analysis.debug?.marketAnalysisId ?? "analysis",
+    name: supplier.productTitle,
+    brand: supplier.supplierName ?? supplier.platform ?? "",
+    category: analysis.fingerprint?.categoryGuess ?? "",
+    price: analysis.economics?.targetPriceRub ?? analysis.marketAnalysis?.priceStats?.median ?? 0,
+    rating: 0,
+    reviews: supplier.moq ?? 0,
+  } satisfies WbProduct;
+}
 
-  const query = params.toString();
-  return query ? `/result?${query}` : "/result";
+function resultHref(phase: Phase) {
+  if (phase.name === "done" && phase.analysisId) return `/result/${phase.analysisId}`;
+  return "/result";
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
@@ -108,6 +183,44 @@ export default function CheckPage() {
     } catch { return null; }
   }
 
+  async function runAnalysis(input: {
+    supplierUrl?: string;
+    manualTitle?: string;
+    platform?: "manual";
+    targetPriceRub?: number;
+    costRub?: number;
+  }) {
+    const body = input.supplierUrl
+      ? {
+          supplierUrl: input.supplierUrl,
+          userCostAssumptions: {
+            targetPriceRub: input.targetPriceRub,
+            supplierUnitCost: input.costRub,
+          },
+        }
+      : {
+          manualSupplierData: {
+            supplierUrl: `manual://${encodeURIComponent(input.manualTitle ?? "keyword")}`,
+            platform: input.platform ?? "manual",
+            productTitle: input.manualTitle ?? "Товар",
+            currency: "RUB",
+          },
+          userCostAssumptions: {
+            targetPriceRub: input.targetPriceRub,
+            supplierUnitCost: input.costRub,
+          },
+        };
+
+    const res = await fetch("/api/check/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json()) as AnalyzeResponse;
+    if (!res.ok || data.error) throw new Error(data.error ?? "Не удалось создать анализ.");
+    return data;
+  }
+
   function makeSteps(labels: string[]): Step[] {
     return labels.map((label, i) => ({ label, state: i === 0 ? "active" : "pending" }));
   }
@@ -125,7 +238,40 @@ export default function CheckPage() {
     const type = detectInputType(value);
 
     if (isSupplierUrl(type)) {
-      setPhase({ name: "needs-keyword", supplierDomain: extractDomain(value) });
+      let steps = makeSteps([
+        "Извлекаем товар поставщика",
+        "Создаём fingerprint и ключи WB",
+        "Собираем похожие товары WB",
+        "Считаем экономику и сохраняем отчёт",
+      ]);
+      setPhase({ name: "loading", steps });
+      try {
+        steps = advance(steps, 1);
+        setPhase({ name: "loading", steps });
+        const analysis = await runAnalysis({ supplierUrl: value });
+        steps = advance(steps, 3);
+        setPhase({ name: "loading", steps });
+        await new Promise((r) => setTimeout(r, 300));
+        const market = analysisToMarket(analysis, value);
+        const supplier = analysisToSupplier(analysis) ?? { kind: "supplier", domain: extractDomain(value) };
+        setCostInput(String(Math.round(analysis.economics?.supplierUnitCost ?? 0)));
+        setCostCategory(analysis.fingerprint?.categoryGuess ?? "");
+        setPhase({
+          name: "done",
+          supplier,
+          market,
+          analysisId: analysis.debug?.marketAnalysisId,
+          source: analysis.debug?.providersUsed?.join(" → ") ?? "provider ladder",
+          warnings: analysis.debug?.warnings,
+          decision: analysis.decision?.verdictLabel,
+          score: analysis.decision?.opportunityScore,
+        });
+      } catch (error) {
+        setPhase({
+          name: "error",
+          message: error instanceof Error ? error.message : "Не удалось импортировать поставщика. Можно проверить по ключевому запросу или ввести вручную.",
+        });
+      }
       return;
     }
 
@@ -151,24 +297,48 @@ export default function CheckPage() {
 
       steps = advance(steps, 2);
       setPhase({ name: "loading", steps });
-      const market = await runWbSearch(wbKeyword || value);
+      const analysis = await runAnalysis({
+        manualTitle: wbKeyword || value,
+        platform: "manual",
+        targetPriceRub: supplier?.kind === "wb" ? supplier.price : undefined,
+      });
+      const market = analysisToMarket(analysis, wbKeyword || value) ?? await runWbSearch(wbKeyword || value);
 
       steps = advance(steps, 3);
       setPhase({ name: "loading", steps });
       await new Promise((r) => setTimeout(r, 300));
 
-      setPhase({ name: "done", supplier, market });
+      setPhase({
+        name: "done",
+        supplier: supplier ?? analysisToSupplier(analysis),
+        market,
+        analysisId: analysis.debug?.marketAnalysisId,
+        source: analysis.debug?.providersUsed?.join(" → ") ?? "provider ladder",
+        warnings: analysis.debug?.warnings,
+        decision: analysis.decision?.verdictLabel,
+        score: analysis.decision?.opportunityScore,
+      });
       return;
     }
 
     // Russian keyword
-    let steps = makeSteps(["Ищем товары на Wildberries", "Рассчитываем экономику"]);
+    let steps = makeSteps(["Создаём анализ", "Ищем товары на Wildberries", "Сохраняем отчёт"]);
     setPhase({ name: "loading", steps });
-    const market = await runWbSearch(value);
+    const analysis = await runAnalysis({ manualTitle: value, platform: "manual" });
+    const market = analysisToMarket(analysis, value) ?? await runWbSearch(value);
     steps = advance(steps, 1);
     setPhase({ name: "loading", steps });
     await new Promise((r) => setTimeout(r, 300));
-    setPhase({ name: "done", supplier: { kind: "keyword" }, market });
+    setPhase({
+      name: "done",
+      supplier: analysisToSupplier(analysis) ?? { kind: "keyword" },
+      market,
+      analysisId: analysis.debug?.marketAnalysisId,
+      source: analysis.debug?.providersUsed?.join(" → ") ?? "provider ladder",
+      warnings: analysis.debug?.warnings,
+      decision: analysis.decision?.verdictLabel,
+      score: analysis.decision?.opportunityScore,
+    });
   }
 
   async function handleKeywordSubmit() {
@@ -179,11 +349,21 @@ export default function CheckPage() {
     steps[0] = { ...steps[0], state: "done" };
     steps[1] = { ...steps[1], state: "active" };
     setPhase({ name: "loading", steps });
-    const market = await runWbSearch(kw);
+    const analysis = await runAnalysis({ manualTitle: kw, platform: "manual" });
+    const market = analysisToMarket(analysis, kw) ?? await runWbSearch(kw);
     steps = advance(steps, 2);
     setPhase({ name: "loading", steps });
     await new Promise((r) => setTimeout(r, 300));
-    setPhase({ name: "done", supplier: { kind: "supplier", domain } as SupplierProduct, market });
+    setPhase({
+      name: "done",
+      supplier: { kind: "supplier", domain } as SupplierProduct,
+      market,
+      analysisId: analysis.debug?.marketAnalysisId,
+      source: analysis.debug?.providersUsed?.join(" → ") ?? "provider ladder",
+      warnings: analysis.debug?.warnings,
+      decision: analysis.decision?.verdictLabel,
+      score: analysis.decision?.opportunityScore,
+    });
   }
 
   function reset() {
@@ -301,7 +481,12 @@ export default function CheckPage() {
 
             {phase.market && (
               <InfoCard icon={<BarChart3 size={18} />} label="Рынок Wildberries">
-                <p className="text-xs text-[var(--c-text3)]">«{phase.market.query}»</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-[var(--c-text3)]">«{phase.market.query}»</p>
+                  {phase.source && <span className="rounded-full bg-[var(--c-green-dim)] px-2 py-0.5 text-[10px] font-semibold text-[var(--c-green)]">{phase.source}</span>}
+                  {phase.score !== undefined && <span className="rounded-full bg-[var(--c-bg3)] px-2 py-0.5 text-[10px] font-semibold text-[var(--c-text2)]">score {Math.round(phase.score)}/100</span>}
+                </div>
+                {phase.decision && <p className="mt-2 text-sm font-semibold text-[var(--c-text)]">{phase.decision}</p>}
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <MetricBlock label="Продавцов" value={phase.market.total.toLocaleString("ru-RU")} />
                   <MetricBlock label="Медиана цены" value={formatRub(phase.market.medianPrice)} accent />
@@ -328,6 +513,14 @@ export default function CheckPage() {
                     )}
                   </div>
                 )}
+                {phase.warnings?.length ? (
+                  <div className="mt-4 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--c-text3)]">Качество данных</p>
+                    <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--c-text2)]">
+                      {phase.warnings.slice(0, 3).map((warning) => <li key={warning}>• {warning}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
               </InfoCard>
             )}
 
@@ -344,9 +537,9 @@ export default function CheckPage() {
               <button onClick={reset} className="text-sm text-[var(--c-text3)] hover:text-[var(--c-text2)]">
                 ← Проверить другой товар
               </button>
-              <a href={buildResultHref(phase, costInput, costCategory)} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
-                Получить полный отчёт →
-              </a>
+              <Link href={resultHref(phase)} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-6 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]">
+                {phase.analysisId ? "Открыть сохранённый отчёт →" : "Открыть черновик отчёта →"}
+              </Link>
             </div>
           </div>
         )}

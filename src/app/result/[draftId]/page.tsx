@@ -13,7 +13,7 @@ export default async function ResultDraftPage({ params }: { params: ResultDraftP
   return (
     <main className="bg-off-white">
       <PageSection className="py-8">
-        <ResultClient initialInput={initialInput} draftId={storedInput ? undefined : draftId} />
+        <ResultClient initialInput={initialInput} draftId={storedInput ? undefined : draftId} reportId={storedInput ? draftId : undefined} />
       </PageSection>
     </main>
   );

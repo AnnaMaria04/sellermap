@@ -8,6 +8,7 @@ import { CostBar } from "@/components/result/CostBar";
 import { MarketHistogram } from "@/components/result/MarketHistogram";
 import { PriceRatingScatter } from "@/components/result/PriceRatingScatter";
 import { CompetitorTable } from "@/components/result/CompetitorTable";
+import { DataSourcesPanel } from "@/components/result/DataSourcesPanel";
 import { calculateResult } from "@/lib/analysis/calculateResult";
 import { formatRub } from "@/lib/utils";
 import { getDraft } from "@/services/draftStorage";
@@ -39,7 +40,7 @@ function rub(value: number | null | undefined) {
   return Number.isFinite(numeric) ? formatRub(Math.round(numeric)) : "—";
 }
 
-export function ResultClient({ initialInput, draftId }: { initialInput: RawResultInput; draftId?: string }) {
+export function ResultClient({ initialInput, draftId, reportId }: { initialInput: RawResultInput; draftId?: string; reportId?: string }) {
   const router = useRouter();
   const [draft] = useState<ProductAnalysisDraft | null>(() => (draftId ? getDraft(draftId) : null));
   const [input, setInput] = useState(() => (draft ? inputFromDraft(initialInput, draft) : initialInput));
@@ -75,7 +76,7 @@ export function ResultClient({ initialInput, draftId }: { initialInput: RawResul
         </div>
 
         {/* Hero */}
-        <HeroSection result={result} />
+        <HeroSection result={result} reportId={reportId} />
 
         {/* KPI Row */}
         <KpiRow result={result} />
@@ -126,10 +127,26 @@ function MissingDraftState() {
 }
 
 /* ── Hero ── */
-function HeroSection({ result }: { result: ProductResult }) {
+function HeroSection({ result, reportId }: { result: ProductResult; reportId?: string }) {
   const m = result.margin;
   const s = result.score;
   const col = scoreColor(s);
+  const [trackStatus, setTrackStatus] = useState<"idle" | "saving" | "saved" | "error">(reportId ? "idle" : "saved");
+  async function trackNiche() {
+    if (!reportId || trackStatus === "saving") return;
+    setTrackStatus("saving");
+    try {
+      const res = await fetch("/api/tracking/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId: reportId }),
+      });
+      if (!res.ok) throw new Error("tracking failed");
+      setTrackStatus("saved");
+    } catch {
+      setTrackStatus("error");
+    }
+  }
   return (
     <div className="hero-grid" style={{ borderRadius: "var(--r-xl)", overflow: "hidden", border: "1px solid var(--c-border2)", background: "var(--c-bg1)", marginBottom: 14 }}>
         {/* Score panel */}
@@ -174,6 +191,13 @@ function HeroSection({ result }: { result: ProductResult }) {
           </div>
           <div className="hero-action-row" style={{ display: "flex", gap: 10 }}>
             <button style={{ padding: "9px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--c-border3)", background: "transparent", color: "var(--c-text)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>↓ Сохранить отчёт</button>
+            <button
+              onClick={trackNiche}
+              disabled={!reportId || trackStatus === "saving" || trackStatus === "saved"}
+              style={{ padding: "9px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--c-border3)", background: trackStatus === "saved" ? "rgba(31,209,131,0.12)" : "transparent", color: trackStatus === "error" ? "var(--c-red)" : trackStatus === "saved" ? "var(--c-green)" : "var(--c-text)", fontSize: 13, fontWeight: 500, cursor: !reportId || trackStatus === "saving" || trackStatus === "saved" ? "default" : "pointer", opacity: !reportId ? 0.55 : 1 }}
+            >
+              {trackStatus === "saving" ? "Сохраняем..." : trackStatus === "saved" ? "Ниша отслеживается" : trackStatus === "error" ? "Повторить tracking" : "Отслеживать 7 дней"}
+            </button>
             <Link href="/check" style={{ padding: "9px 18px", borderRadius: "var(--r-md)", background: "var(--c-green)", color: "var(--c-bg)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>↗ Проверить другой товар</Link>
           </div>
         </div>
@@ -462,6 +486,8 @@ function InsightsTab({ result }: { result: ProductResult }) {
         })}
         <p style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 4, paddingLeft: 2 }}>Прогресс сохраняется автоматически</p>
       </div>
+      <Hr />
+      <DataSourcesPanel result={result} />
     </div>
   );
 }
