@@ -39,11 +39,13 @@ export default async function DataEngineAdminPage({ searchParams }: { searchPara
     "wb_search_snapshots",
     "wb_product_snapshots",
     "market_analyses",
+    "economics_snapshots",
     "analysis_competitors",
     "tracked_products",
     "tracked_keywords",
     "daily_market_metrics",
     "sales_estimates",
+    "weekly_updates",
   ];
   const counts = await Promise.all(tables.map(async (table) => ({ table, ...(await countTable(table)) })));
   const keywords = await recentRows<{ keyword: string; priority: number | null; last_checked_at: string | null }>("tracked_keywords", "keyword,priority,last_checked_at");

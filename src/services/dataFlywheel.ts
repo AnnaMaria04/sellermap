@@ -65,6 +65,10 @@ async function saveFingerprint(supplierProductId: string | null, fingerprint: Pr
     category_guess: fingerprint.categoryGuess,
     differentiation_angles: fingerprint.differentiationAngles,
     irrelevant_terms: fingerprint.irrelevantTermsToAvoid,
+    negative_keywords: fingerprint.negativeKeywords,
+    feature_tags: fingerprint.featureTags,
+    packaging_assumptions: fingerprint.packagingAssumptions,
+    confidence: fingerprint.confidence,
   });
 }
 
@@ -74,7 +78,9 @@ async function saveMarketAnalysis(input: PersistInput, supplierProductId: string
     supplier_product_id: supplierProductId,
     fingerprint_id: fingerprintId,
     analysis_json: {
+      supplierProduct: input.supplierProduct,
       fingerprint: input.fingerprint,
+      marketProducts: input.marketProducts,
       marketAnalysis: input.marketAnalysis,
       economics: input.economics,
       decision: input.decision,
@@ -156,6 +162,54 @@ async function saveAnalysisCompetitors(marketAnalysisId: string | null, products
   if (rows.length) await supabaseRest("analysis_competitors", { method: "POST", body: JSON.stringify(rows) });
 }
 
+async function saveEconomicsSnapshot(marketAnalysisId: string | null, economics: UnitEconomicsResult) {
+  if (!marketAnalysisId) return;
+  const body = {
+    market_analysis_id: marketAnalysisId,
+    supplier_unit_cost: economics.supplierUnitCost,
+    currency: economics.currency,
+    fx_rate: economics.fxRate,
+    landed_cost_rub: economics.landedCostRub,
+    packaging_cost_rub: economics.packagingCostRub,
+    wb_commission_percent: economics.wbCommissionPercent,
+    wb_logistics_rub: economics.wbLogisticsRub,
+    return_buffer_percent: economics.returnBufferPercent,
+    ad_spend_percent: economics.adSpendPercent,
+    tax_percent: economics.taxPercent,
+    target_price_rub: economics.targetPriceRub,
+    break_even_price_rub: economics.breakEvenPriceRub,
+    estimated_profit_rub: economics.profitPerUnitRub,
+    estimated_margin_percent: economics.marginPercent,
+    result_json: economics,
+  };
+  await supabaseRest("unit_economics", { method: "POST", body: JSON.stringify(body) });
+  await supabaseRest("economics_snapshots", { method: "POST", body: JSON.stringify(body) });
+}
+
+async function saveWeeklyUpdate(input: PersistInput, marketAnalysisId: string | null) {
+  if (!marketAnalysisId) return;
+  const severity = input.decision.verdict === "avoid" ? "high" : input.decision.verdict === "risky" ? "medium" : "low";
+  await supabaseRest("weekly_updates", {
+    method: "POST",
+    body: JSON.stringify({
+      update_type: input.marketAnalysis.reviewStats.entryReviewBarrier === "high" ? "competition" : "analysis",
+      title: `${input.supplierProduct.productTitle || input.fingerprint.productType}: ${input.decision.verdictLabel}`,
+      affected_products: [{ marketAnalysisId, title: input.supplierProduct.productTitle, score: input.decision.opportunityScore }],
+      old_metric: null,
+      new_metric: {
+        margin: input.economics.marginPercent,
+        medianPrice: input.marketAnalysis.priceStats.median,
+        reviewBarrier: input.marketAnalysis.reviewStats.top10Median,
+      },
+      severity,
+      explanation: input.decision.mainReasons.join(" · "),
+      recommended_action: input.decision.improvementActions[0],
+      confidence: input.decision.confidenceLevel,
+      source: "rule_based",
+    }),
+  });
+}
+
 async function upsertTrackedProduct(product: WBProduct, sourceAnalysisId: string | null, keyword: string, priority: number) {
   if (!product.nmId) return;
   const existing = await supabaseRest<Array<{ id: string; priority: number | null; keywords: string[] | null }>>("tracked_products", {
@@ -214,6 +268,8 @@ export async function persistDataFlywheel(input: PersistInput) {
   const marketAnalysisId = await saveMarketAnalysis(input, supplierProductId, fingerprintId);
   await saveWbSnapshots(input.marketProducts, input.providersUsed, input.fingerprint.categoryGuess);
   await saveAnalysisCompetitors(marketAnalysisId, input.marketProducts);
+  await saveEconomicsSnapshot(marketAnalysisId, input.economics);
   await saveTrackingTargets(input, marketAnalysisId);
+  await saveWeeklyUpdate(input, marketAnalysisId);
   return { supplierProductId, fingerprintId, marketAnalysisId };
 }

@@ -5,7 +5,7 @@ import type { SupplierProduct } from "@/lib/providers/supplier/types";
 
 export type DecisionResult = {
   opportunityScore: number;
-  verdict: "worth_testing" | "risky" | "avoid" | "needs_more_data";
+  verdict: "strong_opportunity" | "can_test" | "research_more" | "risky" | "reject" | "worth_testing" | "avoid" | "needs_more_data";
   verdictLabel: string;
   confidenceLevel: "low" | "medium" | "high";
   suggestedFirstBatchSize: {
@@ -68,19 +68,21 @@ export function makeDecision(input: {
   const missingMarket = market.competitors.length < 5;
   const verdict =
     missingMarket
-      ? "needs_more_data"
+      ? "research_more"
       : economics.marginPercent < 10 || opportunityScore < 55
-        ? "avoid"
-        : opportunityScore >= 75 && economics.marginPercent >= 20
-          ? "worth_testing"
+        ? "reject"
+        : opportunityScore >= 82 && economics.marginPercent >= 25
+          ? "strong_opportunity"
+          : opportunityScore >= 70 && economics.marginPercent >= 18
+            ? "can_test"
           : "risky";
   const confidenceLevel = missingMarket ? "low" : market.confidenceLevel;
   const batch =
-    verdict === "worth_testing" && confidenceLevel === "high"
+      verdict === "strong_opportunity"
       ? { min: 50, max: 100, reason: "Маржа и рыночные сигналы достаточны для аккуратного теста." }
-      : verdict === "risky"
+      : verdict === "risky" || verdict === "can_test"
         ? { min: 20, max: 50, reason: "Есть спрос, но нужно ограничить риск первой закупки." }
-        : verdict === "needs_more_data"
+        : verdict === "research_more"
           ? { min: 10, max: 20, reason: "Недостаточно данных рынка, допустим только минимальный тест." }
           : { min: 0, max: 0, reason: "Покупку лучше отложить до улучшения экономики или дифференциации." };
 
@@ -88,13 +90,17 @@ export function makeDecision(input: {
     opportunityScore,
     verdict,
     verdictLabel:
-      verdict === "worth_testing"
-        ? "Стоит тестировать"
-        : verdict === "risky"
+      verdict === "strong_opportunity"
+        ? "Сильная возможность"
+        : verdict === "can_test"
+          ? "Можно тестировать"
+          : verdict === "research_more"
+            ? "Нужно исследовать"
+            : verdict === "reject"
+              ? "Отклонить"
+              : verdict === "risky"
           ? "Рискованно"
-          : verdict === "avoid"
-            ? "Избегать"
-            : "Нужно больше данных",
+          : "Нужно больше данных",
     confidenceLevel,
     suggestedFirstBatchSize: batch,
     mainReasons: [

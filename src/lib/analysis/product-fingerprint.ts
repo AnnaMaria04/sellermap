@@ -6,9 +6,13 @@ export type ProductFingerprint = {
   useCase: string;
   keyFeatures: string[];
   ruKeywords: string[];
+  negativeKeywords: string[];
+  featureTags: string[];
   categoryGuess: string;
   differentiationAngles: string[];
   irrelevantTermsToAvoid: string[];
+  packagingAssumptions: string[];
+  confidence: number;
 };
 
 const NOISE = /\b(high|quality|factory|wholesale|custom|oem|odm|hot|sale|new|manufacturer|supplier|moq|for|with|and)\b/gi;
@@ -33,10 +37,14 @@ export function fingerprintSupplierProduct(product: SupplierProduct): ProductFin
       targetCustomer: "художники, школьники, покупатели товаров для творчества",
       useCase: "рисование и декоративная разметка по разным поверхностям",
       keyFeatures: unique(["акриловые чернила", "разные цвета", "тонкий наконечник", "подходит для творчества"]),
-      ruKeywords: unique(["акриловый маркер", "маркер POSCA", "маркер для рисования", "перманентный маркер", "набор маркеров"]),
+      ruKeywords: unique(["акриловый маркер", "маркер POSCA", "маркер для рисования", "перманентный маркер", "набор маркеров", "маркеры для скетчинга", "маркер по дереву", "маркер по стеклу"]),
+      negativeKeywords: ["заправка", "доска", "меловой", "детский фломастер"],
+      featureTags: ["creative", "stationery", "color-set", "low-weight"],
       categoryGuess: "Канцтовары / Хобби и творчество",
       differentiationAngles: ["комплект цветов", "качество наконечника", "фото результата на разных поверхностях"],
       irrelevantTermsToAvoid: ["wholesale", "factory", "high quality", "OEM"],
+      packagingAssumptions: ["малый товар", "индивидуальная упаковка", "нужна проверка веса набора"],
+      confidence: 86,
     };
   }
 
@@ -46,10 +54,14 @@ export function fingerprintSupplierProduct(product: SupplierProduct): ProductFin
       targetCustomer: "покупатели товаров для дома, учебы и рабочего места",
       useCase: "освещение рабочего стола",
       keyFeatures: unique(["LED", "диммер", "USB", "компактная упаковка"]),
-      ruKeywords: unique(["настольная лампа", "лампа настольная LED", "светильник настольный", "лампа для рабочего стола"]),
+      ruKeywords: unique(["настольная лампа", "лампа настольная LED", "светильник настольный", "лампа для рабочего стола", "лампа с диммером", "USB лампа"]),
+      negativeKeywords: ["люстра", "лампочка", "гирлянда"],
+      featureTags: ["home", "lighting", "usb", "medium-fragility"],
       categoryGuess: "Дом / Освещение",
       differentiationAngles: ["регулировка яркости", "USB питание", "фото на рабочем столе"],
       irrelevantTermsToAvoid: ["factory", "wholesale", "custom"],
+      packagingAssumptions: ["хрупкость средняя", "нужна коробка", "проверить длину провода"],
+      confidence: 78,
     };
   }
 
@@ -59,10 +71,14 @@ export function fingerprintSupplierProduct(product: SupplierProduct): ProductFin
       targetCustomer: "студенты, офисные сотрудники, путешественники",
       useCase: "повседневная переноска вещей и ноутбука",
       keyFeatures: unique(["объем", "водостойкость", "отделение для ноутбука"]),
-      ruKeywords: unique(["рюкзак городской", "рюкзак 30 литров", "рюкзак для ноутбука", "водонепроницаемый рюкзак"]),
+      ruKeywords: unique(["рюкзак городской", "рюкзак 30 литров", "рюкзак для ноутбука", "водонепроницаемый рюкзак", "мужской рюкзак", "рюкзак для путешествий"]),
+      negativeKeywords: ["школьный", "детский", "чемодан"],
+      featureTags: ["bags", "textile", "volume-sensitive"],
       categoryGuess: "Аксессуары / Рюкзаки",
       differentiationAngles: ["объем", "организация отделений", "материал и фурнитура"],
       irrelevantTermsToAvoid: ["factory", "wholesale"],
+      packagingAssumptions: ["мягкий товар", "объем влияет на логистику", "нужен пакет или короб"],
+      confidence: 76,
     };
   }
 
@@ -72,10 +88,14 @@ export function fingerprintSupplierProduct(product: SupplierProduct): ProductFin
       targetCustomer: "пользователи смартфонов",
       useCase: "защита телефона от царапин и ударов",
       keyFeatures: unique(["модель телефона", "материал", "защита камеры"]),
-      ruKeywords: unique(["чехол для iPhone", "прозрачный чехол", "силиконовый чехол", "чехол для телефона"]),
+      ruKeywords: unique(["чехол для iPhone", "прозрачный чехол", "силиконовый чехол", "чехол для телефона", "защитный чехол", "чехол MagSafe"]),
+      negativeKeywords: ["стекло", "пленка", "ремешок"],
+      featureTags: ["electronics-accessory", "model-dependent", "small"],
       categoryGuess: "Электроника / Аксессуары",
       differentiationAngles: ["совместимость с моделью", "защита камеры", "качество материала"],
       irrelevantTermsToAvoid: ["wholesale", "bulk"],
+      packagingAssumptions: ["малый товар", "низкая хрупкость", "важна маркировка модели"],
+      confidence: 72,
     };
   }
 
@@ -85,9 +105,13 @@ export function fingerprintSupplierProduct(product: SupplierProduct): ProductFin
     targetCustomer: "покупатели Wildberries",
     useCase: "повседневное использование",
     keyFeatures: unique(title.split(/\s+/).slice(0, 5)),
-    ruKeywords: unique([words, product.specs?.category ?? "", product.productTitle].filter(Boolean).slice(0, 4)),
+    ruKeywords: unique([words, product.specs?.category ?? "", product.productTitle, `${words} купить`, `${words} wildberries`].filter(Boolean)).slice(0, 8),
+    negativeKeywords: ["wholesale", "factory", "оптом"],
+    featureTags: unique(title.toLowerCase().split(/\s+/).filter((word) => word.length > 3).slice(0, 6)),
     categoryGuess: product.specs?.category ?? "Категория не определена",
     differentiationAngles: ["комплектация", "цена", "визуальная подача карточки"],
     irrelevantTermsToAvoid: ["wholesale", "factory", "custom", "MOQ"],
+    packagingAssumptions: ["упаковка не подтверждена", "вес и габариты требуют проверки"],
+    confidence: 45,
   };
 }

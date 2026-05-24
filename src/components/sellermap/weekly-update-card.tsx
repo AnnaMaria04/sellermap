@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 export function WeeklyUpdateCard({
   update,
 }: {
-  update: { title: string; type: string; impact: string; summary: string };
+  update: { title: string; type: string; impact: string; summary: string; severity?: string; source?: string };
 }) {
   return (
     <Card className="p-5 shadow-none">
@@ -13,11 +13,12 @@ export function WeeklyUpdateCard({
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
           <BellRing size={18} />
         </span>
-        <Badge tone="green">{update.type}</Badge>
+        <Badge tone={update.severity === "high" ? "red" : update.severity === "low" ? "mint" : "green"}>{update.type}</Badge>
       </div>
       <h3 className="font-semibold">{update.title}</h3>
       <p className="mt-2 text-sm font-semibold text-[var(--c-green)]">{update.impact}</p>
       <p className="mt-3 text-sm leading-6 text-[var(--c-text2)]">{update.summary}</p>
+      {update.source && <p className="mt-3 text-xs text-[var(--c-text3)]">Источник: {update.source}</p>}
     </Card>
   );
 }

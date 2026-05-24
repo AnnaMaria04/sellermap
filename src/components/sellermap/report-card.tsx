@@ -1,4 +1,5 @@
 import { FileText } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScoreGauge } from "./score-gauge";
@@ -13,6 +14,7 @@ export function SavedReportCard({
     verdict: string;
     risk: string;
     status: string;
+    href?: string;
   };
 }) {
   const tone = report.score >= 80 ? "green" : report.score >= 60 ? "mint" : report.score >= 40 ? "amber" : "red";
@@ -30,10 +32,10 @@ export function SavedReportCard({
         </p>
         <p className="mt-2 text-sm font-semibold text-[var(--c-text)]">{report.status}</p>
       </div>
-      <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-semibold text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]">
+      <Link href={report.href ?? "/result"} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-semibold text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]">
         <FileText size={16} />
         Открыть отчёт
-      </button>
+      </Link>
     </Card>
   );
 }

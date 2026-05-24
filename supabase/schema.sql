@@ -170,6 +170,10 @@ create table if not exists public.product_fingerprints (
 );
 
 alter table public.product_fingerprints add column if not exists irrelevant_terms jsonb;
+alter table public.product_fingerprints add column if not exists negative_keywords jsonb;
+alter table public.product_fingerprints add column if not exists feature_tags jsonb;
+alter table public.product_fingerprints add column if not exists packaging_assumptions jsonb;
+alter table public.product_fingerprints add column if not exists confidence numeric;
 
 create table if not exists public.market_analyses (
   id uuid primary key default gen_random_uuid(),
@@ -208,6 +212,30 @@ create table if not exists public.unit_economics (
   result_json jsonb,
   created_at timestamptz default now()
 );
+
+create table if not exists public.economics_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  market_analysis_id uuid references public.market_analyses(id) on delete cascade,
+  supplier_unit_cost numeric,
+  currency text,
+  fx_rate numeric,
+  landed_cost_rub numeric,
+  packaging_cost_rub numeric,
+  wb_commission_percent numeric,
+  wb_logistics_rub numeric,
+  return_buffer_percent numeric,
+  ad_spend_percent numeric,
+  tax_percent numeric,
+  target_price_rub numeric,
+  break_even_price_rub numeric,
+  estimated_profit_rub numeric,
+  estimated_margin_percent numeric,
+  result_json jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists economics_snapshots_analysis_idx
+  on public.economics_snapshots (market_analysis_id, created_at desc);
 
 create table if not exists public.tracked_products (
   id uuid primary key default gen_random_uuid(),
@@ -317,3 +345,21 @@ create table if not exists public.sales_estimates (
 
 create index if not exists sales_estimates_nm_id_date_idx
   on public.sales_estimates (nm_id, estimate_date desc);
+
+create table if not exists public.weekly_updates (
+  id uuid primary key default gen_random_uuid(),
+  update_type text not null,
+  title text not null,
+  affected_products jsonb not null default '[]'::jsonb,
+  old_metric jsonb,
+  new_metric jsonb,
+  severity text default 'medium',
+  explanation text,
+  recommended_action text,
+  confidence text default 'medium',
+  source text default 'rule_based',
+  created_at timestamptz default now()
+);
+
+create index if not exists weekly_updates_created_at_idx
+  on public.weekly_updates (created_at desc);

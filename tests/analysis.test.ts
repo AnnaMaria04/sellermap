@@ -56,7 +56,7 @@ test("decision engine returns an actionable verdict", () => {
   const market = analyzeMarket(supplier, fingerprint, competitors);
   const economics = calculateUnitEconomics(buildEconomicsInput(supplier, market, { fxRate: 90, targetPriceRub: 790 }), market);
   const decision = makeDecision({ supplier, fingerprint, market, economics });
-  assert.ok(["worth_testing", "risky", "avoid", "needs_more_data"].includes(decision.verdict));
+  assert.ok(["strong_opportunity", "can_test", "research_more", "risky", "reject"].includes(decision.verdict));
   assert.equal(typeof decision.opportunityScore, "number");
   assert.ok(decision.mainReasons.length >= 3);
 });

@@ -1,8 +1,12 @@
 import { SavedReportCard } from "@/components/sellermap/report-card";
 import { PageSection } from "@/components/sellermap/section";
-import { savedReports } from "@/mock/sellermap";
+import { Card } from "@/components/ui/card";
+import { getLatestAnalyses, analysisToCard } from "@/services/marketplaceIntelligence";
 
-export default function SavedReportsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SavedReportsPage() {
+  const reports = (await getLatestAnalyses(50)).map(analysisToCard);
   return (
     <main className="bg-background">
       <PageSection className="py-10">
@@ -14,13 +18,18 @@ export default function SavedReportsPage() {
             </p>
           </div>
           <p className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-2 text-sm font-semibold text-[var(--c-green)]">
-            Экспорт PDF подготовлен для следующего слоя
+            {reports.length} сохранённых анализов
           </p>
         </div>
         <div className="grid gap-4">
-          {savedReports.map((report) => (
+          {reports.map((report) => (
             <SavedReportCard key={report.name} report={report} />
           ))}
+          {!reports.length && (
+            <Card className="p-6 text-sm text-[var(--c-text2)]">
+              Нет сохранённых отчётов. После анализа товара SellerMap сохранит поставщика, конкурентов, экономику и решение.
+            </Card>
+          )}
         </div>
       </PageSection>
     </main>

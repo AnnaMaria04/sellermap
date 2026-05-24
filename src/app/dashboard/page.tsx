@@ -3,17 +3,12 @@ import { SavedReportCard } from "@/components/sellermap/report-card";
 import { PageSection } from "@/components/sellermap/section";
 import { WeeklyUpdateCard } from "@/components/sellermap/weekly-update-card";
 import { Card } from "@/components/ui/card";
-import { savedReports, weeklyUpdates } from "@/mock/sellermap";
+import { getDashboardData } from "@/services/marketplaceIntelligence";
 
-export default function DashboardPage() {
-  const stats = [
-    ["Товаров проверено", "24"],
-    ["Лучшая возможность", "84"],
-    ["Главный риск", "возвраты"],
-    ["Средняя маржа", "24.8%"],
-    ["Алерты упаковки", "3"],
-    ["Недельные обновления", "2"],
-  ];
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const { stats, cards, updates } = await getDashboardData();
 
   return (
     <main className="bg-background">
@@ -38,7 +33,7 @@ export default function DashboardPage() {
             <DashboardChartLoader />
           </Card>
           <div className="grid gap-4">
-            {weeklyUpdates.slice(0, 2).map((update) => (
+            {updates.slice(0, 2).map((update) => (
               <WeeklyUpdateCard key={update.title} update={update} />
             ))}
           </div>
@@ -46,9 +41,14 @@ export default function DashboardPage() {
         <section className="mt-6">
           <h2 className="section-kicker mb-4">Сохранённые проверки товаров</h2>
           <div className="grid gap-4">
-            {savedReports.slice(0, 3).map((report) => (
+            {cards.slice(0, 3).map((report) => (
               <SavedReportCard key={report.name} report={report} />
             ))}
+            {!cards.length && (
+              <Card className="p-6 text-sm text-[var(--c-text2)]">
+                Пока нет сохранённых проверок. Запустите анализ на странице проверки товара, и здесь появится реальная воронка.
+              </Card>
+            )}
           </div>
         </section>
       </PageSection>
