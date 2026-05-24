@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import { collectSupplierProduct } from "../collectors/supplier-collector.js";
-import { runSerialized } from "../utils/rate-limit.js";
 
 export const supplierRouter = Router();
 
@@ -23,6 +22,6 @@ supplierRouter.post("/supplier", async (req, res) => {
     });
     return;
   }
-  const result = await runSerialized(() => collectSupplierProduct(parsed.data.url));
+  const result = await collectSupplierProduct(parsed.data.url);
   res.status(200).json(result);
 });
