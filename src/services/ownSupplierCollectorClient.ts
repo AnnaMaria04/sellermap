@@ -52,7 +52,7 @@ export async function extractWithOwnSupplierCollector(url: string): Promise<OwnS
         authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({ url }),
-      signal: AbortSignal.timeout(Number(process.env.OWN_SUPPLIER_COLLECTOR_TIMEOUT_MS ?? 60000)),
+      signal: AbortSignal.timeout(Number(process.env.OWN_SUPPLIER_COLLECTOR_TIMEOUT_MS ?? 12000)),
     });
     if (!response.ok) {
       return {
