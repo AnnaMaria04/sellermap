@@ -1,4 +1,6 @@
 import { chromium, type Page } from "playwright";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { config } from "../config.js";
 import type { WBProduct, WorkerSearchResponse } from "../types.js";
 import { errorMessage } from "../utils/errors.js";
@@ -9,6 +11,14 @@ import { normalizeSearchItem } from "../normalizers/wb-normalizer.js";
 
 const SEARCH_CARD_SELECTOR = "article, .product-card, [data-nm-id], [data-card-index], [class*='product-card']";
 const WB_DEST = "-1257786";
+const execFileAsync = promisify(execFile);
+
+type CurlSearchOutput = {
+  ok?: boolean;
+  status?: number;
+  products?: unknown[];
+  error?: string;
+};
 
 function buildSearchApiUrl(query: string, limit: number, page = 1) {
   const params = new URLSearchParams({
@@ -49,6 +59,22 @@ async function fetchPublicSearch(query: string, limit: number): Promise<WBProduc
   }
   const json = (await response.json()) as { data?: { products?: unknown[] } };
   return (json.data?.products ?? [])
+    .map((item, index) => normalizeSearchItem(item, query, index + 1))
+    .filter((item): item is WBProduct => Boolean(item))
+    .slice(0, limit);
+}
+
+async function fetchCurlCffiSearch(query: string, limit: number): Promise<WBProduct[]> {
+  const { stdout } = await execFileAsync("python3", ["python/wb_search_curl.py", query, String(limit)], {
+    timeout: Math.max(config.timeoutMs, 45000),
+    env: process.env,
+    maxBuffer: 1024 * 1024 * 5,
+  });
+  const result = JSON.parse(stdout) as CurlSearchOutput;
+  if (!result.ok) {
+    throw new Error(result.error ?? `WB curl_cffi search returned ${result.status ?? "unknown"}`);
+  }
+  return (result.products ?? [])
     .map((item, index) => normalizeSearchItem(item, query, index + 1))
     .filter((item): item is WBProduct => Boolean(item))
     .slice(0, limit);
@@ -155,17 +181,23 @@ export async function collectWbSearch(query: string, limit: number): Promise<Wor
   const warnings: string[] = [];
   logger.info({ query, limit }, "SEARCH_STARTED");
   let items: WBProduct[] = [];
-  let collector = "public-json";
+  let collector = "curl-cffi";
   try {
-    items = await withTimeout(fetchPublicSearch(query, limit));
+    items = await withTimeout(fetchCurlCffiSearch(query, limit), Math.max(config.timeoutMs, 45000));
   } catch (error) {
-    warnings.push(`FAST_PATH_FAILED: ${errorMessage(error)}`);
-    collector = "playwright-dom";
+    warnings.push(`CURL_CFFI_FAILED: ${errorMessage(error)}`);
     try {
-      items = await withTimeout(collectWithBrowser(query, limit));
-      warnings.push("DOM_SELECTOR_FALLBACK_USED");
-    } catch (browserError) {
-      warnings.push(`BROWSER_FALLBACK_FAILED: ${errorMessage(browserError)}`);
+      collector = "public-json";
+      items = await withTimeout(fetchPublicSearch(query, limit));
+    } catch (publicError) {
+      warnings.push(`FAST_PATH_FAILED: ${errorMessage(publicError)}`);
+      collector = "playwright-dom";
+      try {
+        items = await withTimeout(collectWithBrowser(query, limit));
+        warnings.push("DOM_SELECTOR_FALLBACK_USED");
+      } catch (browserError) {
+        warnings.push(`BROWSER_FALLBACK_FAILED: ${errorMessage(browserError)}`);
+      }
     }
   }
 

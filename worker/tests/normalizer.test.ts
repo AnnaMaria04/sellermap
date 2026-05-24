@@ -18,4 +18,15 @@ describe("wb normalizer", () => {
     expect(normalizeSearchItem(null, "акриловый маркер", 1)).toBeNull();
     expect(normalizeSearchItem({ name: "Маркер", price: "99 ₽" }, "акриловый маркер", 1)?.priceRub).toBe(99);
   });
+
+  it("converts WB API kopeck prices from size payloads", () => {
+    const item = normalizeSearchItem({
+      id: 491933707,
+      name: "Акриловые маркеры",
+      sizes: [{ price: { product: 30700, basic: 299900 } }],
+    }, "акриловый маркер", 1);
+
+    expect(item?.priceRub).toBe(307);
+    expect(item?.originalPriceRub).toBe(2999);
+  });
 });

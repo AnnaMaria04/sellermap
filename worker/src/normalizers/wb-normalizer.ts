@@ -2,12 +2,17 @@ import type { WBProduct } from "../types.js";
 
 export function normalizePriceRub(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return value > 100000 ? Math.round(value / 100) : Math.round(value);
+    return Math.round(value);
   }
   if (typeof value !== "string") return null;
   const cleaned = value.replace(/\s/g, "").replace(/[^\d,.-]/g, "").replace(",", ".");
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
+function normalizeWbApiPriceRub(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value / 100);
+  return normalizePriceRub(value);
 }
 
 export function normalizeReviewCount(value: unknown): number | null {
@@ -61,8 +66,9 @@ export function normalizeSearchItem(raw: unknown, query: string, position: numbe
   if (!nmId && !title) return null;
   const directImage = pick(row, ["imageUrl", "image", "img", "thumbnail", "photo"]);
   const price =
-    normalizePriceRub(pick(row, ["priceRub", "price", "salePrice", "salePriceU", "currentPrice", "discountPrice"])) ??
-    normalizePriceRub(pick(sizePrice, ["product", "basic", "total"]));
+    normalizePriceRub(pick(row, ["priceRub", "price", "salePrice", "currentPrice", "discountPrice"])) ??
+    normalizeWbApiPriceRub(pick(row, ["salePriceU"])) ??
+    normalizeWbApiPriceRub(pick(sizePrice, ["product", "basic", "total"]));
   return {
     nmId: nmId ?? `${query}-${position}`,
     title: title || "Товар WB",
@@ -70,7 +76,10 @@ export function normalizeSearchItem(raw: unknown, query: string, position: numbe
     sellerName: typeof pick(row, ["sellerName", "supplier", "supplierName"]) === "string" ? String(pick(row, ["sellerName", "supplier", "supplierName"])) : null,
     sellerId: pick(row, ["sellerId", "supplierId"]) ? String(pick(row, ["sellerId", "supplierId"])) : null,
     priceRub: price,
-    originalPriceRub: normalizePriceRub(pick(row, ["originalPriceRub", "priceU", "basicPrice", "oldPrice"])),
+    originalPriceRub:
+      normalizePriceRub(pick(row, ["originalPriceRub", "basicPrice", "oldPrice"])) ??
+      normalizeWbApiPriceRub(pick(row, ["priceU"])) ??
+      normalizeWbApiPriceRub(pick(sizePrice, ["basic"])),
     rating: normalizeRating(pick(row, ["rating", "reviewRating", "review_rating", "stars"])),
     reviewCount: normalizeReviewCount(pick(row, ["reviewCount", "reviews", "feedbacks", "comments"])),
     imageUrl: typeof directImage === "string" ? directImage : nmId ? getWbImageUrl(nmId) : null,
