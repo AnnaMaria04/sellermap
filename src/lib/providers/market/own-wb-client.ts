@@ -1,10 +1,18 @@
-import type { WBProduct } from "@/lib/providers/market/types";
+import type { WBProduct, WBProductDetail } from "@/lib/providers/market/types";
 
 export type WorkerSearchResponse = {
   status: "success" | "partial" | "failed";
   source: "own-wb";
   query: string;
   items: WBProduct[];
+  warnings: string[];
+};
+
+export type WorkerProductResponse = {
+  status: "success" | "partial" | "failed";
+  source: "own-wb";
+  nmId: string;
+  product: WBProductDetail | null;
   warnings: string[];
 };
 
@@ -65,4 +73,21 @@ export async function callOwnCollectorSearch(query: string, limit: number) {
     }
   }
   throw lastError instanceof Error ? lastError : new Error("Own WB collector failed.");
+}
+
+export async function callOwnCollectorProduct(nmId: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await ownCollectorFetch("/product", {
+        method: "POST",
+        body: JSON.stringify({ nmId }),
+      });
+      if (!response.ok) throw new Error(`Own WB collector returned ${response.status}`);
+      return (await response.json()) as WorkerProductResponse;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Own WB collector product lookup failed.");
 }

@@ -38,9 +38,15 @@ export async function searchMarketProducts(keywords: string[], limit = 50) {
   const providersUsed: string[] = [];
   const warnings: string[] = [];
   const productsByNmId = new Map<string, WBProduct>();
+  const keywordLimit = Number(process.env.CHECK_MODE === "internal" ? process.env.INTERNAL_MAX_KEYWORDS ?? 5 : process.env.FREE_USER_MAX_KEYWORDS ?? 3);
+  const resultLimit = Number(
+    process.env.CHECK_MODE === "internal"
+      ? process.env.INTERNAL_MAX_RESULTS_PER_KEYWORD ?? limit
+      : process.env.FREE_USER_MAX_RESULTS_PER_KEYWORD ?? Math.min(limit, 20),
+  );
 
-  for (const keyword of keywords.map((item) => item.trim()).filter(Boolean)) {
-    const result = await searchSimilarProducts(keyword, { limit });
+  for (const keyword of keywords.map((item) => item.trim()).filter(Boolean).slice(0, keywordLimit)) {
+    const result = await searchSimilarProducts(keyword, { limit: Math.min(limit, resultLimit) });
     providersUsed.push(result.provider);
     warnings.push(...result.warnings);
     for (const product of result.competitors) {

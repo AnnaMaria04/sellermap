@@ -92,11 +92,20 @@ Set these variables in the main SellerMap Vercel project:
 OWN_WB_COLLECTOR_BASE_URL=https://your-worker.example.com
 OWN_WB_COLLECTOR_API_KEY=the-same-secret
 ENABLE_OWN_WB_COLLECTOR=true
-ENABLE_APIFY_FALLBACK=true
+ENABLE_APIFY_FALLBACK=false
 MARKET_DATA_PROVIDER=auto
 ```
 
-Apify can remain as fallback, but the app will try cache first, then this worker, then Apify only when fallback is enabled.
+Apify can remain as an explicit fallback, but keep it disabled by default for cost control. The app tries cache first, then this worker, then Apify only when `ENABLE_APIFY_FALLBACK=true`.
+
+For historical collection, also set:
+
+```bash
+DAILY_TRACKING_LIMIT=100
+DAILY_KEYWORD_LIMIT=20
+ENABLE_APIFY_IN_TRACKING=false
+CRON_SECRET=
+```
 
 ## Commands
 

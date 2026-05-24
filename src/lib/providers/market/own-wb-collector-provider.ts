@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { MarketDataProvider, ProviderHealth } from "@/lib/providers/market/types";
-import { callOwnCollectorSearch, isOwnCollectorConfigured, ownCollectorBaseUrl } from "@/lib/providers/market/own-wb-client";
+import { callOwnCollectorProduct, callOwnCollectorSearch, isOwnCollectorConfigured, ownCollectorBaseUrl } from "@/lib/providers/market/own-wb-client";
 
 export const ownWbCollectorProvider: MarketDataProvider = {
   name: "own-wb",
@@ -12,6 +12,10 @@ export const ownWbCollectorProvider: MarketDataProvider = {
       source: "own-wb" as const,
       searchKeyword: item.searchKeyword || query,
     }));
+  },
+  async getProductDetails(nmId) {
+    const result = await callOwnCollectorProduct(nmId);
+    return result.product ? { ...result.product, source: "own-wb" as const } : null;
   },
   async getProviderHealth() {
     const configured = isOwnCollectorConfigured();

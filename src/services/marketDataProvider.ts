@@ -19,10 +19,10 @@ type SnapshotRow = {
 };
 
 const WB_SEARCH_ACTOR = process.env.APIFY_WB_SEARCH_ACTOR_ID ?? "stealth_mode/wildberries-product-search-scraper";
-const CACHE_TTL_HOURS = Number(process.env.MARKET_DATA_CACHE_TTL_HOURS ?? 24);
+const CACHE_TTL_HOURS = Number(process.env.MARKET_DATA_CACHE_TTL_HOURS ?? 72);
 const ENABLE_DIRECT_WB = process.env.ENABLE_DIRECT_WB_PROVIDER === "true";
 const MARKET_PROVIDER = process.env.MARKET_DATA_PROVIDER ?? "auto";
-const ENABLE_APIFY_FALLBACK = process.env.ENABLE_APIFY_FALLBACK !== "false";
+const ENABLE_APIFY_FALLBACK = process.env.ENABLE_APIFY_FALLBACK === "true";
 
 function apifyToken() {
   return process.env.APIFY_TOKEN ?? process.env.APIFY_API_TOKEN;

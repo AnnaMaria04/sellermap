@@ -165,19 +165,25 @@ create table if not exists public.product_fingerprints (
   ru_keywords jsonb,
   category_guess text,
   differentiation_angles jsonb,
+  irrelevant_terms jsonb,
   created_at timestamptz default now()
 );
+
+alter table public.product_fingerprints add column if not exists irrelevant_terms jsonb;
 
 create table if not exists public.market_analyses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id) on delete set null,
   supplier_product_id uuid references public.supplier_products(id) on delete cascade,
+  fingerprint_id uuid references public.product_fingerprints(id) on delete set null,
   analysis_json jsonb not null,
   opportunity_score numeric,
   verdict text,
   confidence_level text,
   created_at timestamptz default now()
 );
+
+alter table public.market_analyses add column if not exists fingerprint_id uuid references public.product_fingerprints(id) on delete set null;
 
 create index if not exists market_analyses_created_at_idx
   on public.market_analyses (created_at desc);
@@ -209,10 +215,105 @@ create table if not exists public.tracked_products (
   nm_id text not null,
   title text,
   image_url text,
+  product_url text,
+  seller_name text,
   keywords jsonb,
+  source_analysis_id uuid references public.market_analyses(id) on delete set null,
   tracking_status text default 'active',
+  priority integer default 5,
+  last_checked_at timestamptz,
   created_at timestamptz default now()
 );
 
 create index if not exists tracked_products_user_status_idx
   on public.tracked_products (user_id, tracking_status);
+
+alter table public.tracked_products add column if not exists product_url text;
+alter table public.tracked_products add column if not exists seller_name text;
+alter table public.tracked_products add column if not exists source_analysis_id uuid references public.market_analyses(id) on delete set null;
+alter table public.tracked_products add column if not exists priority integer default 5;
+alter table public.tracked_products add column if not exists last_checked_at timestamptz;
+
+create index if not exists tracked_products_status_priority_idx
+  on public.tracked_products (tracking_status, priority, last_checked_at);
+
+create unique index if not exists tracked_products_nm_id_unique_idx
+  on public.tracked_products (nm_id);
+
+alter table public.wb_search_snapshots add column if not exists normalized_count integer;
+alter table public.wb_product_snapshots add column if not exists ad_visibility boolean;
+
+create table if not exists public.analysis_competitors (
+  id uuid primary key default gen_random_uuid(),
+  market_analysis_id uuid references public.market_analyses(id) on delete cascade,
+  nm_id text not null,
+  query text,
+  title text,
+  seller_name text,
+  price_rub numeric,
+  review_count integer,
+  rating numeric,
+  search_position integer,
+  image_url text,
+  source text,
+  created_at timestamptz default now()
+);
+
+create index if not exists analysis_competitors_analysis_idx
+  on public.analysis_competitors (market_analysis_id);
+
+create table if not exists public.tracked_keywords (
+  id uuid primary key default gen_random_uuid(),
+  keyword text not null,
+  category_guess text,
+  priority integer default 5,
+  last_checked_at timestamptz,
+  tracking_status text default 'active',
+  created_at timestamptz default now()
+);
+
+create unique index if not exists tracked_keywords_keyword_unique_idx
+  on public.tracked_keywords (keyword);
+
+create index if not exists tracked_keywords_status_priority_idx
+  on public.tracked_keywords (tracking_status, priority, last_checked_at);
+
+create table if not exists public.daily_market_metrics (
+  id uuid primary key default gen_random_uuid(),
+  keyword text,
+  category_guess text,
+  date date,
+  product_count integer,
+  median_price numeric,
+  average_price numeric,
+  p25_price numeric,
+  p75_price numeric,
+  median_reviews numeric,
+  top10_median_reviews numeric,
+  seller_count integer,
+  top3_seller_share numeric,
+  concentration_level text,
+  raw_metrics jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists daily_market_metrics_keyword_date_idx
+  on public.daily_market_metrics (keyword, date desc);
+
+create table if not exists public.sales_estimates (
+  id uuid primary key default gen_random_uuid(),
+  nm_id text not null,
+  estimate_date date,
+  method text,
+  estimated_sales_low numeric,
+  estimated_sales_mid numeric,
+  estimated_sales_high numeric,
+  estimated_revenue_low numeric,
+  estimated_revenue_high numeric,
+  confidence_level text,
+  features_json jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists sales_estimates_nm_id_date_idx
+  on public.sales_estimates (nm_id, estimate_date desc);
