@@ -8,12 +8,14 @@ import { WriteOffPanel } from "@/components/inventory/WriteOffPanel";
 import { CostAnalysisPanel } from "@/components/inventory/CostAnalysisPanel";
 import { ReplenishmentRules } from "@/components/inventory/ReplenishmentRules";
 import { ExpiryTracker } from "@/components/inventory/ExpiryTracker";
+import { TurnoverAnalysis } from "@/components/inventory/TurnoverAnalysis";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "forecast" | "cost" | "replenishment" | "expiry" | "writeoffs";
+type Tab = "overview" | "turnover" | "forecast" | "cost" | "replenishment" | "expiry" | "writeoffs";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Обзор и KPI" },
+  { id: "turnover", label: "Оборачиваемость" },
   { id: "forecast", label: "Прогноз спроса" },
   { id: "cost", label: "Себестоимость" },
   { id: "replenishment", label: "Пополнение" },
@@ -47,6 +49,7 @@ export default function InventoryAnalyticsPage() {
       </div>
 
       {tab === "overview" && <InventoryAnalytics />}
+      {tab === "turnover" && <TurnoverAnalysis />}
       {tab === "forecast" && <DemandForecast />}
       {tab === "cost" && <CostAnalysisPanel />}
       {tab === "replenishment" && <ReplenishmentRules />}

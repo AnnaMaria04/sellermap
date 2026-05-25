@@ -16,15 +16,13 @@ import {
   ArrowRight,
 } from "lucide-react";
 import {
-  PRODUCTS,
-  SUPPLIERS,
-  MOVEMENTS,
   getAvailableStock,
   getStockStatus,
   getInventoryStats,
   getLowStockProducts,
   getTotalInventoryValue,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +46,8 @@ type Recommendation = {
 };
 
 export function InventoryAnalytics() {
-  const stats = useMemo(() => getInventoryStats(PRODUCTS), []);
+  const { products: PRODUCTS } = useInventory();
+  const stats = useMemo(() => getInventoryStats(PRODUCTS), [PRODUCTS]);
 
   const alerts: Alert[] = useMemo(() => {
     const list: Alert[] = [];
@@ -106,7 +105,7 @@ export function InventoryAnalytics() {
       const order = { high: 0, medium: 1, low: 2 };
       return order[a.severity] - order[b.severity];
     });
-  }, []);
+  }, [PRODUCTS]);
 
   const recommendations: Recommendation[] = useMemo(() => {
     const list: Recommendation[] = [];
@@ -131,7 +130,7 @@ export function InventoryAnalytics() {
       });
     });
     return list;
-  }, []);
+  }, [PRODUCTS]);
 
   const topByValue = useMemo(() => {
     return [...PRODUCTS]
@@ -139,9 +138,9 @@ export function InventoryAnalytics() {
       .map((p) => ({ ...p, totalValue: p.totalPhysical * p.costPrice }))
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
-  }, []);
+  }, [PRODUCTS]);
 
-  const totalValue = useMemo(() => getTotalInventoryValue(PRODUCTS.filter((p) => p.status === "active")), []);
+  const totalValue = useMemo(() => getTotalInventoryValue(PRODUCTS.filter((p) => p.status === "active")), [PRODUCTS]);
 
   return (
     <div className="space-y-6">
