@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppNav } from "./_components/AppNav";
 import { calculateAvailableToSell, createInitialStockStatus } from "@/lib/inventory/foundation";
 
 const sampleAvailability = calculateAvailableToSell(
@@ -13,64 +14,56 @@ const sampleAvailability = calculateAvailableToSell(
 
 const productTracks = [
   {
-    title: "Marketplace Intelligence",
-    description: "Existing seller analysis flow for product checks, margin logic, and marketplace research.",
-    href: "#marketplace",
-    status: "Existing track preserved",
+    title: "Маркетплейс-аналитика",
+    description: "Старый трек не удалён: проверка товара, расчёт маржи, упаковка, логистика WB и карта рисков.",
+    href: "/marketplace",
+    status: "Сохранено",
   },
   {
-    title: "Inventory for Small Business",
-    description: "New business-side foundation for products, suppliers, stock operations, analytics, and alerts.",
+    title: "Склад для малого бизнеса",
+    description: "Новый основной трек: товары, поставщики, остатки, закупки, приёмка, движения и рекомендации.",
     href: "/inventory",
-    status: "New main update",
+    status: "Главное обновление",
   },
 ];
 
 export default function HomePage() {
   return (
     <main className="shell">
-      <nav className="topbar" aria-label="Primary navigation">
-        <Link className="brand" href="/">
-          SellerMap
-        </Link>
-        <div className="navLinks">
-          <a href="#marketplace">Marketplace</a>
-          <Link href="/inventory">Inventory</Link>
-        </div>
-      </nav>
+      <AppNav active="home" />
 
       <section className="heroBand">
         <div className="heroCopy">
-          <h1>SellerMap now has two product tracks in one codebase.</h1>
+          <h1>SellerMap разделяет маркетплейс и склад в одном продукте.</h1>
           <p>
-            Marketplace work stays intact while the new business-side inventory layer becomes the next main
-            update for small shops, cafes, hybrid sellers, and local production teams.
+            Маркетплейс-аналитика остаётся доступной, а новый бизнес-трек помогает владельцу
+            управлять товарами, поставщиками, кассой, резервами, закупками и ежедневными решениями.
           </p>
           <div className="actions">
             <Link className="primaryAction" href="/inventory">
-              Open inventory
+              Открыть склад
             </Link>
-            <a className="secondaryAction" href="#marketplace">
-              View tracks
-            </a>
+            <Link className="secondaryAction" href="/marketplace">
+              Открыть маркетплейс
+            </Link>
           </div>
         </div>
 
-        <div className="availabilityPanel" aria-label="Available to sell example">
-          <span className="panelLabel">Core formula</span>
+        <div className="availabilityPanel" aria-label="Пример доступного остатка">
+          <span className="panelLabel">Формула остатка</span>
           <strong>{sampleAvailability.availableToSell}</strong>
-          <p>available to sell from 128 physical units</p>
-          <code>physical - reserved - damaged - expired - in_transit</code>
+          <p>доступно к продаже из 128 физических единиц</p>
+          <code>физический остаток - резерв - брак - просрочка - товар в пути</code>
         </div>
       </section>
 
-      <section id="marketplace" className="trackGrid" aria-label="Product tracks">
+      <section className="trackGrid" aria-label="Треки продукта">
         {productTracks.map((track) => (
           <article className="trackCard" key={track.title}>
             <span>{track.status}</span>
             <h2>{track.title}</h2>
             <p>{track.description}</p>
-            <Link href={track.href}>Continue</Link>
+            <Link href={track.href}>Перейти</Link>
           </article>
         ))}
       </section>

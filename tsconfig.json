@@ -37,6 +37,8 @@
     "next-env.d.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
+    "src/lib/analysis/**/*.ts",
+    "src/lib/wbLogistics.ts",
     "src/lib/inventory/**/*.ts",
     "tests/**/*.ts",
     ".next/types/**/*.ts",

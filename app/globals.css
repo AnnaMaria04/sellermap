@@ -172,7 +172,12 @@ button {
 .trackCard span,
 .metricStrip span,
 .flowBlock span,
-.alertList span {
+.alertList span,
+.statusLine span,
+.resultGrid span,
+.poCard span,
+.analyticsGrid span,
+.recommendationList span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
@@ -271,6 +276,56 @@ button {
   padding: 18px 0 0;
 }
 
+.notice {
+  border: 1px solid rgba(27, 138, 90, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  color: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statusLine {
+  display: grid;
+  max-width: 620px;
+  gap: 5px;
+  margin-top: 22px;
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+}
+
+.statusLine p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.tabs button {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  border-color: rgba(27, 138, 90, 0.6);
+  background: #e9f4ed;
+  color: var(--accent-dark);
+}
+
 .opsBar button {
   flex: 0 0 auto;
   min-height: 42px;
@@ -347,6 +402,187 @@ button {
   margin-top: 18px;
 }
 
+.tagCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tagCloud span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #f7faf7;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.resultGrid,
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.resultGrid div,
+.analyticsGrid div {
+  min-height: 118px;
+  border-radius: 8px;
+  background: #f5f7f5;
+  padding: 16px;
+}
+
+.analyticsGrid strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-top: 18px;
+}
+
+table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+td strong,
+td span {
+  display: block;
+}
+
+td span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+.selectedRow {
+  background: #eef8f1;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 780;
+}
+
+input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  color: var(--text);
+  font: inherit;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.formButton {
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  cursor: pointer;
+}
+
+.timeline,
+.recommendationList {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.timeline div,
+.poCard,
+.recommendationList div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.timeline strong,
+.poCard strong {
+  display: block;
+  margin-top: 8px;
+}
+
+.timeline p,
+.poCard p,
+.recommendationList p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.barList {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.barList div {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.barList p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 750;
+}
+
+.barList span {
+  display: block;
+  height: 10px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+}
+
+.barList strong {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .alertList div {
   border-left: 3px solid var(--amber);
   background: #fff8ef;
@@ -358,7 +594,9 @@ button {
   .inventoryHeader,
   .trackGrid,
   .inventoryGrid,
-  .blockGrid {
+  .blockGrid,
+  .resultGrid,
+  .analyticsGrid {
     grid-template-columns: 1fr;
   }
 
@@ -405,5 +643,10 @@ button {
   .navLinks a {
     flex: 1;
     justify-content: center;
+  }
+
+  .formGrid,
+  .barList div {
+    grid-template-columns: 1fr;
   }
 }

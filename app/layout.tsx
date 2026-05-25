@@ -4,12 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SellerMap",
-  description: "Marketplace intelligence and inventory operations for small businesses.",
+  description: "Маркетплейс-аналитика и складской учёт для малого бизнеса.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body>{children}</body>
     </html>
   );
