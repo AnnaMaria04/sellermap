@@ -33,6 +33,7 @@ import {
   Moon,
   ShoppingBag,
   Wallet,
+  Users,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -47,6 +48,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Продажи",
     items: [
       { label: "Заказы", href: "/inventory/orders", icon: ShoppingBag },
+      { label: "Клиенты", href: "/inventory/customers", icon: Users },
     ],
   },
   {

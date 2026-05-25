@@ -26,6 +26,7 @@ import {
   REPLENISHMENT_RULES,
   BATCHES,
   ORDERS,
+  CUSTOMERS,
   getAvailableStock,
   type Product,
   type Supplier,
@@ -51,6 +52,8 @@ import {
   type BatchStatus,
   type Order,
   type OrderStatus,
+  type Customer,
+  type CustomerTier,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -69,6 +72,7 @@ export interface InventoryState {
   replenishmentRules: ReplenishmentRule[];
   batches: InventoryBatch[];
   orders: Order[];
+  customers: Customer[];
 }
 
 const initialState: InventoryState = {
@@ -85,6 +89,7 @@ const initialState: InventoryState = {
   replenishmentRules: REPLENISHMENT_RULES,
   batches: BATCHES,
   orders: ORDERS,
+  customers: CUSTOMERS,
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -138,7 +143,11 @@ type InventoryAction =
   | { type: "UPDATE_ORDER_STATUS"; id: string; status: OrderStatus }
   | { type: "FULFILL_ORDER"; id: string }
   | { type: "CANCEL_ORDER"; id: string }
-  | { type: "IMPORT_ORDERS"; orders: Order[] };
+  | { type: "IMPORT_ORDERS"; orders: Order[] }
+  // Customers
+  | { type: "CREATE_CUSTOMER"; customer: Customer }
+  | { type: "UPDATE_CUSTOMER"; id: string; patch: Partial<Customer> }
+  | { type: "ADD_LOYALTY_POINTS"; id: string; points: number };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -804,6 +813,14 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
       };
     }
 
+    // ── Customers ─────────────────────────────────────────────────────────────
+    case "CREATE_CUSTOMER":
+      return { ...state, customers: [action.customer, ...state.customers] };
+    case "UPDATE_CUSTOMER":
+      return { ...state, customers: state.customers.map((c) => c.id === action.id ? { ...c, ...action.patch } : c) };
+    case "ADD_LOYALTY_POINTS":
+      return { ...state, customers: state.customers.map((c) => c.id === action.id ? { ...c, loyaltyPoints: c.loyaltyPoints + action.points } : c) };
+
     default:
       return state;
   }
@@ -859,6 +876,9 @@ interface InventoryContextValue extends InventoryState {
     fulfillOrder: (id: string) => void;
     cancelOrder: (id: string) => void;
     importOrders: (orders: Order[]) => void;
+    createCustomer: (data: Omit<Customer, "id" | "createdAt">) => void;
+    updateCustomer: (id: string, patch: Partial<Customer>) => void;
+    addLoyaltyPoints: (id: string, points: number) => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -1095,6 +1115,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     fulfillOrder: useCallback((id) => dispatch({ type: "FULFILL_ORDER", id }), []),
     cancelOrder: useCallback((id) => dispatch({ type: "CANCEL_ORDER", id }), []),
     importOrders: useCallback((orders) => dispatch({ type: "IMPORT_ORDERS", orders }), []),
+    createCustomer: useCallback((data) => {
+      const customer: Customer = { ...data, id: uid("cust"), createdAt: new Date().toISOString().split("T")[0] };
+      dispatch({ type: "CREATE_CUSTOMER", customer });
+    }, []),
+    updateCustomer: useCallback((id, patch) => dispatch({ type: "UPDATE_CUSTOMER", id, patch }), []),
+    addLoyaltyPoints: useCallback((id, points) => dispatch({ type: "ADD_LOYALTY_POINTS", id, points }), []),
   };
 
   const value: InventoryContextValue = {

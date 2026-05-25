@@ -854,3 +854,44 @@ export const CHANNEL_LABELS: Record<SalesChannel, string> = {
   pos: "POS / Касса", website: "Сайт", telegram: "Telegram", delivery: "Доставка",
   wildberries: "Wildberries", ozon: "Ozon", yandex_market: "Яндекс Маркет",
 };
+
+// ── Customers ──────────────────────────────────────────────────────────────
+
+export type CustomerTier = "new" | "regular" | "vip" | "wholesale";
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  tier: CustomerTier;
+  loyaltyPoints: number;
+  totalOrders: number;
+  totalSpent: number;
+  firstOrderAt?: string;
+  lastOrderAt?: string;
+  tags: string[];
+  note?: string;
+  createdAt: string;
+}
+
+export const CUSTOMER_TIER_LABELS: Record<CustomerTier, string> = {
+  new: "Новый",
+  regular: "Постоянный",
+  vip: "VIP",
+  wholesale: "Оптовый",
+};
+
+export const CUSTOMERS: Customer[] = [
+  { id: "cust-001", name: "Иван Петров", phone: "+7 (916) 123-45-67", email: "ivan.petrov@mail.ru", city: "Москва", tier: "vip", loyaltyPoints: 2450, totalOrders: 18, totalSpent: 48600, firstOrderAt: "2024-03-15", lastOrderAt: "2026-05-12", tags: ["постоянный", "оптом"], createdAt: "2024-03-15" },
+  { id: "cust-002", name: "Анна Козлова", phone: "+7 (903) 234-56-78", email: "ann.kozlova@yandex.ru", city: "Москва", tier: "regular", loyaltyPoints: 870, totalOrders: 7, totalSpent: 19800, firstOrderAt: "2025-01-20", lastOrderAt: "2026-05-25", tags: [], createdAt: "2025-01-20" },
+  { id: "cust-003", name: "Мария Сидорова", phone: "+7 (911) 345-67-89", email: "m.sidorova@gmail.com", city: "Санкт-Петербург", tier: "regular", loyaltyPoints: 420, totalOrders: 4, totalSpent: 9700, firstOrderAt: "2025-06-10", lastOrderAt: "2026-05-20", tags: [], createdAt: "2025-06-10" },
+  { id: "cust-004", name: "Петр Волков", phone: "+7 (918) 456-78-90", city: "Ростов-на-Дону", tier: "new", loyaltyPoints: 135, totalOrders: 1, totalSpent: 4470, firstOrderAt: "2026-05-21", lastOrderAt: "2026-05-21", tags: [], createdAt: "2026-05-21" },
+  { id: "cust-005", name: "ООО Детский Мир", phone: "+7 (495) 567-89-01", email: "zakaz@detmir.ru", city: "Москва", tier: "wholesale", loyaltyPoints: 5100, totalOrders: 34, totalSpent: 215000, firstOrderAt: "2023-11-01", lastOrderAt: "2026-05-25", tags: ["опт", "юрлицо"], note: "Предоплата 50% при заказе >100 000 ₽", createdAt: "2023-11-01" },
+  { id: "cust-006", name: "Елена Смирнова", phone: "+7 (905) 678-90-12", email: "e.smirnova@inbox.ru", city: "Казань", tier: "regular", loyaltyPoints: 660, totalOrders: 6, totalSpent: 14400, firstOrderAt: "2025-02-14", lastOrderAt: "2026-05-18", tags: [], createdAt: "2025-02-14" },
+  { id: "cust-007", name: "Дмитрий Орлов", phone: "+7 (926) 789-01-23", city: "Екатеринбург", tier: "new", loyaltyPoints: 90, totalOrders: 1, totalSpent: 3490, firstOrderAt: "2026-05-22", lastOrderAt: "2026-05-22", tags: [], createdAt: "2026-05-22" },
+  { id: "cust-008", name: "Ольга Новикова", phone: "+7 (921) 890-12-34", email: "o.novikova@bk.ru", city: "Санкт-Петербург", tier: "vip", loyaltyPoints: 3200, totalOrders: 22, totalSpent: 67800, firstOrderAt: "2024-01-08", lastOrderAt: "2026-05-17", tags: ["vip", "подарки"], createdAt: "2024-01-08" },
+  { id: "cust-009", name: "Корпоративный заказ", phone: "+7 (495) 901-23-45", email: "corp@business.ru", city: "Москва", tier: "wholesale", loyaltyPoints: 1800, totalOrders: 12, totalSpent: 89500, firstOrderAt: "2025-03-01", lastOrderAt: "2026-05-19", tags: ["корпоратив", "юрлицо"], createdAt: "2025-03-01" },
+  { id: "cust-010", name: "Татьяна Белова", phone: "+7 (912) 012-34-56", city: "Новосибирск", tier: "regular", loyaltyPoints: 310, totalOrders: 3, totalSpent: 7200, firstOrderAt: "2025-09-15", lastOrderAt: "2026-05-23", tags: [], createdAt: "2025-09-15" },
+];

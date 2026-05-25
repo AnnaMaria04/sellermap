@@ -1,22 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Map, Search, Package } from "lucide-react";
+import { Map, Search, ShoppingCart } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { LinkButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  ["Проверка товара", "/check"],
-  ["Отчёт", "/result"],
   ["Дашборд", "/dashboard"],
   ["Склад", "/inventory"],
-  ["Отчёты", "/reports"],
   ["Обновления", "/updates"],
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isPOS = pathname.startsWith("/pos");
+
+  if (isPOS) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -37,17 +39,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={href}
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
-                  pathname === href && "bg-[var(--c-bg3)] text-[var(--c-text)]",
+                  (pathname === href || (href !== "/" && pathname.startsWith(href))) && "bg-[var(--c-bg3)] text-[var(--c-text)]",
                 )}
               >
                 {label}
               </Link>
             ))}
           </nav>
-          <LinkButton href="/check" className="h-10 px-4">
-            <Search size={16} />
-            Анализ
-          </LinkButton>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/pos"
+              className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+            >
+              <ShoppingCart size={15} />
+              Касса
+            </Link>
+            <LinkButton href="/check" className="h-10 px-4">
+              <Search size={16} />
+              Анализ
+            </LinkButton>
+          </div>
         </div>
       </header>
       {children}

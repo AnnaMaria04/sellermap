@@ -20,6 +20,7 @@ const TABLES = {
   replenishmentRules: "replenishment_rules",
   batches: "batches",
   orders: "orders",
+  customers: "customers",
 } as const;
 
 type Collection = keyof typeof TABLES;

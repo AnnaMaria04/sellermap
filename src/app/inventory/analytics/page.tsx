@@ -9,11 +9,13 @@ import { CostAnalysisPanel } from "@/components/inventory/CostAnalysisPanel";
 import { ReplenishmentRules } from "@/components/inventory/ReplenishmentRules";
 import { ExpiryTracker } from "@/components/inventory/ExpiryTracker";
 import { TurnoverAnalysis } from "@/components/inventory/TurnoverAnalysis";
+import { SalesChartPanel } from "@/components/inventory/SalesChartPanel";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "turnover" | "forecast" | "cost" | "replenishment" | "expiry" | "writeoffs";
+type Tab = "charts" | "overview" | "turnover" | "forecast" | "cost" | "replenishment" | "expiry" | "writeoffs";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "charts", label: "Графики продаж" },
   { id: "overview", label: "Обзор и KPI" },
   { id: "turnover", label: "Оборачиваемость" },
   { id: "forecast", label: "Прогноз спроса" },
@@ -24,7 +26,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function InventoryAnalyticsPage() {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("charts");
 
   return (
     <InventoryShell
@@ -48,6 +50,7 @@ export default function InventoryAnalyticsPage() {
         ))}
       </div>
 
+      {tab === "charts" && <SalesChartPanel />}
       {tab === "overview" && <InventoryAnalytics />}
       {tab === "turnover" && <TurnoverAnalysis />}
       {tab === "forecast" && <DemandForecast />}
