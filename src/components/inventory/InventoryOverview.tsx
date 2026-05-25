@@ -16,7 +16,14 @@ import {
   Zap,
   Truck,
   History,
+  Users,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import {
   getAvailableStock,
   getStockStatus,
@@ -43,6 +50,20 @@ export function InventoryOverview() {
   const pendingSalesOrders = useMemo(() => orders.filter((o) => o.status === "new" || o.status === "confirmed" || o.status === "packed").length, [orders]);
   const vipCustomers = useMemo(() => (customers ?? []).filter((c) => c.tier === "vip").length, [customers]);
 
+  // Last 14 days revenue sparkline data
+  const revenueSparkline = useMemo(() => {
+    const today = new Date("2026-05-25");
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (13 - i));
+      const date = d.toISOString().split("T")[0];
+      const rev = orders
+        .filter((o) => o.createdAt === date && (o.status === "shipped" || o.status === "delivered"))
+        .reduce((s, o) => s + o.revenue, 0);
+      return { date, rev };
+    });
+  }, [orders]);
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -65,14 +86,35 @@ export function InventoryOverview() {
           </div>
         </div>
 
-        {/* Quick stats */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          <QuickStat label="Активных товаров" value={stats.totalProducts} color="green" />
-          <QuickStat label="Деньги в товаре" value={`${(totalValue / 1000).toFixed(0)}К ₽`} color="blue" />
-          <QuickStat label="Выручка (реализ.)" value={`${(pnl.revenue / 1000).toFixed(0)}К ₽`} color="green" />
-          <QuickStat label="Заказов в работе" value={pendingSalesOrders} color={pendingSalesOrders > 0 ? "amber" : "default"} />
-          <QuickStat label="Мало товара" value={stats.lowStockCount} color={stats.lowStockCount > 0 ? "amber" : "default"} />
-          <QuickStat label="VIP клиентов" value={vipCustomers} color="blue" />
+        {/* Quick stats + mini chart */}
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end">
+          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <QuickStat label="Активных товаров" value={stats.totalProducts} color="green" />
+            <QuickStat label="Деньги в товаре" value={`${(totalValue / 1000).toFixed(0)}К ₽`} color="blue" />
+            <QuickStat label="Выручка (реализ.)" value={`${(pnl.revenue / 1000).toFixed(0)}К ₽`} color="green" />
+            <QuickStat label="Заказов в работе" value={pendingSalesOrders} color={pendingSalesOrders > 0 ? "amber" : "default"} />
+            <QuickStat label="Мало товара" value={stats.lowStockCount} color={stats.lowStockCount > 0 ? "amber" : "default"} />
+            <QuickStat label="VIP клиентов" value={vipCustomers} color="blue" />
+          </div>
+          {/* Mini sparkline chart */}
+          <div className="hidden lg:block w-48 shrink-0">
+            <p className="mb-1 text-[10px] font-medium text-[var(--c-text3)] uppercase tracking-wide">Выручка 14 дней</p>
+            <ResponsiveContainer width="100%" height={40}>
+              <BarChart data={revenueSparkline} barSize={6}>
+                <Bar dataKey="rev" fill="var(--c-green)" radius={[2, 2, 0, 0]} opacity={0.85} />
+                <Tooltip
+                  cursor={false}
+                  content={({ active, payload }) =>
+                    active && payload?.[0] ? (
+                      <div className="rounded border border-[var(--c-border)] bg-[var(--c-bg3)] px-2 py-1 text-[10px] text-[var(--c-text)]">
+                        {Math.round(payload[0].value as number).toLocaleString("ru-RU")} ₽
+                      </div>
+                    ) : null
+                  }
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

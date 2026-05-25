@@ -941,3 +941,44 @@ export const STAFF_MEMBERS: StaffMember[] = [
   { id: "staff-005", name: "Карина Белая", email: "k.belaya@myshop.ru", role: "manager", status: "invited", locations: [], invitedAt: "2026-05-20" },
   { id: "staff-006", name: "Игорь Тихонов", email: "i.tikhonov@myshop.ru", role: "viewer", status: "suspended", locations: [], lastActiveAt: "2026-04-01", invitedAt: "2024-09-01", joinedAt: "2024-09-10", note: "Временно отстранён" },
 ];
+
+// ── Promotions ────────────────────────────────────────────────────────────
+
+export type PromotionType = "percentage" | "fixed" | "bogo" | "bundle_price" | "free_shipping";
+export type PromotionStatus = "draft" | "active" | "scheduled" | "expired" | "paused";
+export type PromotionChannel = "all" | "wildberries" | "ozon" | "yandex_market" | "website" | "pos";
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description?: string;
+  type: PromotionType;
+  status: PromotionStatus;
+  channels: PromotionChannel[];
+  discountValue: number; // percent (0-100) or fixed ₽ amount depending on type
+  minOrderAmount?: number; // min cart total for promo to apply
+  productIds: string[]; // empty = applies to all
+  categoryFilter?: string; // category name filter
+  usageLimit?: number; // total uses allowed
+  usageCount: number;
+  promoCode?: string; // optional promo code
+  startsAt: string; // ISO date
+  endsAt: string;   // ISO date
+  createdAt: string;
+}
+
+export const PROMOTION_TYPE_LABELS: Record<PromotionType, string> = {
+  percentage: "Скидка %",
+  fixed: "Скидка ₽",
+  bogo: "2 по цене 1",
+  bundle_price: "Комплект со скидкой",
+  free_shipping: "Бесплатная доставка",
+};
+
+export const PROMOTIONS: Promotion[] = [
+  { id: "promo-001", name: "Майская распродажа", description: "Скидки до 30% на всю одежду", type: "percentage", status: "active", channels: ["all"], discountValue: 30, productIds: [], categoryFilter: "Одежда", usageCount: 124, startsAt: "2026-05-01", endsAt: "2026-05-31", createdAt: "2026-04-25" },
+  { id: "promo-002", name: "HELLO10", description: "Промокод для новых клиентов", type: "percentage", status: "active", channels: ["website", "pos"], discountValue: 10, minOrderAmount: 1000, productIds: [], usageLimit: 500, usageCount: 87, promoCode: "HELLO10", startsAt: "2026-01-01", endsAt: "2026-12-31", createdAt: "2026-01-01" },
+  { id: "promo-003", name: "Скидка 500 ₽ на электронику", type: "fixed", status: "scheduled", channels: ["ozon", "wildberries"], discountValue: 500, minOrderAmount: 2000, productIds: [], categoryFilter: "Электроника", usageCount: 0, startsAt: "2026-06-01", endsAt: "2026-06-30", createdAt: "2026-05-20" },
+  { id: "promo-004", name: "Летние термосы 2+1", type: "bogo", status: "draft", channels: ["pos", "website"], discountValue: 100, productIds: ["prod-011"], usageCount: 0, startsAt: "2026-06-15", endsAt: "2026-08-31", createdAt: "2026-05-24" },
+  { id: "promo-005", name: "WB распродажа апрель", type: "percentage", status: "expired", channels: ["wildberries"], discountValue: 25, productIds: [], usageCount: 342, startsAt: "2026-04-01", endsAt: "2026-04-30", createdAt: "2026-03-25" },
+];

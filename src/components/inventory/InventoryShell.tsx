@@ -35,6 +35,7 @@ import {
   Wallet,
   Users,
   Users2,
+  Tag,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -50,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Заказы", href: "/inventory/orders", icon: ShoppingBag },
       { label: "Клиенты", href: "/inventory/customers", icon: Users },
+      { label: "Акции", href: "/inventory/promotions", icon: Tag },
     ],
   },
   {
