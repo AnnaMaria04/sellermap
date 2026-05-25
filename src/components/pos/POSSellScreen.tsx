@@ -100,18 +100,25 @@ function ProductCard({
   available: number;
   onAdd: (p: Product) => void;
 }) {
-  const outOfStock = available === 0;
+  const outOfStock = getAvailableStock(product) === 0;
+
+  function handleClick() {
+    if (outOfStock) {
+      toast.error("Товар недоступен — нет в наличии");
+      return;
+    }
+    onAdd(product);
+  }
 
   return (
     <button
       type="button"
-      disabled={outOfStock}
-      onClick={() => onAdd(product)}
+      onClick={handleClick}
       className={cn(
         "relative flex flex-col gap-2 rounded-xl p-3 text-left transition-all duration-150 border",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-green)]",
         outOfStock
-          ? "border-[var(--c-border)] bg-[var(--c-bg2)] opacity-45 cursor-not-allowed"
+          ? "border-[var(--c-border)] bg-[var(--c-bg2)] opacity-50 grayscale cursor-not-allowed"
           : "border-[var(--c-border)] bg-[var(--c-bg2)] hover:border-[var(--c-border2)] hover:bg-[var(--c-bg3)] cursor-pointer active:scale-[0.97]",
       )}
     >
@@ -128,6 +135,15 @@ function ProductCard({
           <Package className="w-8 h-8 text-[var(--c-text3)]" />
         )}
       </div>
+
+      {/* Out-of-stock overlay badge */}
+      {outOfStock && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl">
+          <span className="bg-[var(--c-red-dim)] text-[var(--c-red)] text-[10px] font-semibold px-2 py-1 rounded-full border border-[var(--c-red)]/30">
+            Нет в наличии
+          </span>
+        </div>
+      )}
 
       {/* Stock badge */}
       <span
@@ -758,8 +774,26 @@ export function POSSellScreen() {
             </Link>
           </div>
 
-          {/* Search */}
-          <div className="px-4 py-3 border-b border-[var(--c-border)] flex-shrink-0">
+          {/* Search / Barcode */}
+          <div className="px-4 py-3 border-b border-[var(--c-border)] flex-shrink-0 space-y-2">
+            <BarcodeInput
+              placeholder="Поиск или сканирование штрихкода..."
+              onScan={(code) => {
+                const found = activeProducts.find(
+                  (p) =>
+                    p.barcode === code ||
+                    p.sku === code ||
+                    p.variants.some((v) => v.sku === code),
+                );
+                if (found) {
+                  addToCart(found);
+                  toast.success(`Добавлено: ${found.name}`);
+                } else {
+                  toast.error(`Товар не найден: ${code}`);
+                }
+              }}
+              className="w-full"
+            />
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--c-text3)]" />
               <input

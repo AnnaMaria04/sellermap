@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ActionChecklist } from "@/components/result/ActionChecklist";
 import { AiInsights } from "@/components/result/AiInsights";
 import { CardAudit } from "@/components/result/CardAudit";
@@ -11,29 +16,95 @@ import { ScoreBreakdown } from "@/components/result/ScoreBreakdown";
 import { SupplierPanel } from "@/components/result/SupplierPanel";
 import { PageSection } from "@/components/sellermap/section";
 import { demoResult } from "@/lib/data/demoResult";
+import type { ProductResult } from "@/lib/analysis/types";
 
-export default function ResultPage() {
+interface SavedReport {
+  id: string;
+  created_at: string;
+  product_name: string;
+  sell_price: number;
+  buy_price: number;
+  profit_per_unit: number;
+  margin_pct: number;
+  input_data: Record<string, unknown>;
+}
+
+function ResultPageInner() {
+  const searchParams = useSearchParams();
+  const reportId = searchParams.get("report");
+
+  const [result] = useState<ProductResult>(demoResult);
+  const [savedReport, setSavedReport] = useState<SavedReport | null>(null);
+
+  // Read sessionStorage form input to pre-populate simulator
+  const [analysisInput, setAnalysisInput] = useState<Record<string, unknown> | null>(null);
+
+  const loadData = useCallback(() => {
+    // If a saved report ID is in the URL, load from localStorage
+    if (reportId) {
+      try {
+        const reports: SavedReport[] = JSON.parse(
+          localStorage.getItem("saved_reports") ?? "[]",
+        );
+        const found = reports.find((r) => r.id === reportId) ?? null;
+        setSavedReport(found);
+        if (found) {
+          setAnalysisInput(found.input_data);
+        }
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    // Otherwise read form input from sessionStorage
+    try {
+      const raw = sessionStorage.getItem("analysis_input");
+      if (raw) {
+        setAnalysisInput(JSON.parse(raw) as Record<string, unknown>);
+      }
+    } catch {
+      // ignore
+    }
+  }, [reportId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   return (
     <main className="bg-off-white">
       <PageSection className="space-y-6 py-8">
-        <ResultHeader result={demoResult} />
-        <ScoreBreakdown result={demoResult} />
-        <MarketMap result={demoResult} />
-        <MarginSimulator result={demoResult} />
-        <CompetitorCards result={demoResult} />
+        <ResultHeader
+          result={result}
+          savedReportId={savedReport?.id}
+          savedReportDate={savedReport?.created_at}
+        />
+        <ScoreBreakdown result={result} />
+        <MarketMap result={result} />
+        <MarginSimulator result={result} analysisInput={analysisInput} />
+        <CompetitorCards result={result} />
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-          <CardAudit result={demoResult} />
+          <CardAudit result={result} />
           <div className="space-y-6">
-            <AiInsights result={demoResult} />
-            <ActionChecklist result={demoResult} />
+            <AiInsights result={result} />
+            <ActionChecklist result={result} />
           </div>
         </div>
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <PackagingLogistics result={demoResult} />
-          <SupplierPanel result={demoResult} />
+          <PackagingLogistics result={result} />
+          <SupplierPanel result={result} />
         </div>
-        <DataSourcesPanel result={demoResult} />
+        <DataSourcesPanel result={result} />
       </PageSection>
     </main>
+  );
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-[var(--c-text3)]">Загрузка…</div>}>
+      <ResultPageInner />
+    </Suspense>
   );
 }

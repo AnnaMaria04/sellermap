@@ -1,11 +1,39 @@
-import { FileCheck2, Search } from "lucide-react";
+"use client";
+
+import { FileCheck2, Search, PackagePlus, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRub } from "@/lib/utils";
 import { ExportResultButton } from "@/components/result/ExportResultButton";
 import type { ProductResult } from "@/lib/analysis/types";
 
-export function ResultHeader({ result }: { result: ProductResult }) {
+interface SavedReport {
+  id: string;
+  created_at: string;
+  product_name: string;
+  sell_price: number;
+  buy_price: number;
+  profit_per_unit: number;
+  margin_pct: number;
+  input_data: Record<string, unknown>;
+}
+
+export function ResultHeader({
+  result,
+  savedReportId,
+  savedReportDate,
+}: {
+  result: ProductResult;
+  savedReportId?: string;
+  savedReportDate?: string;
+}) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+
   const scoreColor =
     result.score >= 70
       ? "text-[var(--c-green)]"
@@ -13,8 +41,81 @@ export function ResultHeader({ result }: { result: ProductResult }) {
         ? "text-[var(--c-amber)]"
         : "text-[var(--c-red)]";
 
+  async function saveReport() {
+    setSaving(true);
+    try {
+      // Read form input from sessionStorage if available
+      let inputData: Record<string, unknown> = {};
+      try {
+        const raw = sessionStorage.getItem("analysis_input");
+        if (raw) inputData = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        // ignore
+      }
+
+      const report: SavedReport = {
+        id: `report-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        product_name: result.title,
+        sell_price: result.margin.sellingPrice,
+        buy_price: result.margin.productCost,
+        profit_per_unit: result.margin.profit,
+        margin_pct: result.margin.marginPercent,
+        input_data: inputData,
+      };
+
+      // Try Supabase first
+      try {
+        const supabase = createClient();
+        if (supabase) {
+          await supabase.from("saved_reports").insert(report);
+        }
+      } catch {
+        // fall through to localStorage
+      }
+
+      // Always persist to localStorage as fallback
+      const existing: SavedReport[] = JSON.parse(
+        localStorage.getItem("saved_reports") ?? "[]",
+      );
+      localStorage.setItem(
+        "saved_reports",
+        JSON.stringify([report, ...existing]),
+      );
+
+      toast.success("Отчёт сохранён");
+      router.push("/reports");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function addToWarehouse() {
+    sessionStorage.setItem(
+      "prefill_product",
+      JSON.stringify({
+        name: result.title,
+        buyPrice: result.margin.productCost,
+        sellPrice: result.margin.sellingPrice,
+      }),
+    );
+    router.push("/inventory/products/new");
+  }
+
   return (
     <Card className="border-l-[3px] border-l-[var(--c-green)] bg-[var(--c-green-dim)] p-6 lg:p-8">
+      {savedReportDate && (
+        <div className="mb-4 rounded-lg bg-[var(--c-bg3)] px-4 py-2.5 text-sm text-[var(--c-text2)]">
+          Сохранённый отчёт от{" "}
+          <span className="font-semibold text-[var(--c-text)]">
+            {new Date(savedReportDate).toLocaleDateString("ru-RU", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+      )}
       <div className="grid gap-8 lg:grid-cols-[0.45fr_1fr] lg:items-start">
         <div>
           <p className="section-kicker border-t-0 pt-0">Итоговое решение</p>
@@ -48,11 +149,27 @@ export function ResultHeader({ result }: { result: ProductResult }) {
             <Metric label="Безопасный диапазон цены" value={`${formatRub(result.margin.safePriceMin)}-${formatRub(result.margin.safePriceMax)}`} tone="positive" />
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <LinkButton href="/reports" variant="secondary">
-              <FileCheck2 size={16} />
-              Сохранить отчёт
-            </LinkButton>
+            {!savedReportId && (
+              <button
+                onClick={saveReport}
+                disabled={saving}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-5 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)] disabled:opacity-60"
+              >
+                {saving ? (
+                  <><Loader2 size={16} className="animate-spin" /> Сохранение…</>
+                ) : (
+                  <><FileCheck2 size={16} /> Сохранить отчёт</>
+                )}
+              </button>
+            )}
             <ExportResultButton result={result} />
+            <button
+              onClick={addToWarehouse}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-5 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
+            >
+              <PackagePlus size={16} />
+              Добавить в склад →
+            </button>
             <LinkButton href="/check">
               <Search size={16} />
               Проверить другой товар
