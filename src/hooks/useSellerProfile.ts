@@ -1,88 +1,129 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createBrowserClient } from "@supabase/ssr";
 
 export interface SellerProfile {
+  id: string;
+  email: string;
+  name: string;
   company: string;
   businessType: string;
   channels: string[];
   onboardingComplete: boolean;
 }
 
-const STORAGE_KEY = "sellermap_profile";
 const DEFAULT_PROFILE: SellerProfile = {
+  id: "",
+  email: "",
+  name: "",
   company: "",
   businessType: "",
   channels: [],
   onboardingComplete: false,
 };
 
-function loadLocal(): SellerProfile {
-  if (typeof window === "undefined") return DEFAULT_PROFILE;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...DEFAULT_PROFILE, ...JSON.parse(raw) } : DEFAULT_PROFILE;
-  } catch {
-    return DEFAULT_PROFILE;
-  }
-}
-
-function saveLocal(p: SellerProfile) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-  } catch {}
-}
+const STORAGE_KEY = "seller_profile";
 
 export function useSellerProfile() {
-  const [profile, setProfileState] = useState<SellerProfile>(loadLocal);
+  const [profile, setProfile] = useState<SellerProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder",
+  );
+
   useEffect(() => {
-    // TODO: re-enable Supabase sync when auth is wired up
-    // const supabase = createClient();
-    // if (!supabase) { setLoading(false); return; }
-    // supabase.auth.getUser().then(({ data }) => {
-    //   if (!data.user) { setLoading(false); return; }
-    //   supabase
-    //     .from("profiles")
-    //     .select("company, business_type, channels, onboarding_complete")
-    //     .eq("id", data.user.id)
-    //     .single()
-    //     .then(({ data: row }) => {
-    //       if (row) {
-    //         const p: SellerProfile = {
-    //           company: row.company ?? "",
-    //           businessType: row.business_type ?? "",
-    //           channels: (row.channels as string[]) ?? [],
-    //           onboardingComplete: row.onboarding_complete ?? false,
-    //         };
-    //         setProfileState(p);
-    //         saveLocal(p);
-    //       }
-    //       setLoading(false);
-    //     });
-    // });
-    setLoading(false);
+    async function load() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          // No auth — use localStorage fallback
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) setProfile(JSON.parse(saved));
+          setLoading(false);
+          return;
+        }
+
+        // Try loading from Supabase profiles table
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+          if (data) {
+            setProfile({
+              id: user.id,
+              email: user.email ?? "",
+              name: data.full_name ?? "",
+              company: data.company ?? "",
+              businessType: data.business_type ?? "",
+              channels: data.channels ?? [],
+              onboardingComplete: data.onboarding_complete ?? false,
+            });
+          } else {
+            // New user — create profile stub, check localStorage
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const base: SellerProfile = saved
+              ? JSON.parse(saved)
+              : { ...DEFAULT_PROFILE, id: user.id, email: user.email ?? "" };
+            setProfile({ ...base, id: user.id, email: user.email ?? "" });
+          }
+        } catch {
+          // Supabase unavailable — use localStorage fallback
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) setProfile(JSON.parse(saved));
+          else
+            setProfile({ ...DEFAULT_PROFILE, id: user.id, email: user.email ?? "" });
+        }
+      } catch {
+        // Auth unavailable — use localStorage fallback
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) setProfile(JSON.parse(saved));
+        } catch {
+          // ignore
+        }
+      }
+      setLoading(false);
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const saveProfile = useCallback(async (patch: Partial<SellerProfile>) => {
-    const next = { ...profile, ...patch };
-    setProfileState(next);
-    saveLocal(next);
+  const saveProfile = useCallback(
+    async (updates: Partial<SellerProfile>) => {
+      const next = { ...profile, ...updates };
+      setProfile(next);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
 
-    // TODO: re-enable Supabase sync when auth is wired up
-    // const supabase = createClient();
-    // if (!supabase) return;
-    // const { data } = await supabase.auth.getUser();
-    // if (!data.user) return;
-    // await supabase.from("profiles").update({
-    //   company: next.company,
-    //   business_type: next.businessType,
-    //   channels: next.channels,
-    //   onboarding_complete: next.onboardingComplete,
-    // }).eq("id", data.user.id);
-  }, [profile]);
+      if (next.id) {
+        try {
+          await supabase.from("profiles").upsert({
+            id: next.id,
+            full_name: next.name,
+            company: next.company,
+            business_type: next.businessType,
+            channels: next.channels,
+            onboarding_complete: next.onboardingComplete,
+            updated_at: new Date().toISOString(),
+          });
+        } catch {
+          // silently ignore if columns don't exist yet
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile],
+  );
 
   return { profile, loading, saveProfile };
 }

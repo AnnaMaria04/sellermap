@@ -372,13 +372,6 @@ export function IntegrationHub() {
     }
   }
 
-  function getStatusDot(status: IntegrationStatus, isSyncing: boolean) {
-    if (isSyncing || status === "syncing") return <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--c-blue)" }} />;
-    if (status === "connected") return <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--c-green)" }} />;
-    if (status === "error") return <span className="inline-block w-2 h-2 rounded-full" style={{ background: "var(--c-red)" }} />;
-    return <span className="inline-block w-2 h-2 rounded-full" style={{ background: "var(--c-text3)" }} />;
-  }
-
   function getStatusLabel(status: IntegrationStatus, isSyncing: boolean) {
     if (isSyncing || status === "syncing") return "Синхронизация...";
     if (status === "connected") return "Подключено";
@@ -409,7 +402,30 @@ export function IntegrationHub() {
         </button>
       </div>
 
-      {integrations.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ background: "var(--c-bg2)", border: "1px solid var(--c-border)" }}
+              className="rounded-2xl p-5 flex flex-col gap-4 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div style={{ background: "var(--c-bg3)" }} className="w-11 h-11 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div style={{ background: "var(--c-bg3)" }} className="h-4 rounded w-32" />
+                  <div style={{ background: "var(--c-bg3)" }} className="h-3 rounded w-20" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div style={{ background: "var(--c-bg3)" }} className="h-8 rounded-lg" />
+                <div style={{ background: "var(--c-bg3)" }} className="h-8 rounded-lg" />
+              </div>
+              <div className="flex gap-2 pt-1 border-t" style={{ borderColor: "var(--c-border)" }}>
+                <div style={{ background: "var(--c-bg3)" }} className="h-7 rounded-lg w-24" />
+                <div style={{ background: "var(--c-bg3)" }} className="h-7 rounded-lg w-40" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : integrations.length === 0 ? (
         <div style={{ background: "var(--c-bg2)", border: "1px dashed var(--c-border)", color: "var(--c-text3)" }}
           className="rounded-2xl p-10 text-center text-sm">
           Нет подключённых интеграций. Нажмите «Добавить интеграцию», чтобы подключить маркетплейс.
@@ -422,32 +438,79 @@ export function IntegrationHub() {
             const hasError = integration.status === "error";
             const adapter = getAdapter(integration.kind);
             const lastEntry = integration.log[0];
+
+            // Health dot color: blue=syncing, red=error, amber=stale (>24h or no sync), green=healthy
+            const healthColor = isSyncing
+              ? "var(--c-blue)"
+              : hasError
+              ? "var(--c-red)"
+              : integration.status === "connected"
+              ? (() => {
+                  if (!integration.lastSync) return "var(--c-amber)";
+                  const stamp = integration.lastSync.includes("T")
+                    ? integration.lastSync
+                    : integration.lastSync.replace(" ", "T");
+                  const diffH = (Date.now() - new Date(stamp).getTime()) / 3_600_000;
+                  return diffH > 24 ? "var(--c-amber)" : "var(--c-green)";
+                })()
+              : "var(--c-text3)";
+
+            // Pick first password field to preview (masked)
+            const previewField = adapter?.meta.credentialFields.find((f) => f.type === "password");
+            const previewValue = previewField ? integration.credentials[previewField.key] : undefined;
+
             return (
               <div key={integration.id}
                 style={{ background: "var(--c-bg2)", border: `1px solid ${hasError ? "var(--c-red)" : "var(--c-border)"}` }}
                 className="rounded-2xl p-5 flex flex-col gap-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div style={{ background: cfg.bg, color: cfg.color }} className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0">
-                      {cfg.abbr}
+                    {/* Platform badge with health indicator dot */}
+                    <div className="relative shrink-0">
+                      <div style={{ background: cfg.bg, color: cfg.color }}
+                        className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm">
+                        {cfg.abbr}
+                      </div>
+                      <span
+                        className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2", isSyncing && "animate-pulse")}
+                        style={{ background: healthColor, borderColor: "var(--c-bg2)" }}
+                      />
                     </div>
                     <div>
                       <div className="font-semibold">{integration.name}</div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        {getStatusDot(integration.status, isSyncing)}
-                        <span className="text-xs" style={{ color: hasError ? "var(--c-red)" : isSyncing ? "var(--c-blue)" : integration.status === "connected" ? "var(--c-green)" : "var(--c-text3)" }}>
+                        <span className="text-xs" style={{
+                          color: hasError ? "var(--c-red)"
+                            : isSyncing ? "var(--c-blue)"
+                            : integration.status === "connected" ? "var(--c-green)"
+                            : "var(--c-text3)",
+                        }}>
                           {getStatusLabel(integration.status, isSyncing)}
                         </span>
                       </div>
                     </div>
                   </div>
+                  {/* Relative last-sync timestamp */}
                   {integration.lastSync && (
-                    <div className="flex items-center gap-1 text-xs" style={{ color: "var(--c-text3)" }}>
+                    <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: "var(--c-text3)" }}>
                       <Clock size={11} />
-                      {integration.lastSync}
+                      {relativeTime(integration.lastSync)}
                     </div>
                   )}
                 </div>
+
+                {/* Masked credential preview */}
+                {previewValue && (
+                  <div style={{ background: "var(--c-bg3)", border: "1px solid var(--c-border)" }}
+                    className="rounded-lg px-3 py-1.5 flex items-center justify-between gap-2">
+                    <span className="text-xs truncate" style={{ color: "var(--c-text3)" }}>
+                      {previewField?.label ?? "API-ключ"}
+                    </span>
+                    <span className="text-xs font-mono shrink-0" style={{ color: "var(--c-text2)" }}>
+                      {maskCredential(previewValue)}
+                    </span>
+                  </div>
+                )}
 
                 {adapter && (
                   <div className="grid grid-cols-2 gap-2">
@@ -473,7 +536,13 @@ export function IntegrationHub() {
 
                 {lastEntry && !hasError && (
                   <div className="text-xs" style={{ color: "var(--c-text3)" }}>
-                    Последняя синхронизация: {ENTITY_LABELS[lastEntry.entity] ?? lastEntry.entity} · {lastEntry.count} записей
+                    Синхронизировано {relativeTime(lastEntry.at)} · {ENTITY_LABELS[lastEntry.entity] ?? lastEntry.entity} · {lastEntry.count} записей
+                  </div>
+                )}
+
+                {!lastEntry && integration.lastSync && !hasError && (
+                  <div className="text-xs" style={{ color: "var(--c-text3)" }}>
+                    Синхронизировано {relativeTime(integration.lastSync)}
                   </div>
                 )}
 
@@ -485,10 +554,14 @@ export function IntegrationHub() {
                     Настроить
                   </button>
                   <button onClick={() => handleSync(integration.id)} disabled={isSyncing}
-                    style={{ background: "var(--c-bg3)", color: isSyncing ? "var(--c-text3)" : "var(--c-blue)", border: "1px solid var(--c-border)" }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs hover:opacity-80 transition-opacity disabled:cursor-not-allowed">
+                    style={{
+                      background: isSyncing ? "var(--c-bg3)" : "rgba(59,130,246,0.1)",
+                      color: isSyncing ? "var(--c-text3)" : "var(--c-blue)",
+                      border: `1px solid ${isSyncing ? "var(--c-border)" : "rgba(59,130,246,0.25)"}`,
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition-opacity disabled:cursor-not-allowed">
                     <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-                    {isSyncing ? "Синхронизация..." : "Синхронизировать"}
+                    {isSyncing ? "Синхронизация..." : "Синхронизировать сейчас"}
                   </button>
                 </div>
               </div>
