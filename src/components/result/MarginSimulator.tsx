@@ -1,7 +1,7 @@
 "use client";
 
 import { Calculator } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { calculateMargin } from "@/lib/analysis/calculateResult";
 import type { ProductResult, RawResultInput } from "@/lib/analysis/types";
 import { Card } from "@/components/ui/card";
@@ -22,8 +22,13 @@ const fields = [
   ["taxReserve", "Налог / прочее"],
 ] as const;
 
-export function MarginSimulator({ result }: { result: ProductResult }) {
-  const [input, setInput] = useState<RawResultInput["marginInput"]>({
+type MarginInput = RawResultInput["marginInput"];
+
+function buildInitialInput(
+  result: ProductResult,
+  analysisInput: Record<string, unknown> | null,
+): MarginInput {
+  const base: MarginInput = {
     sellingPrice: result.margin.sellingPrice,
     productCost: result.margin.productCost,
     supplierShippingPerUnit: result.margin.supplierShippingPerUnit,
@@ -34,9 +39,57 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
     returnReserve: result.margin.returnReserve,
     storageReserve: result.margin.storageReserve,
     taxReserve: result.margin.taxReserve,
-  });
+  };
+
+  if (!analysisInput) return base;
+
+  // Override with form input if present
+  const n = (key: string, fallback: number) => {
+    const v = analysisInput[key];
+    return typeof v === "number" && v > 0 ? v : fallback;
+  };
+
+  return {
+    ...base,
+    sellingPrice: n("sellingPrice", base.sellingPrice),
+    productCost: n("purchaseCost", base.productCost),
+    packaging: n("packagingCost", base.packaging),
+    adsReserve: n("adsReserve", base.adsReserve),
+    returnReserve: n("returnReserve", base.returnReserve),
+    logistics: n("logistics", base.logistics),
+  };
+}
+
+export function MarginSimulator({
+  result,
+  analysisInput,
+}: {
+  result: ProductResult;
+  analysisInput?: Record<string, unknown> | null;
+}) {
+  const [input, setInput] = useState<MarginInput>(() =>
+    buildInitialInput(result, analysisInput ?? null),
+  );
+
+  // Re-seed if analysisInput arrives asynchronously (loaded from sessionStorage)
+  useEffect(() => {
+    if (analysisInput) {
+      setInput(buildInitialInput(result, analysisInput));
+    }
+  }, [analysisInput, result]);
+
   const margin = useMemo(() => calculateMargin(input), [input]);
   const visualRisk = margin.marginPercent < 20 ? "high" : margin.marginPercent < 30 ? "medium" : "low";
+
+  // Color-code profit and margin for outputs
+  const profitColor =
+    margin.profit > 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]";
+  const marginColor =
+    margin.marginPercent > 35
+      ? "text-[var(--c-green)]"
+      : margin.marginPercent >= 20
+      ? "text-[var(--c-amber)]"
+      : "text-[var(--c-red)]";
 
   return (
     <Card className="p-5">
@@ -73,8 +126,8 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
         </div>
         <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Output label="Прибыль / шт." value={formatRub(margin.profit)} emph />
-            <Output label="Чистая маржа" value={`${margin.marginPercent.toFixed(1)}%`} emph />
+            <Output label="Прибыль / шт." value={formatRub(margin.profit)} colorClass={profitColor} emph />
+            <Output label="Чистая маржа" value={`${margin.marginPercent.toFixed(1)}%`} colorClass={marginColor} emph />
             <Output label="Точка безубыточности" value={formatRub(margin.breakEvenPrice)} />
             <Output label="Безопасная цена" value={`${formatRub(margin.safePriceMin)}-${formatRub(margin.safePriceMax)}`} />
             <Output label="Макс. реклама" value={formatRub(margin.maxAllowedAdCost)} />
@@ -104,11 +157,25 @@ export function MarginSimulator({ result }: { result: ProductResult }) {
   );
 }
 
-function Output({ label, value, emph }: { label: string; value: string; emph?: boolean }) {
+function Output({
+  label,
+  value,
+  emph,
+  colorClass,
+}: {
+  label: string;
+  value: string;
+  emph?: boolean;
+  colorClass?: string;
+}) {
+  const emphClass = emph
+    ? `text-xl font-semibold ${colorClass ?? "text-[var(--c-green)]"}`
+    : "";
+
   return (
     <div className="rounded-lg bg-[var(--c-bg2)] p-3">
       <p className="text-xs font-semibold text-[var(--c-text3)]">{label}</p>
-      <p className={`font-display mt-1 font-semibold tabular ${emph ? "text-xl text-[var(--c-green)]" : ""}`}>
+      <p className={`font-display mt-1 font-semibold tabular ${emphClass}`}>
         {value}
       </p>
     </div>

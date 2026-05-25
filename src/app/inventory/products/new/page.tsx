@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,6 +69,26 @@ export default function NewProductPage() {
   });
 
   const nameValue = watch("name");
+
+  // Prefill from sessionStorage if navigated from /result "Добавить в склад"
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("prefill_product");
+      if (raw) {
+        const data = JSON.parse(raw) as { name?: string; buyPrice?: number; sellPrice?: number };
+        if (data.name) setValue("name", data.name, { shouldValidate: false });
+        if (typeof data.sellPrice === "number") setValue("price", data.sellPrice, { shouldValidate: false });
+        if (typeof data.buyPrice === "number") setValue("costPrice", data.buyPrice, { shouldValidate: false });
+        // Auto-generate SKU from prefilled name
+        if (data.name) {
+          setValue("sku", generateSku(data.name), { shouldValidate: false });
+        }
+        sessionStorage.removeItem("prefill_product");
+      }
+    } catch {
+      // ignore
+    }
+  }, [setValue]);
 
   // Auto-generate SKU from name when name changes and SKU hasn't been manually edited
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
