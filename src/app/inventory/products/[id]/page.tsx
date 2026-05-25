@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -18,7 +18,11 @@ import {
   MapPin,
   TrendingUp,
   History,
+  X,
+  Plus,
+  Minus,
 } from "lucide-react";
+import type { ProductStatus } from "@/mock/inventory";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { StockStatusBadge, ProductStatusBadge, MovementTypeBadge } from "@/components/inventory/StockStatusBadge";
 import {
@@ -37,8 +41,38 @@ interface Props {
 
 export default function ProductDetailPage({ params }: Props) {
   const { id } = use(params);
-  const { products, movements: allMovements, suppliers, locations } = useInventory();
+  const { products, movements: allMovements, suppliers, locations, actions } = useInventory();
   const product = products.find((p) => p.id === id);
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    name: product?.name ?? "",
+    category: product?.category ?? "",
+    price: product?.price ?? 0,
+    costPrice: product?.costPrice ?? 0,
+    status: (product?.status ?? "active") as ProductStatus,
+    description: product?.description ?? "",
+  });
+
+  useEffect(() => {
+    if (product) {
+      setForm({
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        costPrice: product.costPrice,
+        status: product.status,
+        description: product.description ?? "",
+      });
+    }
+  }, [product?.id]);
+
+  const saveEdit = () => {
+    if (!product) return;
+    const margin = form.price > 0 ? Math.round(((form.price - form.costPrice) / form.price) * 1000) / 10 : 0;
+    actions.updateProduct(product.id, { ...form, margin });
+    setEditing(false);
+  };
 
   if (!product) {
     return (
@@ -75,7 +109,10 @@ export default function ProductDetailPage({ params }: Props) {
             <ArrowLeft size={14} />
             Назад
           </Link>
-          <button className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+          <button
+            onClick={() => setEditing(true)}
+            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+          >
             <Edit3 size={14} />
             Редактировать
           </button>
@@ -199,7 +236,24 @@ export default function ProductDetailPage({ params }: Props) {
                       <p className="text-sm font-medium text-[var(--c-text)]">{loc?.name ?? locId}</p>
                       <p className="text-xs text-[var(--c-text3)]">{loc?.type}</p>
                     </div>
-                    <p className="text-base font-bold text-[var(--c-text)] tabular">{qty}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => actions.adjustStock(product.id, locId, -1, "adjustment", "Ручная корректировка")}
+                        disabled={qty <= 0}
+                        aria-label="Уменьшить остаток"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <p className="w-10 text-center text-base font-bold text-[var(--c-text)] tabular">{qty}</p>
+                      <button
+                        onClick={() => actions.adjustStock(product.id, locId, 1, "adjustment", "Ручная корректировка")}
+                        aria-label="Увеличить остаток"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -393,7 +447,113 @@ export default function ProductDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Edit drawer */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEditing(false)}
+          />
+          <div className="relative ml-auto flex h-full w-full max-w-lg flex-col bg-[var(--c-bg)] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--c-border)] px-6 py-4">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Редактировать товар</h2>
+              <button
+                onClick={() => setEditing(false)}
+                aria-label="Закрыть"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              <Field label="Название">
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] transition"
+                />
+              </Field>
+
+              <Field label="Категория">
+                <input
+                  type="text"
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] transition"
+                />
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Цена продажи, ₽">
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
+                    className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] tabular outline-none focus:border-[var(--c-green)] transition"
+                  />
+                </Field>
+                <Field label="Закупочная цена, ₽">
+                  <input
+                    type="number"
+                    value={form.costPrice}
+                    onChange={(e) => setForm((f) => ({ ...f, costPrice: Number(e.target.value) }))}
+                    className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] tabular outline-none focus:border-[var(--c-green)] transition"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Статус">
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as ProductStatus }))}
+                  className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] transition"
+                >
+                  <option value="active">Активен</option>
+                  <option value="draft">Черновик</option>
+                  <option value="archived">В архиве</option>
+                </select>
+              </Field>
+
+              <Field label="Описание">
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={4}
+                  className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] transition"
+                />
+              </Field>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--c-border)] px-6 py-4">
+              <button
+                onClick={() => setEditing(false)}
+                className="flex h-9 items-center rounded-lg border border-[var(--c-border2)] px-4 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={saveEdit}
+                className="flex h-9 items-center rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </InventoryShell>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">{label}</label>
+      {children}
+    </div>
   );
 }
 

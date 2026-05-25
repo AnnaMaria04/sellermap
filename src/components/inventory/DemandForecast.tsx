@@ -74,9 +74,10 @@ function generateForecast(product: Product, horizon: ForecastHorizon, suppliers:
 }
 
 export function DemandForecast() {
-  const { products, suppliers } = useInventory();
+  const { products, suppliers, actions } = useInventory();
   const [horizon, setHorizon] = useState<ForecastHorizon>("30d");
   const [sortBy, setSortBy] = useState<"urgency" | "sales" | "stock">("urgency");
+  const [ordered, setOrdered] = useState<Set<string>>(new Set());
 
   const forecasts = useMemo(
     () =>
@@ -252,10 +253,42 @@ export function DemandForecast() {
                     </td>
                     <td className="px-5 py-3">
                       {urgency !== "ok" ? (
-                        <button className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition whitespace-nowrap">
-                          <ShoppingCart size={11} />
-                          Заказать {f.reorderQty} шт
-                        </button>
+                        ordered.has(f.product.id) ? (
+                          <span className="flex items-center gap-1.5 rounded-lg border border-[var(--c-green)] bg-[var(--c-green-dim)] px-3 py-1.5 text-xs font-semibold text-[var(--c-green)] whitespace-nowrap">
+                            <ShoppingCart size={11} />
+                            Заказано
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const unitCost = f.product.costPrice;
+                              actions.addPurchaseOrder({
+                                supplierId: f.supplier?.id ?? "",
+                                supplierName: f.supplier?.name ?? "Без поставщика",
+                                status: "draft",
+                                items: [{
+                                  productId: f.product.id,
+                                  productName: f.product.name,
+                                  sku: f.product.sku,
+                                  qty: f.reorderQty,
+                                  receivedQty: 0,
+                                  unitCost,
+                                  totalCost: unitCost * f.reorderQty,
+                                }],
+                                totalAmount: unitCost * f.reorderQty,
+                                currency: f.supplier?.currency ?? "RUB",
+                                locationId: "loc-warehouse",
+                                paymentStatus: "unpaid",
+                                note: "Создан из прогноза спроса",
+                              });
+                              setOrdered((prev) => new Set(prev).add(f.product.id));
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition whitespace-nowrap"
+                          >
+                            <ShoppingCart size={11} />
+                            Заказать {f.reorderQty} шт
+                          </button>
+                        )
                       ) : (
                         <span className="text-xs text-[var(--c-text3)]">
                           Заказ после {formatDate(f.reorderDate)}

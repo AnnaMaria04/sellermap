@@ -43,62 +43,6 @@ interface Reservation {
   note?: string;
 }
 
-const MOCK_RESERVATIONS: Reservation[] = [
-  {
-    id: "res-001", productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001",
-    locationId: "loc-warehouse", qty: 5, source: "wildberries", orderRef: "WB-88234501",
-    customerName: "Иван Петров", status: "active", createdAt: "2026-05-23", expiresAt: "2026-05-27",
-  },
-  {
-    id: "res-002", productId: "prod-002", productName: "Несессер водонепроницаемый", sku: "NSS-002",
-    locationId: "loc-warehouse", qty: 3, source: "ozon", orderRef: "OZN-4491827",
-    customerName: "Мария Сидорова", status: "active", createdAt: "2026-05-24", expiresAt: "2026-05-26",
-  },
-  {
-    id: "res-003", productId: "prod-005", productName: "Кофе зерновой 250г", sku: "COF-005",
-    locationId: "loc-store", qty: 10, source: "yandex_market", orderRef: "YM-990123",
-    status: "active", createdAt: "2026-05-22", expiresAt: "2026-05-28",
-  },
-  {
-    id: "res-004", productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003",
-    locationId: "loc-warehouse", qty: 8, source: "manual",
-    customerName: "ООО Торговый Дом", status: "active", createdAt: "2026-05-21", expiresAt: "2026-05-28",
-    note: "Ожидают самовывоза",
-  },
-  {
-    id: "res-005", productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001",
-    locationId: "loc-warehouse", qty: 2, source: "website", orderRef: "WEB-10042",
-    customerName: "Анна Козлова", status: "active", createdAt: "2026-05-25", expiresAt: "2026-05-25",
-  },
-  {
-    id: "res-006", productId: "prod-004", productName: "Замок для чемодана TSA", sku: "LCK-004",
-    locationId: "loc-warehouse", qty: 15, source: "wildberries", orderRef: "WB-88210000",
-    status: "fulfilled", createdAt: "2026-05-18", fulfilledAt: "2026-05-20",
-  },
-  {
-    id: "res-007", productId: "prod-006", productName: "Фильтры для кофе 100 шт", sku: "FLT-006",
-    locationId: "loc-store", qty: 4, source: "pos", orderRef: "POS-0091",
-    customerName: "Сергей Новиков", status: "cancelled", createdAt: "2026-05-20",
-    note: "Клиент отказался",
-  },
-  {
-    id: "res-008", productId: "prod-002", productName: "Несессер водонепроницаемый", sku: "NSS-002",
-    locationId: "loc-online", qty: 6, source: "ozon", orderRef: "OZN-4488000",
-    status: "expired", createdAt: "2026-05-10", expiresAt: "2026-05-17",
-  },
-  {
-    id: "res-009", productId: "prod-005", productName: "Кофе зерновой 250г", sku: "COF-005",
-    locationId: "loc-warehouse", qty: 20, source: "yandex_market", orderRef: "YM-990456",
-    status: "active", createdAt: "2026-05-24", expiresAt: "2026-05-30",
-  },
-  {
-    id: "res-010", productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003",
-    locationId: "loc-store", qty: 3, source: "manual",
-    customerName: "Юлия Беляева", status: "active", createdAt: "2026-05-23", expiresAt: "2026-05-29",
-    note: "VIP клиент",
-  },
-];
-
 const SOURCE_CONFIG: Record<ReservationSource, { label: string; color: string; bg: string }> = {
   wildberries:   { label: "WB",            color: "text-purple-400",            bg: "bg-purple-400/10" },
   ozon:          { label: "Ozon",          color: "text-[var(--c-blue)]",       bg: "bg-[var(--c-blue)]/10" },
@@ -134,13 +78,12 @@ function isExpiringToday(r: Reservation) {
 }
 
 export function StockReservationsPanel() {
-  const { products, locations } = useInventory();
+  const { products, locations, reservations, actions } = useInventory();
 
   function getLocationName(id: string) {
     return locations.find(l => l.id === id)?.name ?? id;
   }
 
-  const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<ReservationSource | "all">("all");
@@ -198,12 +141,12 @@ export function StockReservationsPanel() {
   }, [reservations, products]);
 
   function handleRelease(id: string) {
-    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "cancelled" as ReservationStatus } : r));
+    actions.releaseReservation(id);
     setSelected(prev => { const next = new Set(prev); next.delete(id); return next; });
   }
 
   function handleBulkRelease() {
-    setReservations(prev => prev.map(r => selected.has(r.id) ? { ...r, status: "cancelled" as ReservationStatus } : r));
+    selected.forEach((id) => actions.releaseReservation(id));
     setSelected(new Set());
   }
 
@@ -211,7 +154,7 @@ export function StockReservationsPanel() {
     const newExpiry = new Date(TODAY_STR);
     newExpiry.setDate(newExpiry.getDate() + 7);
     const expiryStr = newExpiry.toISOString().split("T")[0];
-    setReservations(prev => prev.map(r => selected.has(r.id) && r.status === "active" ? { ...r, expiresAt: expiryStr } : r));
+    selected.forEach((id) => actions.extendReservation(id, expiryStr));
     setSelected(new Set());
   }
 
@@ -243,22 +186,16 @@ export function StockReservationsPanel() {
 
   function handleCreate() {
     if (!form.productId || !form.qty) return;
-    const newRes: Reservation = {
-      id: `res-${Date.now()}`,
+    actions.createReservation({
       productId: form.productId,
-      productName: form.productName,
-      sku: form.sku,
       locationId: form.locationId,
       qty: parseInt(form.qty),
       source: form.source,
       orderRef: form.orderRef || undefined,
       customerName: form.customerName || undefined,
-      status: "active",
-      createdAt: TODAY_STR,
       expiresAt: form.expiresAt || undefined,
       note: form.note || undefined,
-    };
-    setReservations(prev => [newRes, ...prev]);
+    });
     setShowCreate(false);
     setForm({ productSearch: "", productId: "", productName: "", sku: "", locationId: "loc-warehouse", qty: "", source: "manual", orderRef: "", customerName: "", expiresAt: "", note: "" });
   }

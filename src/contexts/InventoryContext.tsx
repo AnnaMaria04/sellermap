@@ -17,6 +17,7 @@ import {
   TRANSFERS,
   STOCKTAKES,
   MOVEMENTS,
+  RESERVATIONS,
   getAvailableStock,
   type Product,
   type Supplier,
@@ -28,6 +29,8 @@ import {
   type StocktakeItem,
   type StockMovement,
   type MovementType,
+  type Reservation,
+  type ReservationSource,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ export interface InventoryState {
   transfers: Transfer[];
   stocktakes: Stocktake[];
   movements: StockMovement[];
+  reservations: Reservation[];
 }
 
 const initialState: InventoryState = {
@@ -50,6 +54,7 @@ const initialState: InventoryState = {
   transfers: TRANSFERS,
   stocktakes: STOCKTAKES,
   movements: MOVEMENTS,
+  reservations: RESERVATIONS,
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -73,6 +78,10 @@ type InventoryAction =
   | { type: "UPDATE_SUPPLIER"; id: string; patch: Partial<Supplier> }
   | { type: "ADD_LOCATION"; location: Location }
   | { type: "ADD_MOVEMENT"; movement: StockMovement }
+  | { type: "CREATE_RESERVATION"; reservation: Reservation }
+  | { type: "RELEASE_RESERVATION"; id: string }
+  | { type: "FULFILL_RESERVATION"; id: string }
+  | { type: "EXTEND_RESERVATION"; id: string; expiresAt: string }
   | { type: "HYDRATE"; state: InventoryState }
   | { type: "RESET_STATE" };
 
@@ -401,6 +410,103 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     case "ADD_MOVEMENT":
       return { ...state, movements: [action.movement, ...state.movements] };
 
+    // ── Reservations ──────────────────────────────────────────────────────────
+    case "CREATE_RESERVATION": {
+      const r = action.reservation;
+      const now = new Date().toISOString();
+      const product = state.products.find((p) => p.id === r.productId);
+      const movement: StockMovement | null = product
+        ? {
+            id: uid("mv"),
+            type: "reserve",
+            productId: r.productId,
+            productName: r.productName,
+            sku: r.sku,
+            qtyBefore: product.reservedUnits,
+            qtyAfter: product.reservedUnits + r.qty,
+            qtyDelta: r.qty,
+            locationId: r.locationId,
+            userId: "u-current",
+            userName: "Текущий пользователь",
+            createdAt: now,
+            reason: `Резерв ${r.source}${r.orderRef ? ` · ${r.orderRef}` : ""}`,
+            referenceId: r.id,
+          }
+        : null;
+      return {
+        ...state,
+        reservations: [r, ...state.reservations],
+        products: state.products.map((p) =>
+          p.id === r.productId ? { ...p, reservedUnits: p.reservedUnits + r.qty } : p,
+        ),
+        movements: movement ? [movement, ...state.movements] : state.movements,
+      };
+    }
+
+    case "RELEASE_RESERVATION": {
+      const res = state.reservations.find((r) => r.id === action.id);
+      if (!res || res.status !== "active") return state;
+      return {
+        ...state,
+        reservations: state.reservations.map((r) =>
+          r.id === action.id ? { ...r, status: "cancelled" } : r,
+        ),
+        products: state.products.map((p) =>
+          p.id === res.productId ? { ...p, reservedUnits: Math.max(0, p.reservedUnits - res.qty) } : p,
+        ),
+      };
+    }
+
+    case "FULFILL_RESERVATION": {
+      const res = state.reservations.find((r) => r.id === action.id);
+      if (!res || res.status !== "active") return state;
+      const now = new Date().toISOString();
+      const product = state.products.find((p) => p.id === res.productId);
+      let products = state.products.map((p) =>
+        p.id === res.productId ? { ...p, reservedUnits: Math.max(0, p.reservedUnits - res.qty) } : p,
+      );
+      // Goods ship: physical stock leaves the reservation's location.
+      products = products.map((p) =>
+        p.id === res.productId ? applyStockDelta(p, res.locationId, -res.qty) : p,
+      );
+      const movement: StockMovement | null = product
+        ? {
+            id: uid("mv"),
+            type: "sale",
+            productId: res.productId,
+            productName: res.productName,
+            sku: res.sku,
+            qtyBefore: product.stockByLocation[res.locationId] ?? 0,
+            qtyAfter: Math.max(0, (product.stockByLocation[res.locationId] ?? 0) - res.qty),
+            qtyDelta: -res.qty,
+            locationId: res.locationId,
+            userId: "u-current",
+            userName: "Текущий пользователь",
+            createdAt: now,
+            reason: `Отгрузка по резерву${res.orderRef ? ` · ${res.orderRef}` : ""}`,
+            referenceId: res.id,
+          }
+        : null;
+      return {
+        ...state,
+        products,
+        reservations: state.reservations.map((r) =>
+          r.id === action.id ? { ...r, status: "fulfilled", fulfilledAt: now } : r,
+        ),
+        movements: movement ? [movement, ...state.movements] : state.movements,
+      };
+    }
+
+    case "EXTEND_RESERVATION":
+      return {
+        ...state,
+        reservations: state.reservations.map((r) =>
+          r.id === action.id && r.status === "active"
+            ? { ...r, expiresAt: action.expiresAt }
+            : r,
+        ),
+      };
+
     // ── Hydration / demo reset ──────────────────────────────────────────────
     case "HYDRATE":
       return action.state;
@@ -434,6 +540,14 @@ interface InventoryContextValue extends InventoryState {
     addSupplier: (data: Omit<Supplier, "id" | "createdAt">) => void;
     updateSupplier: (id: string, patch: Partial<Supplier>) => void;
     addLocation: (data: Omit<Location, "id">) => void;
+    createReservation: (data: {
+      productId: string; locationId: string; qty: number;
+      source: ReservationSource; orderRef?: string; customerName?: string;
+      expiresAt?: string; note?: string;
+    }) => void;
+    releaseReservation: (id: string) => void;
+    fulfillReservation: (id: string) => void;
+    extendReservation: (id: string, expiresAt: string) => void;
     resetDemo: () => void;
   };
   // Computed helpers forwarded for convenience
@@ -445,7 +559,7 @@ interface InventoryContextValue extends InventoryState {
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
 // ── Persistence ────────────────────────────────────────────────────────────
-const STORAGE_KEY = "sellermap-inventory-v1";
+const STORAGE_KEY = "sellermap-inventory-v2";
 
 function loadPersistedState(): InventoryState | null {
   if (typeof window === "undefined") return null;
@@ -461,6 +575,7 @@ function loadPersistedState(): InventoryState | null {
       transfers: parsed.transfers ?? initialState.transfers,
       stocktakes: parsed.stocktakes ?? initialState.stocktakes,
       movements: parsed.movements ?? initialState.movements,
+      reservations: parsed.reservations ?? initialState.reservations,
     };
   } catch {
     return null;
@@ -472,6 +587,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   // localStorage on mount to avoid a hydration mismatch.
   const [state, dispatch] = useReducer(reducer, initialState);
   const hydrated = useRef(false);
+  // Latest-state ref so action creators can read current data without
+  // re-creating themselves on every state change.
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     const persisted = loadPersistedState();
@@ -580,6 +699,37 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       const location: Location = { ...data, id: uid("loc") };
       dispatch({ type: "ADD_LOCATION", location });
     }, []),
+    createReservation: useCallback((data) => {
+      const product = stateRef.current.products.find((p) => p.id === data.productId);
+      const reservation: Reservation = {
+        id: uid("res"),
+        productId: data.productId,
+        productName: product?.name ?? data.productId,
+        sku: product?.sku ?? "—",
+        locationId: data.locationId,
+        qty: data.qty,
+        source: data.source,
+        orderRef: data.orderRef,
+        customerName: data.customerName,
+        status: "active",
+        createdAt: new Date().toISOString().split("T")[0],
+        expiresAt: data.expiresAt,
+        note: data.note,
+      };
+      dispatch({ type: "CREATE_RESERVATION", reservation });
+    }, []),
+    releaseReservation: useCallback(
+      (id) => dispatch({ type: "RELEASE_RESERVATION", id }),
+      [],
+    ),
+    fulfillReservation: useCallback(
+      (id) => dispatch({ type: "FULFILL_RESERVATION", id }),
+      [],
+    ),
+    extendReservation: useCallback(
+      (id, expiresAt) => dispatch({ type: "EXTEND_RESERVATION", id, expiresAt }),
+      [],
+    ),
     resetDemo: useCallback(() => {
       if (typeof window !== "undefined") {
         try { window.localStorage.removeItem(STORAGE_KEY); } catch {}

@@ -85,6 +85,18 @@ export interface Location {
   address?: string; isDefault: boolean; capacity?: number;
 }
 
+export type ReservationStatus = "active" | "fulfilled" | "cancelled" | "expired";
+export type ReservationSource = "manual" | "wildberries" | "ozon" | "yandex_market" | "website" | "pos";
+
+export interface Reservation {
+  id: string;
+  productId: string; productName: string; sku: string;
+  locationId: string; qty: number;
+  source: ReservationSource; orderRef?: string; customerName?: string;
+  status: ReservationStatus;
+  createdAt: string; expiresAt?: string; fulfilledAt?: string; note?: string;
+}
+
 // ── Locations ───────────────────────────────────────────────────────────────
 export const LOCATIONS: Location[] = [
   { id: "loc-warehouse", name: "Основной склад",    type: "warehouse",     address: "Москва, ул. Складская, 1",  isDefault: true,  capacity: 5000 },
@@ -534,6 +546,20 @@ export const MOVEMENTS: StockMovement[] = [
   { id: "mv-008", type: "reserve",    productId: "prod-001", productName: "Органайзер для путешествий",   sku: "ORG-001",      qtyBefore: 110, qtyAfter: 110, qtyDelta:    0, locationId: "loc-warehouse", userId: "u-3", userName: "WB-Integration", createdAt: "2026-05-24T08:00:00Z",                                                           reason: "Резерв под заказ WB #45892" },
   { id: "mv-009", type: "receipt",    productId: "prod-008", productName: "Bluetooth наушники TW-Pro 500",sku: "TWS-500",      qtyBefore:   0, qtyAfter:  50, qtyDelta:   50, locationId: "loc-warehouse", userId: "u-1", userName: "Мария Иванова",  createdAt: "2026-05-05T11:00:00Z",                                                           reason: "Первая партия наушников" },
   { id: "mv-010", type: "sale",       productId: "prod-009", productName: "Протеиновый батончик «Заряд»", sku: "BAR-ZAR-001", qtyBefore: 542, qtyAfter: 530, qtyDelta:  -12, locationId: "loc-warehouse", userId: "u-3", userName: "WB-Integration", createdAt: "2026-05-24T09:15:00Z",                                                           reason: "Продажи через WB — 12 штук" },
+];
+
+// ── Reservations ──────────────────────────────────────────────────────────────
+export const RESERVATIONS: Reservation[] = [
+  { id: "res-001", productId: "prod-001", productName: "Органайзер для путешествий",   sku: "ORG-001",     locationId: "loc-warehouse", qty: 10, source: "wildberries",   orderRef: "WB-88234501", customerName: "Иван Петров",     status: "active", createdAt: "2026-05-23", expiresAt: "2026-05-27" },
+  { id: "res-002", productId: "prod-001", productName: "Органайзер для путешествий",   sku: "ORG-001",     locationId: "loc-warehouse", qty: 5,  source: "website",       orderRef: "WEB-10042",   customerName: "Анна Козлова",    status: "active", createdAt: "2026-05-25", expiresAt: "2026-05-26" },
+  { id: "res-003", productId: "prod-002", productName: "Футболка оверсайз хлопок",      sku: "TSH-OV-002",  locationId: "loc-warehouse", qty: 30, source: "ozon",          orderRef: "OZN-4491827", customerName: "Мария Сидорова",  status: "active", createdAt: "2026-05-24", expiresAt: "2026-05-29" },
+  { id: "res-004", productId: "prod-008", productName: "Bluetooth наушники TW-Pro 500", sku: "TWS-500",     locationId: "loc-warehouse", qty: 20, source: "yandex_market", orderRef: "YM-990123",   status: "active", createdAt: "2026-05-22", expiresAt: "2026-05-28" },
+  { id: "res-005", productId: "prod-009", productName: "Протеиновый батончик «Заряд» 60г", sku: "BAR-ZAR-001", locationId: "loc-warehouse", qty: 30, source: "wildberries", orderRef: "WB-88210000", status: "active", createdAt: "2026-05-24", expiresAt: "2026-05-25" },
+  { id: "res-006", productId: "prod-013", productName: "Детский конструктор 120 деталей", sku: "TOY-013",   locationId: "loc-warehouse", qty: 25, source: "manual",       customerName: "ООО Детский Мир", status: "active", createdAt: "2026-05-21", expiresAt: "2026-05-30", note: "Ожидают самовывоза" },
+  { id: "res-007", productId: "prod-017", productName: "Бутылка для воды Eco 750мл",    sku: "BTL-ECO-017", locationId: "loc-warehouse", qty: 50, source: "ozon",          orderRef: "OZN-4488000", status: "active", createdAt: "2026-05-20", expiresAt: "2026-05-27" },
+  { id: "res-008", productId: "prod-019", productName: "Зарядное устройство USB-C 65W", sku: "CHG-USB-019", locationId: "loc-warehouse", qty: 35, source: "wildberries",   orderRef: "WB-88299100", customerName: "Петр Волков",     status: "active", createdAt: "2026-05-23", expiresAt: "2026-05-28" },
+  { id: "res-009", productId: "prod-011", productName: "Термос нержавеющий 500мл",      sku: "THRM-011",    locationId: "loc-store",     qty: 8,  source: "pos",           orderRef: "POS-0091",    status: "fulfilled", createdAt: "2026-05-18", expiresAt: "2026-05-22", fulfilledAt: "2026-05-21" },
+  { id: "res-010", productId: "prod-007", productName: "Ежедневник A5 кожаный",         sku: "DRY-A5-007",  locationId: "loc-warehouse", qty: 4,  source: "manual",        customerName: "Корпоративный заказ", status: "active", createdAt: "2026-05-19", expiresAt: "2026-05-31" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
