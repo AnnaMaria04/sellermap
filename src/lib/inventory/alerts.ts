@@ -5,47 +5,57 @@ import {
   getAvailableStock,
 } from "@/mock/inventory";
 
+export type AlertSeverity = "critical" | "warning" | "info";
+export type AlertCategory = "stock" | "expiry" | "performance" | "system";
+
 export interface ComputedAlert {
   id: string;
-  type: "low_stock" | "out_of_stock" | "expiry_warning" | "reorder_triggered";
-  priority: "critical" | "high" | "medium";
   title: string;
-  body: string;
-  createdAt: string;
+  description: string;
+  severity: AlertSeverity;
+  category: AlertCategory;
   productId?: string;
+  actionLabel?: string;
+  actionHref?: string;
+  createdAt: string; // ISO string
 }
 
 export function computeAlerts(
   products: Product[],
   batches: InventoryBatch[],
 ): ComputedAlert[] {
-  const now = new Date().toISOString();
+  const alerts: ComputedAlert[] = [];
+  const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const alerts: ComputedAlert[] = [];
 
   products.filter((p) => p.status === "active").forEach((p) => {
     const status = getStockStatus(p);
     const available = getAvailableStock(p);
+
     if (status === "out_of_stock") {
       alerts.push({
         id: `oos-${p.id}`,
-        type: "out_of_stock",
-        priority: "critical",
         title: "Нет в наличии",
-        body: `«${p.name}» — остатки исчерпаны. Оформите закупку.`,
-        createdAt: now,
+        description: `«${p.name}» полностью отсутствует на складе`,
+        severity: "critical",
+        category: "stock",
         productId: p.id,
+        actionLabel: "Создать заказ",
+        actionHref: "/inventory/purchase-orders",
+        createdAt: new Date(now.getTime() - Math.random() * 86400000).toISOString(),
       });
     } else if (status === "low_stock") {
       alerts.push({
         id: `low-${p.id}`,
-        type: "low_stock",
-        priority: "high",
         title: "Мало товара",
-        body: `«${p.name}» (${p.sku}) — осталось ${available} шт.`,
-        createdAt: now,
+        description: `«${p.name}» (${p.sku}) — осталось ${available} шт.`,
+        severity: available <= 2 ? "critical" : "warning",
+        category: "stock",
         productId: p.id,
+        actionLabel: "Пополнить",
+        actionHref: "/inventory/purchase-orders",
+        createdAt: new Date(now.getTime() - Math.random() * 86400000).toISOString(),
       });
     }
   });
@@ -55,29 +65,38 @@ export function computeAlerts(
     const exp = new Date(b.expiryDate);
     exp.setHours(0, 0, 0, 0);
     const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
+
     if (days < 0) {
       alerts.push({
         id: `exp-${b.id}`,
-        type: "expiry_warning",
-        priority: "critical",
-        title: "Просроченная партия",
-        body: `Партия ${b.batchNumber} (${b.productName}, ${b.remainingQty} шт) — просрочена. Необходимо списать.`,
-        createdAt: now,
+        title: "Товар просрочен",
+        description: `Партия ${b.batchNumber} (${b.productName}, ${b.remainingQty} шт.) — просрочена. Необходимо списать.`,
+        severity: "critical",
+        category: "expiry",
         productId: b.productId,
+        actionLabel: "Списать",
+        actionHref: "/inventory/batches",
+        createdAt: new Date(now.getTime() - Math.random() * 3600000).toISOString(),
       });
     } else if (days <= 30) {
       alerts.push({
-        id: `exp-${b.id}`,
-        type: "expiry_warning",
-        priority: days <= 7 ? "critical" : "medium",
-        title: "Истекает срок годности",
-        body: `Партия ${b.batchNumber} (${b.productName}, ${b.remainingQty} шт) — истекает через ${days} дн.`,
-        createdAt: now,
+        id: `exp-soon-${b.id}`,
+        title: "Скоро истекает срок",
+        description: `Партия ${b.batchNumber} (${b.productName}, ${b.remainingQty} шт.) — истекает через ${days} дн.`,
+        severity: days <= 7 ? "critical" : "warning",
+        category: "expiry",
         productId: b.productId,
+        actionLabel: "Просмотреть",
+        actionHref: "/inventory/batches",
+        createdAt: new Date(now.getTime() - Math.random() * 3600000).toISOString(),
       });
     }
   });
 
-  const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
-  return alerts.sort((a, b) => order[a.priority] - order[b.priority]);
+  // Sort: critical first, then warning, then by createdAt desc
+  const sev: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
+  return alerts.sort((a, b) => {
+    if (sev[a.severity] !== sev[b.severity]) return sev[a.severity] - sev[b.severity];
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 }

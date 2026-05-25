@@ -36,8 +36,8 @@ interface WbPreview {
   brand?: string;
   category?: string;
   price?: number;
+  imageUrl?: string;
   photos?: { big?: string }[];
-  sizes?: { name: string }[];
 }
 
 type Tab = "basic" | "pricing" | "inventory" | "variants" | "shipping" | "labeling";
@@ -102,12 +102,16 @@ export function AddProductForm({ onClose, onSave }: Props) {
   const [batchNumber, setBatchNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
 
+  // Image
+  const [imageUrl, setImageUrl] = useState("");
+
   // WB Import
   const [showWbImport, setShowWbImport] = useState(false);
   const [wbNmId, setWbNmId] = useState("");
   const [wbLoading, setWbLoading] = useState(false);
   const [wbPreview, setWbPreview] = useState<WbPreview | null>(null);
   const [wbError, setWbError] = useState<string | null>(null);
+  const [wbSuccess, setWbSuccess] = useState(false);
 
   const priceNum = parseFloat(price) || 0;
   const costNum = parseFloat(costPrice) || 0;
@@ -156,10 +160,16 @@ export function AddProductForm({ onClose, onSave }: Props) {
     setWbLoading(true);
     setWbError(null);
     setWbPreview(null);
+    setWbSuccess(false);
     try {
       const res = await fetch(`/api/wb-product?nm=${encodeURIComponent(wbNmId.trim())}`);
       if (!res.ok) throw new Error("Товар не найден");
-      setWbPreview(await res.json());
+      const data = await res.json();
+      // Normalise imageUrl from photos array if not already a flat field
+      if (!data.imageUrl && data.photos?.length) {
+        data.imageUrl = data.photos[0].big ?? data.photos[0].c516x688 ?? undefined;
+      }
+      setWbPreview(data);
     } catch (e) {
       setWbError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -171,11 +181,13 @@ export function AddProductForm({ onClose, onSave }: Props) {
     if (!wbPreview) return;
     if (wbPreview.name) setName(wbPreview.name);
     if (wbPreview.category) setCategory(wbPreview.category);
-    if (wbPreview.brand) setTags((prev) => [...new Set([...prev, wbPreview!.brand!])]);
     if (wbPreview.price) setPrice(String(wbPreview.price));
+    if (wbPreview.imageUrl) setImageUrl(wbPreview.imageUrl);
     setShowWbImport(false);
     setWbPreview(null);
     setWbNmId("");
+    setWbSuccess(true);
+    setTimeout(() => setWbSuccess(false), 4000);
   }
 
   function handleSave() {
@@ -194,6 +206,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
       id: `prod-${Date.now()}`,
       name: name.trim(),
       description: description || undefined,
+      imageUrl: imageUrl || undefined,
       category: category || "Без категории",
       productType,
       status,
@@ -289,12 +302,13 @@ export function AddProductForm({ onClose, onSave }: Props) {
                 <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => setShowWbImport((v) => !v)}
+                    onClick={() => { setShowWbImport((v) => !v); setWbError(null); setWbPreview(null); }}
                     className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
                   >
                     <span className="flex items-center gap-2">
-                      <Download size={14} />
-                      Импортировать данные с Wildberries
+                      <Download size={14} className="text-[var(--c-blue)]" />
+                      <span className="text-[var(--c-blue)] font-semibold">Wildberries</span>
+                      <span>Импортировать с WB</span>
                     </span>
                     {showWbImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
@@ -304,43 +318,77 @@ export function AddProductForm({ onClose, onSave }: Props) {
                         <input
                           type="text"
                           value={wbNmId}
-                          onChange={(e) => setWbNmId(e.target.value)}
+                          onChange={(e) => { setWbNmId(e.target.value); setWbError(null); }}
                           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void fetchWbProduct())}
-                          placeholder="Артикул WB (nmId)"
-                          className="flex-1 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                          placeholder="Артикул WB: например, 12345678"
+                          className="flex-1 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-[var(--c-blue)] transition"
                         />
                         <button
                           type="button"
                           onClick={() => void fetchWbProduct()}
                           disabled={wbLoading || !wbNmId.trim()}
-                          className="rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] disabled:opacity-60"
+                          className="flex items-center gap-1.5 rounded-lg bg-[var(--c-blue)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
                         >
                           {wbLoading ? <Loader2 size={14} className="animate-spin" /> : "Найти"}
                         </button>
                       </div>
-                      {wbError && <p className="text-xs text-[var(--c-red)]">{wbError}</p>}
+                      {wbError && (
+                        <p className="text-xs font-medium text-[var(--c-red)]">{wbError}</p>
+                      )}
                       {wbPreview && (
-                        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-3 space-y-2">
-                          {wbPreview.photos?.[0]?.big && (
-                            <img src={wbPreview.photos[0].big} alt="" className="h-16 w-16 rounded object-cover" />
-                          )}
-                          <p className="text-sm font-medium text-[var(--c-text)]">{wbPreview.name}</p>
-                          <p className="text-xs text-[var(--c-text2)]">{wbPreview.brand} · {wbPreview.category}</p>
-                          {wbPreview.price && (
-                            <p className="text-xs text-[var(--c-text2)]">{wbPreview.price.toLocaleString("ru")} ₽</p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={applyWbData}
-                            className="rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890]"
-                          >
-                            Использовать данные
-                          </button>
+                        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-3">
+                          <div className="flex gap-3">
+                            {wbPreview.imageUrl ? (
+                              <img
+                                src={wbPreview.imageUrl}
+                                alt=""
+                                className="h-[60px] w-[60px] shrink-0 rounded-lg object-cover border border-[var(--c-border)]"
+                              />
+                            ) : (
+                              <div className="h-[60px] w-[60px] shrink-0 rounded-lg bg-[var(--c-bg3)] border border-[var(--c-border)] flex items-center justify-center text-[var(--c-text3)]">
+                                <Package size={20} />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <p className="text-sm font-medium text-[var(--c-text)] leading-snug">{wbPreview.name}</p>
+                              {wbPreview.category && (
+                                <p className="text-xs text-[var(--c-text2)]">Категория: {wbPreview.category}</p>
+                              )}
+                              {wbPreview.price != null && (
+                                <p className="text-xs text-[var(--c-text2)]">Цена: {wbPreview.price.toLocaleString("ru-RU")} ₽</p>
+                              )}
+                              {wbPreview.brand && (
+                                <p className="text-xs text-[var(--c-text2)]">Бренд: {wbPreview.brand}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={applyWbData}
+                              className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                            >
+                              <Check size={12} /> Использовать данные
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setWbPreview(null); setWbNmId(""); setWbError(null); }}
+                              className="rounded-lg border border-[var(--c-border2)] px-3 py-1.5 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                            >
+                              Отмена
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
+                {wbSuccess && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[var(--c-green)] bg-[var(--c-green-dim)] px-4 py-2.5">
+                    <Check size={14} className="shrink-0 text-[var(--c-green)]" />
+                    <p className="text-xs font-medium text-[var(--c-green)]">Данные загружены с Wildberries ✓</p>
+                  </div>
+                )}
 
                 <FormSection title="Название и описание">
                   <FormField label="Название товара" required>

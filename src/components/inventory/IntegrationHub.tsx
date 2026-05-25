@@ -36,6 +36,28 @@ import {
 
 type IntegrationStatus = "connected" | "disconnected" | "error" | "syncing";
 
+/** Returns a human-readable relative time string in Russian. */
+function relativeTime(isoOrStamp: string): string {
+  const now = Date.now();
+  // Support both ISO ("2024-01-01T12:00:00.000Z") and short stamps ("2024-01-01 12:00")
+  const parsed = isoOrStamp.includes("T") ? isoOrStamp : isoOrStamp.replace(" ", "T");
+  const then = new Date(parsed).getTime();
+  if (isNaN(then)) return isoOrStamp;
+  const diffMin = Math.round((now - then) / 60_000);
+  if (diffMin < 1) return "только что";
+  if (diffMin < 60) return `${diffMin} мин. назад`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `${diffH} ч. назад`;
+  const diffD = Math.round(diffH / 24);
+  return `${diffD} дн. назад`;
+}
+
+/** Returns last 4 chars of a credential value, masked as ****xxxx. */
+function maskCredential(value: string): string {
+  if (!value || value.length < 4) return "••••";
+  return `••••${value.slice(-4)}`;
+}
+
 /** A live, in-component representation of an established connection. */
 interface ConnectedIntegration {
   id: string;
@@ -154,6 +176,7 @@ export function IntegrationHub() {
   const { products, actions } = useInventory();
 
   const [integrations, setIntegrations] = useState<ConnectedIntegration[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState<ConnectedIntegration | null>(null);
   const [showAddPicker, setShowAddPicker] = useState(false);
   const [addKind, setAddKind] = useState<ChannelKind | null>(null);
@@ -172,14 +195,23 @@ export function IntegrationHub() {
   // Load persisted integrations on mount
   useEffect(() => {
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => {
       const userId = data.user?.id;
-      if (!userId) return;
-      loadIntegrations(supabase, userId).then((rows) => {
-        setIntegrations(rows.map(fromPersistedIntegration));
-      }).catch(() => {/* silently ignore — works offline */});
-    });
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
+      loadIntegrations(supabase, userId)
+        .then((rows) => {
+          setIntegrations(rows.map(fromPersistedIntegration));
+        })
+        .catch(() => {/* silently ignore — works offline */})
+        .finally(() => setIsLoading(false));
+    }).catch(() => setIsLoading(false));
   }, []);
 
   function resetAddForm() {
@@ -303,14 +335,25 @@ export function IntegrationHub() {
 
   function saveSettings() {
     if (!settingsOpen) return;
+    const updated: ConnectedIntegration = {
+      ...settingsOpen,
+      autoSync: editSettings.autoSync,
+      intervalMinutes: editSettings.interval,
+    };
     setIntegrations((list) =>
-      list.map((i) =>
-        i.id === settingsOpen.id
-          ? { ...i, autoSync: editSettings.autoSync, intervalMinutes: editSettings.interval }
-          : i,
-      ),
+      list.map((i) => (i.id === settingsOpen.id ? updated : i)),
     );
     setSettingsOpen(null);
+
+    // Persist updated settings to Supabase
+    const supabase = createClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        const userId = data.user?.id;
+        if (!userId) return;
+        saveIntegration(supabase, userId, toPersistedIntegration(updated)).catch(() => {});
+      });
+    }
   }
 
   function disconnect(id: string) {
@@ -355,7 +398,7 @@ export function IntegrationHub() {
         <div>
           <h2 className="text-xl font-semibold">Хаб интеграций</h2>
           <p style={{ color: "var(--c-text2)" }} className="text-sm mt-0.5">
-            {integrations.length} из {AVAILABLE_ADAPTERS.length} платформ подключено
+            {isLoading ? "Загрузка..." : `${integrations.length} из ${AVAILABLE_ADAPTERS.length} платформ подключено`}
           </p>
         </div>
         <button onClick={() => setShowAddPicker(true)}
