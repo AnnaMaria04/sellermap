@@ -21,6 +21,7 @@ import {
 import { LOCATIONS } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
+import { exportData } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 const BUSINESS_TYPES = [
@@ -236,7 +237,7 @@ const COST_METHODS: { value: SettingsState["costMethod"]; label: string; descrip
 ];
 
 export function InventorySettings() {
-  const { actions } = useInventory();
+  const { actions, products, movements, suppliers } = useInventory();
   const { profile, saveProfile } = useSellerProfile();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
@@ -275,7 +276,55 @@ export function InventorySettings() {
   }
 
   function handleExport(label: string) {
-    alert(`Экспорт: ${label} (демо-режим)`);
+    const today = new Date().toISOString().slice(0, 10);
+    if (label === "Все товары") {
+      exportData({
+        filename: `products_${today}`,
+        title: "Товары",
+        format: "excel",
+        columns: [
+          { key: "sku", label: "Артикул" },
+          { key: "name", label: "Название" },
+          { key: "category", label: "Категория" },
+          { key: "price", label: "Цена, ₽", align: "right" },
+          { key: "costPrice", label: "Себестоимость, ₽", align: "right" },
+          { key: "totalPhysical", label: "Остаток", align: "right" },
+          { key: "status", label: "Статус" },
+        ],
+        rows: products as unknown as Record<string, unknown>[],
+      });
+    } else if (label === "История движений") {
+      exportData({
+        filename: `movements_${today}`,
+        title: "История движений",
+        format: "csv",
+        columns: [
+          { key: "createdAt", label: "Дата" },
+          { key: "type", label: "Тип" },
+          { key: "sku", label: "Артикул" },
+          { key: "productName", label: "Товар" },
+          { key: "qtyDelta", label: "Изменение", align: "right" },
+          { key: "userName", label: "Пользователь" },
+        ],
+        rows: movements as unknown as Record<string, unknown>[],
+      });
+    } else if (label === "Поставщики") {
+      exportData({
+        filename: `suppliers_${today}`,
+        title: "Поставщики",
+        format: "excel",
+        columns: [
+          { key: "name", label: "Название" },
+          { key: "country", label: "Страна" },
+          { key: "city", label: "Город" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Телефон" },
+          { key: "leadTimeDays", label: "Срок, дн.", align: "right" },
+          { key: "rating", label: "Рейтинг", align: "right" },
+        ],
+        rows: suppliers as unknown as Record<string, unknown>[],
+      });
+    }
   }
 
   return (

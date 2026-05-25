@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-[var(--c-border)] bg-[rgba(12,14,15,0.92)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[var(--c-border)] bg-[var(--c-header)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 font-display text-sm font-semibold">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">

@@ -27,20 +27,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInventory } from "@/contexts/InventoryContext";
+import { exportData, type ExportFormat } from "@/lib/export";
+import { buildReportData, reportSummaryMeta, type ReportType } from "@/lib/inventory/reportData";
 
-type ReportType =
-  | "stock_balance"
-  | "turnover"
-  | "dead_stock"
-  | "reorder"
-  | "cost_analysis"
-  | "movement_history"
-  | "abc_analysis"
-  | "channel_sales"
-  | "margin_report"
-  | "supplier_performance";
-
-type ReportFormat = "excel" | "csv" | "pdf";
+type ReportFormat = ExportFormat;
 
 interface ReportTemplate {
   id: ReportType;
@@ -84,7 +74,20 @@ const TYPE_LABELS: Record<ReportType, string> = {
 };
 
 export function InventoryReportsPanel() {
-  const { products } = useInventory();
+  const { products, movements, purchaseOrders, suppliers } = useInventory();
+
+  function runExport(reportType: ReportType, reportName: string, fmt: ReportFormat) {
+    const data = buildReportData(reportType, { products, movements, purchaseOrders, suppliers });
+    exportData({
+      filename: `${reportType}_${new Date().toISOString().slice(0, 10)}`,
+      title: reportName,
+      subtitle: `Период: ${dateFrom} — ${dateTo}`,
+      columns: data.columns,
+      rows: data.rows,
+      format: fmt,
+      meta: reportSummaryMeta(reportType, data),
+    });
+  }
 
   const REPORT_TEMPLATES: ReportTemplate[] = [
     { id: "stock_balance", name: "Остатки товаров", description: "Текущие остатки по всем локациям и складам", icon: "Package", lastGenerated: "2026-05-24", estimatedRows: products.length },
@@ -125,6 +128,7 @@ export function InventoryReportsPanel() {
   const filteredTemplates = REPORT_TEMPLATES.filter(t => filterType === "all" || t.id === filterType);
 
   function startGenerate() {
+    if (!configReport) return;
     setGenerating(true);
     setProgress(0);
     setDone(false);
@@ -136,6 +140,7 @@ export function InventoryReportsPanel() {
         setProgress(100);
         setGenerating(false);
         setDone(true);
+        runExport(configReport.id, configReport.name, format);
       } else {
         setProgress(Math.round(p));
       }
@@ -363,7 +368,9 @@ export function InventoryReportsPanel() {
                     <CheckCircle size={16} style={{ color: "var(--c-green)" }} />
                     <span className="text-sm font-medium" style={{ color: "var(--c-green)" }}>Готово — скачать</span>
                   </div>
-                  <button style={{ color: "var(--c-blue)" }} className="flex items-center gap-1.5 text-sm hover:opacity-70">
+                  <button
+                    onClick={() => configReport && runExport(configReport.id, configReport.name, format)}
+                    style={{ color: "var(--c-blue)" }} className="flex items-center gap-1.5 text-sm hover:opacity-70">
                     <Download size={15} />
                     .{format}
                   </button>
@@ -400,7 +407,12 @@ export function InventoryReportsPanel() {
               </div>
               <div className="flex items-center gap-3">
                 <span style={{ background: "var(--c-bg3)", color: "var(--c-text2)" }} className="text-xs px-2 py-0.5 rounded-full uppercase">{r.format}</span>
-                <button style={{ color: "var(--c-blue)" }} className="text-xs flex items-center gap-1 hover:opacity-70">
+                <button
+                  onClick={() => {
+                    const tpl = REPORT_TEMPLATES.find((t) => t.name === r.name);
+                    if (tpl) runExport(tpl.id, tpl.name, r.format as ReportFormat);
+                  }}
+                  style={{ color: "var(--c-blue)" }} className="text-xs flex items-center gap-1 hover:opacity-70">
                   <Download size={13} />
                   Скачать
                 </button>

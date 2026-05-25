@@ -1,7 +1,8 @@
-import { Download, FileCheck2, Search } from "lucide-react";
+import { FileCheck2, Search } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRub } from "@/lib/utils";
+import { ExportResultButton } from "@/components/result/ExportResultButton";
 import type { ProductResult } from "@/lib/analysis/types";
 
 export function ResultHeader({ result }: { result: ProductResult }) {
@@ -51,10 +52,7 @@ export function ResultHeader({ result }: { result: ProductResult }) {
               <FileCheck2 size={16} />
               Сохранить отчёт
             </LinkButton>
-            <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-5 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]">
-              <Download size={16} />
-              Экспорт PDF
-            </button>
+            <ExportResultButton result={result} />
             <LinkButton href="/check">
               <Search size={16} />
               Проверить другой товар
