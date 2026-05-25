@@ -749,7 +749,7 @@ export function POSSellScreen() {
       <div className="fixed inset-0 z-[100] flex bg-[var(--c-bg)] overflow-hidden">
         {/* ── LEFT PANEL (product grid) ───────────────────────────────────── */}
         {/* On mobile: full width. On tablet+: 60% with right border */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--c-border)]">
+        <div className="flex-1 flex flex-col min-w-0 md:border-r border-[var(--c-border)]">
           {/* Top bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--c-border)] bg-[var(--c-bg2)] flex-shrink-0">
             <div className="flex items-center gap-2 mr-2">

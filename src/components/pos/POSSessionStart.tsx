@@ -68,8 +68,8 @@ export function POSSessionStart() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--c-bg)] p-4">
-      <div className="w-full max-w-md bg-[var(--c-bg2)] border border-[var(--c-border)] rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--c-bg)] p-4 pb-6">
+      <div className="w-full max-w-md min-h-screen md:min-h-0 bg-[var(--c-bg2)] border border-[var(--c-border)] rounded-2xl shadow-xl overflow-hidden flex flex-col md:block">
         {/* Header */}
         <div className="flex flex-col items-center gap-3 px-8 pt-8 pb-6 border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
           <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export function POSSessionStart() {
         </div>
 
         {/* Form */}
-        <div className="px-8 py-6 space-y-5">
+        <div className="flex-1 px-8 py-6 space-y-5">
           {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide">
@@ -95,7 +95,7 @@ export function POSSessionStart() {
             <select
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] focus:outline-none focus:border-[var(--c-green)] transition-colors appearance-none"
+              className="h-12 w-full px-3 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] focus:outline-none focus:border-[var(--c-green)] transition-colors appearance-none"
             >
               {storeLocations.map((loc) => (
                 <option key={loc.id} value={loc.id}>
@@ -115,7 +115,7 @@ export function POSSessionStart() {
               value={cashierName}
               onChange={(e) => setCashierName(e.target.value)}
               placeholder="Ваше имя"
-              className="w-full px-3 py-2.5 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors"
+              className="h-12 w-full px-3 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors"
             />
           </div>
 
@@ -131,7 +131,7 @@ export function POSSessionStart() {
                 value={openingCash}
                 onChange={(e) => setOpeningCash(e.target.value)}
                 placeholder="0"
-                className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors tabular-nums"
+                className="h-12 w-full pl-3 pr-8 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors tabular-nums"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--c-text3)]">
                 ₽
@@ -143,7 +143,7 @@ export function POSSessionStart() {
           <button
             type="button"
             onClick={handleStart}
-            className="w-full py-3 rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
+            className="h-14 w-full rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-lg font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
           >
             Начать смену
           </button>
