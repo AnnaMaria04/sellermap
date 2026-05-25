@@ -115,7 +115,7 @@ function ProductCard({
       type="button"
       onClick={handleClick}
       className={cn(
-        "relative flex flex-col gap-2 rounded-xl p-3 text-left transition-all duration-150 border",
+        "relative flex flex-col gap-2 rounded-xl p-3 text-left transition-all duration-150 border min-h-[44px]",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-green)]",
         outOfStock
           ? "border-[var(--c-border)] bg-[var(--c-bg2)] opacity-50 grayscale cursor-not-allowed"
@@ -496,6 +496,8 @@ export function POSSellScreen() {
   });
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Mobile cart bottom sheet state
+  const [cartOpen, setCartOpen] = useState(false);
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
@@ -577,6 +579,12 @@ export function POSSellScreen() {
     cart.length > 0 &&
     !isProcessing &&
     (paymentMethod !== "cash" || cashTenderedNum >= total);
+
+  const cartItemCount = useMemo(
+    () => cart.reduce((s, i) => s + i.qty, 0),
+    [cart],
+  );
+  const formatTotal = fmt(total);
 
   // ── Cart actions ───────────────────────────────────────────────────────────
 
@@ -739,7 +747,8 @@ export function POSSellScreen() {
       {receipt && <ReceiptModal receipt={receipt} onNewSale={handleNewSale} />}
 
       <div className="fixed inset-0 z-[100] flex bg-[var(--c-bg)] overflow-hidden">
-        {/* ── LEFT PANEL ─────────────────────────────────────────────────── */}
+        {/* ── LEFT PANEL (product grid) ───────────────────────────────────── */}
+        {/* On mobile: full width. On tablet+: 60% with right border */}
         <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--c-border)]">
           {/* Top bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--c-border)] bg-[var(--c-bg2)] flex-shrink-0">
@@ -801,7 +810,7 @@ export function POSSellScreen() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск по названию, артикулу, штрихкоду..."
-                className="w-full pl-9 pr-9 py-2 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors"
+                className="h-11 w-full pl-9 pr-9 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors"
               />
               {searchQuery && (
                 <button
@@ -844,7 +853,7 @@ export function POSSellScreen() {
                 <p className="text-sm">Товары не найдены</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {sortedProducts.map((p) => (
                   <ProductCard
                     key={p.id}
@@ -858,8 +867,8 @@ export function POSSellScreen() {
           </div>
         </div>
 
-        {/* ── RIGHT PANEL (CART) ─────────────────────────────────────────── */}
-        <div className="w-96 flex-shrink-0 flex flex-col bg-[var(--c-bg2)]">
+        {/* ── RIGHT PANEL (CART) — tablet+: fixed 40% sidebar ─────────── */}
+        <div className="hidden md:flex md:w-[40%] flex-shrink-0 flex-col bg-[var(--c-bg2)]">
           {/* Cart header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)] flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -867,7 +876,7 @@ export function POSSellScreen() {
               <span className="font-semibold text-sm text-[var(--c-text)]">Корзина</span>
               {cart.length > 0 && (
                 <span className="text-xs bg-[var(--c-green-dim)] text-[var(--c-green)] px-1.5 py-0.5 rounded-full font-medium">
-                  {cart.reduce((s, i) => s + i.qty, 0)} шт
+                  {cartItemCount} шт
                 </span>
               )}
             </div>
@@ -953,7 +962,7 @@ export function POSSellScreen() {
                   value={discount.value}
                   onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))}
                   placeholder={discount.mode === "pct" ? "0" : "0"}
-                  className="w-full px-3 py-1.5 rounded-lg bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-amber)] transition-colors tabular"
+                  className="w-full px-3 py-1.5 rounded-lg bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-amber)] transition-colors tabular"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--c-text3)]">
                   {discount.mode === "pct" ? "%" : "₽"}
@@ -1019,7 +1028,7 @@ export function POSSellScreen() {
                     value={cashTendered}
                     onChange={(e) => setCashTendered(e.target.value)}
                     placeholder={total > 0 ? String(Math.ceil(total)) : "0"}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors tabular"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors tabular"
                   />
                 </div>
                 {cashTenderedNum > 0 && cashTenderedNum >= total && (
@@ -1089,6 +1098,223 @@ export function POSSellScreen() {
           </div>
         </div>
       </div>
+
+      {/* ── MOBILE: Floating cart button ────────────────────────────────────── */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-6 right-4 z-40 md:hidden">
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-[var(--c-green)] px-4 py-3 text-sm font-semibold text-white shadow-lg"
+          >
+            <ShoppingCart size={18} />
+            <span>{cartItemCount} шт</span>
+            <span className="font-bold">{formatTotal}</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── MOBILE: Cart bottom sheet ────────────────────────────────────────── */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setCartOpen(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 flex h-[80vh] flex-col rounded-t-2xl bg-[var(--c-bg)] shadow-2xl overflow-hidden">
+            {/* Drag handle */}
+            <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+              <div className="h-1 w-10 rounded-full bg-[var(--c-border2)]" />
+            </div>
+            {/* Bottom sheet header */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--c-border)] flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-[var(--c-text2)]" />
+                <span className="font-semibold text-sm text-[var(--c-text)]">Корзина</span>
+                {cartItemCount > 0 && (
+                  <span className="text-xs bg-[var(--c-green-dim)] text-[var(--c-green)] px-1.5 py-0.5 rounded-full font-medium">
+                    {cartItemCount} шт
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--c-text3)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Cart items list */}
+            <div className="flex-1 overflow-y-auto px-4 bg-[var(--c-bg2)]">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 gap-3 text-[var(--c-text3)]">
+                  <ShoppingCart className="w-8 h-8 opacity-30" />
+                  <p className="text-sm text-center">Добавьте товары из каталога</p>
+                </div>
+              ) : (
+                <div>
+                  {cart.map((item) => (
+                    <CartRow
+                      key={item.product.id}
+                      item={item}
+                      maxQty={getAvailable(item.product)}
+                      onInc={() => incQty(item.product.id)}
+                      onDec={() => decQty(item.product.id)}
+                      onRemove={() => removeFromCart(item.product.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Payment section */}
+            <div className="flex-shrink-0 border-t border-[var(--c-border)] bg-[var(--c-bg2)]">
+              {/* Discount */}
+              <div className="px-4 pt-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-3.5 h-3.5 text-[var(--c-text3)]" />
+                  <span className="text-xs text-[var(--c-text3)] flex-1">Скидка</span>
+                  <div className="flex rounded-lg overflow-hidden border border-[var(--c-border)] text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDiscount((d) => ({ ...d, mode: "amount" }))}
+                      className={cn(
+                        "px-2.5 py-1 transition-colors",
+                        discount.mode === "amount"
+                          ? "bg-[var(--c-green)] text-[var(--c-bg)] font-medium"
+                          : "text-[var(--c-text3)]",
+                      )}
+                    >
+                      ₽
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscount((d) => ({ ...d, mode: "pct" }))}
+                      className={cn(
+                        "px-2.5 py-1 transition-colors border-l border-[var(--c-border)]",
+                        discount.mode === "pct"
+                          ? "bg-[var(--c-green)] text-[var(--c-bg)] font-medium"
+                          : "text-[var(--c-text3)]",
+                      )}
+                    >
+                      <Percent className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-1.5 relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max={discount.mode === "pct" ? 100 : undefined}
+                    value={discount.value}
+                    onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))}
+                    placeholder="0"
+                    className="h-11 w-full px-3 rounded-lg bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-amber)] transition-colors tabular"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--c-text3)]">
+                    {discount.mode === "pct" ? "%" : "₽"}
+                  </span>
+                </div>
+              </div>
+              {/* Totals */}
+              <div className="px-4 pb-2 space-y-1">
+                <div className="flex justify-between text-sm text-[var(--c-text2)]">
+                  <span>Подытог</span>
+                  <span className="tabular">{fmt(subtotal)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-[var(--c-amber)]">
+                    <span>Скидка</span>
+                    <span className="tabular">−{fmt(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-base text-[var(--c-text)] pt-1 border-t border-[var(--c-border)]">
+                  <span>Итого</span>
+                  <span className="tabular text-[var(--c-green)]">{fmt(total)}</span>
+                </div>
+              </div>
+              {/* Payment method */}
+              <div className="px-4 pb-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      { id: "cash", label: "Наличные", Icon: Banknote },
+                      { id: "card", label: "Карта", Icon: CreditCard },
+                      { id: "sbp", label: "СБП", Icon: Smartphone },
+                    ] as const
+                  ).map(({ id, label, Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPaymentMethod(id)}
+                      className={cn(
+                        "flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all",
+                        paymentMethod === id
+                          ? "border-[var(--c-green)] bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                          : "border-[var(--c-border)] bg-[var(--c-bg3)] text-[var(--c-text2)]",
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Cash input */}
+              {paymentMethod === "cash" && (
+                <div className="px-4 pb-2 space-y-2">
+                  <input
+                    type="number"
+                    min={total}
+                    value={cashTendered}
+                    onChange={(e) => setCashTendered(e.target.value)}
+                    placeholder={total > 0 ? String(Math.ceil(total)) : "Внесено покупателем, ₽"}
+                    className="h-11 w-full px-3 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-green)] transition-colors tabular"
+                  />
+                  {cashTenderedNum > 0 && cashTenderedNum >= total && (
+                    <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-[var(--c-amber-dim)] border border-[var(--c-amber)]/30">
+                      <span className="text-sm text-[var(--c-amber)]">Сдача</span>
+                      <span className="text-sm font-semibold text-[var(--c-amber)] tabular">{fmt(change)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Pay button */}
+              <div className="px-4 pb-4">
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={!canPay}
+                  className={cn(
+                    "w-full h-12 rounded-xl text-base font-semibold transition-all flex items-center justify-center gap-2",
+                    canPay
+                      ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90 active:scale-[0.98]"
+                      : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed border border-[var(--c-border)]",
+                  )}
+                >
+                  {isProcessing ? (
+                    <>
+                      <span className="w-4 h-4 rounded-full border-2 border-[var(--c-bg)] border-t-transparent animate-spin" />
+                      Проводим...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      {cart.length === 0
+                        ? "Добавьте товары"
+                        : paymentMethod === "cash" && cashTendered === ""
+                          ? "Введите сумму"
+                          : paymentMethod === "cash" && cashTenderedNum < total
+                            ? "Недостаточно средств"
+                            : "Провести продажу"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

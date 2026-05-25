@@ -106,6 +106,14 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const BOTTOM_TABS = [
+  { icon: Home, label: "Обзор", href: "/inventory" as string | null },
+  { icon: Package, label: "Товары", href: "/inventory/products" as string | null },
+  { icon: ShoppingCart, label: "Касса", href: "/pos" as string | null },
+  { icon: Truck, label: "Закупки", href: "/inventory/purchase-orders" as string | null },
+  { icon: Menu, label: "Ещё", href: null as string | null },
+] as const;
+
 interface Props {
   children: React.ReactNode;
   title?: string;
@@ -136,7 +144,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                 href={href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+                  "flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium transition",
                   active
                     ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
                     : "text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
@@ -212,8 +220,11 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)]">
                 <span className="text-sm font-semibold text-[var(--c-text)]">Меню склада</span>
-                <button onClick={() => setMobileOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
-                  <X size={16} />
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition"
+                >
+                  <X size={18} />
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
@@ -227,14 +238,14 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
         {/* Main column */}
         <div className="min-w-0 flex-1">
           {/* Mobile nav trigger */}
-          <div className="flex items-center gap-3 border-b border-[var(--c-border)] px-4 py-3 lg:hidden">
+          <div className="flex items-center gap-3 border-b border-[var(--c-border)] px-4 py-2 lg:hidden">
             <button
               onClick={() => setMobileOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
             >
-              <Menu size={18} />
+              <Menu size={20} />
             </button>
-            <span className="text-sm font-medium text-[var(--c-text)]">{currentLabel}</span>
+            <span className="text-sm font-semibold text-[var(--c-text)] truncate">{currentLabel}</span>
           </div>
 
           {/* Page header */}
@@ -242,8 +253,8 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
             <div className="border-b border-[var(--c-border)] bg-[var(--c-bg2)]">
               <div className="px-4 py-5 sm:px-6 lg:px-8">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    {title && <h1 className="text-xl font-semibold text-[var(--c-text)]">{title}</h1>}
+                  <div className="min-w-0">
+                    {title && <h1 className="text-xl font-semibold text-[var(--c-text)] truncate">{title}</h1>}
                     {subtitle && <p className="mt-0.5 text-sm text-[var(--c-text2)]">{subtitle}</p>}
                   </div>
                   {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -253,9 +264,44 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
           )}
 
           {/* Body */}
-          <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <main className="overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:px-8 lg:pb-6">{children}</main>
         </div>
       </div>
+
+      {/* Bottom tab bar — fixed, only shown at <768px */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-[var(--c-border)] bg-[var(--c-bg2)] lg:hidden">
+        {BOTTOM_TABS.map(({ icon: Icon, label, href }) => {
+          const isActive = href !== null && isItemActive(pathname, href);
+          const isMore = href === null;
+
+          if (isMore) {
+            return (
+              <button
+                key={label}
+                onClick={() => setMobileOpen(true)}
+                className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-[var(--c-text3)] hover:text-[var(--c-text)] transition"
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={label}
+              href={href as string}
+              className={cn(
+                "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition",
+                isActive ? "text-[var(--c-green)]" : "text-[var(--c-text3)] hover:text-[var(--c-text)]",
+              )}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

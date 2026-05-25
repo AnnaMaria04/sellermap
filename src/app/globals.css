@@ -188,3 +188,27 @@ body {
   border-color: var(--c-green);
   background: var(--c-green-dim);
 }
+
+/* Mobile optimization — prevent horizontal overflow everywhere */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure all inputs are at least 16px to prevent iOS auto-zoom */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Safe area padding for devices with home indicator */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Touch action for smoother scrolling */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

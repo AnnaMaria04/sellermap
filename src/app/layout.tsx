@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geologica, Unbounded } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
@@ -21,6 +21,12 @@ export const metadata: Metadata = {
   title: "SellerMap",
   description:
     "Инструмент анализа товаров для продавцов Wildberries и Ozon.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

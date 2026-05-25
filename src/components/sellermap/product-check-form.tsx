@@ -166,7 +166,7 @@ export function ProductCheckForm() {
 
   /* ── Render ─────────────────────────────────────────────── */
   return (
-    <Card className="p-6 lg:p-8">
+    <Card className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
@@ -183,42 +183,50 @@ export function ProductCheckForm() {
         </span>
       </div>
 
-      {/* Step progress */}
-      <div className="mb-6 flex items-center gap-2">
-        {STEPS.map((label, idx) => (
-          <div key={label} className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => idx < step && setStep(idx)}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition
-                ${idx === step
-                  ? "bg-[var(--c-green)] text-[var(--c-bg)]"
-                  : idx < step
-                  ? "cursor-pointer bg-[var(--c-green-dim)] text-[var(--c-green)]"
-                  : "bg-[var(--c-bg3)] text-[var(--c-text3)]"
-                }`}
-            >
-              {idx + 1}
-            </button>
-            <span className={`text-xs font-medium hidden sm:block ${idx === step ? "text-[var(--c-text)]" : "text-[var(--c-text3)]"}`}>
-              {label}
-            </span>
-            {idx < STEPS.length - 1 && (
-              <ChevronRight size={14} className="text-[var(--c-border2)]" />
-            )}
-          </div>
-        ))}
+      {/* Step progress — full bar on sm+, compact text on mobile */}
+      <div className="mb-6">
+        {/* Mobile: compact step indicator */}
+        <p className="text-sm font-medium text-[var(--c-text2)] sm:hidden">
+          Шаг {step + 1} из {STEPS.length} — <span className="text-[var(--c-text)]">{STEPS[step]}</span>
+        </p>
+        {/* Desktop: full progress bar */}
+        <div className="hidden items-center gap-2 sm:flex">
+          {STEPS.map((label, idx) => (
+            <div key={label} className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => idx < step && setStep(idx)}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition
+                  ${idx === step
+                    ? "bg-[var(--c-green)] text-[var(--c-bg)]"
+                    : idx < step
+                    ? "cursor-pointer bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                    : "bg-[var(--c-bg3)] text-[var(--c-text3)]"
+                  }`}
+              >
+                {idx + 1}
+              </button>
+              <span className={`text-xs font-medium ${idx === step ? "text-[var(--c-text)]" : "text-[var(--c-text3)]"}`}>
+                {label}
+              </span>
+              {idx < STEPS.length - 1 && (
+                <ChevronRight size={14} className="text-[var(--c-border2)]" />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Step 0: Товар / Supplier ── */}
       {step === 0 && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="md:col-span-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <label className="sm:col-span-2">
             <span className="mb-2 block text-sm font-medium text-[var(--c-text)]">
               Ссылка на товар Wildberries
             </span>
             <div className="relative">
               <Input
+                className="h-11 text-base"
                 placeholder="https://wildberries.ru/catalog/178293402/detail.aspx"
                 {...productUrl}
                 onChange={(event) => {
@@ -233,7 +241,7 @@ export function ProductCheckForm() {
           </label>
 
           {preview && (
-            <div className="md:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+            <div className="sm:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
               <div className="flex gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
                   <Package size={20} />
@@ -260,50 +268,50 @@ export function ProductCheckForm() {
           )}
 
           <Field label="Название товара *" error={errors.productName?.message}>
-            <Input {...register("productName")} />
+            <Input className="h-11 text-base" {...register("productName")} />
           </Field>
           <Field label="Категория / ниша">
-            <Input {...register("category")} />
+            <Input className="h-11 text-base" {...register("category")} />
           </Field>
           <Field label="Себестоимость (₽)">
-            <Input type="number" {...register("purchaseCost")} />
+            <Input className="h-11 text-base" type="number" {...register("purchaseCost")} />
           </Field>
           <Field label="Планируемая цена продажи (₽)">
-            <Input type="number" {...register("sellingPrice")} />
+            <Input className="h-11 text-base" type="number" {...register("sellingPrice")} />
           </Field>
           <Field label="Стоимость упаковки (₽/шт)">
-            <Input type="number" {...register("packagingCost")} />
+            <Input className="h-11 text-base" type="number" {...register("packagingCost")} />
           </Field>
           <Field label="Вес (кг)">
-            <Input placeholder="0.4" {...register("weight")} />
+            <Input className="h-11 text-base" placeholder="0.4" {...register("weight")} />
           </Field>
-          <label className="md:col-span-2">
+          <label className="sm:col-span-2">
             <span className="mb-2 block text-sm font-medium text-[var(--c-text)]">
               Габариты (см)
             </span>
-            <Input placeholder="30 x 20 x 8" {...register("dimensions")} />
+            <Input className="h-11 text-base" placeholder="30 x 20 x 8" {...register("dimensions")} />
           </label>
         </div>
       )}
 
       {/* ── Step 1: Рынок / Market ── */}
       {step === 1 && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Field label="Комиссия маркетплейса (%)">
-            <Input type="number" {...register("marketCommission")} />
+            <Input className="h-11 text-base" type="number" {...register("marketCommission")} />
           </Field>
           <Field label="Логистика WB (₽/шт)">
-            <Input type="number" {...register("logistics")} />
+            <Input className="h-11 text-base" type="number" {...register("logistics")} />
           </Field>
           <Field label="Резерв рекламы (₽/шт)">
-            <Input type="number" {...register("adsReserve")} />
+            <Input className="h-11 text-base" type="number" {...register("adsReserve")} />
           </Field>
           <Field label="Резерв возвратов (₽/шт)">
-            <Input type="number" {...register("returnReserve")} />
+            <Input className="h-11 text-base" type="number" {...register("returnReserve")} />
           </Field>
 
           {/* WB API connection widget */}
-          <div className="md:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+          <div className="sm:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
             <p className="text-sm font-semibold text-[var(--c-text)]">WB API</p>
             <p className="mt-1 text-xs text-[var(--c-text3)]">
               Нажмите, чтобы проверить доступность WB API. Реальный артикул не нужен.
@@ -364,7 +372,7 @@ export function ProductCheckForm() {
 
       {/* ── Step 3: Итог / Summary ── */}
       {step === 3 && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <SummaryRow label="Товар" value={watch("productName")} />
           <SummaryRow label="Категория" value={watch("category") ?? "—"} />
           <SummaryRow
@@ -391,7 +399,7 @@ export function ProductCheckForm() {
             label="Резерв рекламы"
             value={watch("adsReserve") ? formatRub(Number(watch("adsReserve"))) : "—"}
           />
-          <div className="md:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-green-dim)] p-4 text-sm text-[var(--c-green)]">
+          <div className="sm:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-green-dim)] p-4 text-sm text-[var(--c-green)]">
             Всё готово. Нажмите «Смотреть результат» — данные будут сохранены
             и переданы на страницу анализа.
           </div>
@@ -399,21 +407,21 @@ export function ProductCheckForm() {
       )}
 
       {/* Navigation buttons */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           {step > 0 && (
-            <Button variant="secondary" type="button" onClick={() => setStep(step - 1)}>
+            <Button variant="secondary" type="button" onClick={() => setStep(step - 1)} className="w-full sm:w-auto">
               Назад
             </Button>
           )}
           {step === 0 && (
-            <Button variant="secondary" type="button">
+            <Button variant="secondary" type="button" className="w-full sm:w-auto">
               <Upload size={16} />
               Загрузить CSV
             </Button>
           )}
           {step === 0 && (
-            <Button variant="secondary" type="button">
+            <Button variant="secondary" type="button" className="w-full sm:w-auto">
               <Database size={16} />
               Подключить Wildberries API
             </Button>
@@ -424,6 +432,7 @@ export function ProductCheckForm() {
           type="button"
           onClick={advance}
           disabled={isNextDisabled}
+          className="w-full sm:w-auto"
         >
           {step < 3 ? (
             <>

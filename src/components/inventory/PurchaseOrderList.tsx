@@ -109,14 +109,14 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
             placeholder="Поиск по номеру, поставщику, товару..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
+            className="h-11 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as PurchaseOrderStatus | "all")}
-          className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
+          className="h-11 min-w-[44px] rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
         >
           <option value="all">Все статусы</option>
           {Object.entries(PO_STATUS_LABELS).map(([v, l]) => (
@@ -127,7 +127,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
         <select
           value={supplierFilter}
           onChange={(e) => setSupplierFilter(e.target.value)}
-          className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
+          className="h-11 min-w-[44px] rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
         >
           <option value="all">Все поставщики</option>
           {suppliers.map((s) => (
@@ -136,116 +136,158 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
         </select>
 
         <div className="ml-auto flex gap-2">
-          <button className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+          <button className="flex h-11 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
             <Download size={14} />
-            Экспорт
+            <span className="hidden sm:inline">Экспорт</span>
           </button>
           <button
             onClick={onCreatePO}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
           >
             <Plus size={15} />
-            Создать заказ
+            <span className="hidden sm:inline">Создать заказ</span>
+            <span className="sm:hidden">Создать</span>
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--c-border)]">
-                <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Номер / Поставщик</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Статус</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Товары</th>
-                <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text2)]">Сумма</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Ожид. поставка</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Оплата</th>
-                <th className="w-10 px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((po) => (
-                <tr
-                  key={po.id}
-                  className="group border-b border-[var(--c-border)] transition last:border-0 hover:bg-[var(--c-bg3)] cursor-pointer"
-                  onClick={() => setSelectedPO(po)}
-                >
-                  <td className="px-5 py-4">
-                    <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
-                    <p className="text-xs text-[var(--c-text3)] mt-0.5">{po.supplierName}</p>
-                    <p className="text-xs text-[var(--c-text3)]">от {formatDate(po.createdAt)}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <POStatusBadge status={po.status} />
-                      {isOverdue(po) && po.expectedArrival && (
-                        <OverdueBadge expectedArrival={po.expectedArrival} />
-                      )}
-                    </div>
-                    {po.status === "partially_received" && (
-                      <div className="mt-1.5">
-                        <ReceiveProgress items={po.items} />
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="space-y-1">
-                      {po.items.slice(0, 2).map((item, i) => (
-                        <p key={i} className="text-xs text-[var(--c-text2)]">
-                          {item.productName} × {item.qty}
-                        </p>
-                      ))}
-                      {po.items.length > 2 && (
-                        <p className="text-xs text-[var(--c-text3)]">+{po.items.length - 2} ещё</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-right tabular">
-                    <p className="text-sm font-semibold text-[var(--c-text)]">
-                      {po.totalAmount.toLocaleString("ru-RU")} ₽
-                    </p>
-                  </td>
-                  <td className="px-5 py-4">
-                    {po.expectedArrival ? (
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-[var(--c-text3)]" />
-                        <span className="text-xs text-[var(--c-text2)]">{formatDate(po.expectedArrival)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[var(--c-text3)]">—</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    <PaymentBadge status={po.paymentStatus ?? "unpaid"} />
-                  </td>
-                  <td className="px-5 py-4">
-                    <ChevronRight size={16} className="text-[var(--c-text3)] opacity-0 group-hover:opacity-100 transition" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && (
-          <EmptyState
-            icon={<Package size={24} />}
-            title="Нет заказов поставщикам"
-            description="Заказы не найдены. Измените фильтры или создайте новый заказ поставщику."
-            action={
+      {/* Mobile card list — shown only at <768px */}
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Package size={24} />}
+          title="Нет заказов поставщикам"
+          description="Заказы не найдены. Измените фильтры или создайте новый заказ поставщику."
+          action={
+            <button
+              onClick={onCreatePO}
+              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            >
+              <Plus size={15} />
+              Создать заказ
+            </button>
+          }
+          className="m-4"
+        />
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="space-y-2 md:hidden">
+            {filtered.map((po) => (
               <button
-                onClick={onCreatePO}
-                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                key={po.id}
+                onClick={() => setSelectedPO(po)}
+                className="w-full text-left flex flex-col gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4 active:bg-[var(--c-bg3)] transition"
               >
-                <Plus size={15} />
-                Создать заказ
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--c-text)]">{po.id.toUpperCase()}</p>
+                    <p className="text-xs text-[var(--c-text3)] truncate">{po.supplierName}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-[var(--c-text)] shrink-0 tabular">
+                    {po.totalAmount.toLocaleString("ru-RU")} ₽
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <POStatusBadge status={po.status} />
+                  {isOverdue(po) && po.expectedArrival && (
+                    <OverdueBadge expectedArrival={po.expectedArrival} />
+                  )}
+                  <PaymentBadge status={po.paymentStatus ?? "unpaid"} />
+                </div>
+                {po.expectedArrival && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={12} className="text-[var(--c-text3)]" />
+                    <span className="text-xs text-[var(--c-text2)]">Ожид.: {formatDate(po.expectedArrival)}</span>
+                  </div>
+                )}
+                {po.status === "partially_received" && (
+                  <ReceiveProgress items={po.items} />
+                )}
               </button>
-            }
-            className="m-4"
-          />
-        )}
-      </div>
+            ))}
+          </div>
+
+          {/* Desktop table — hidden on mobile */}
+          <div className="hidden md:block overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--c-border)]">
+                    <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Номер / Поставщик</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Статус</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Товары</th>
+                    <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text2)]">Сумма</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Ожид. поставка</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Оплата</th>
+                    <th className="w-10 px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((po) => (
+                    <tr
+                      key={po.id}
+                      className="group border-b border-[var(--c-border)] transition last:border-0 hover:bg-[var(--c-bg3)] cursor-pointer"
+                      onClick={() => setSelectedPO(po)}
+                    >
+                      <td className="px-5 py-4">
+                        <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
+                        <p className="text-xs text-[var(--c-text3)] mt-0.5 truncate">{po.supplierName}</p>
+                        <p className="text-xs text-[var(--c-text3)]">от {formatDate(po.createdAt)}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <POStatusBadge status={po.status} />
+                          {isOverdue(po) && po.expectedArrival && (
+                            <OverdueBadge expectedArrival={po.expectedArrival} />
+                          )}
+                        </div>
+                        {po.status === "partially_received" && (
+                          <div className="mt-1.5">
+                            <ReceiveProgress items={po.items} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="space-y-1">
+                          {po.items.slice(0, 2).map((item, i) => (
+                            <p key={i} className="text-xs text-[var(--c-text2)] truncate max-w-[200px]">
+                              {item.productName} × {item.qty}
+                            </p>
+                          ))}
+                          {po.items.length > 2 && (
+                            <p className="text-xs text-[var(--c-text3)]">+{po.items.length - 2} ещё</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-right tabular">
+                        <p className="text-sm font-semibold text-[var(--c-text)]">
+                          {po.totalAmount.toLocaleString("ru-RU")} ₽
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        {po.expectedArrival ? (
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-[var(--c-text3)]" />
+                            <span className="text-xs text-[var(--c-text2)]">{formatDate(po.expectedArrival)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[var(--c-text3)]">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <PaymentBadge status={po.paymentStatus ?? "unpaid"} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <ChevronRight size={16} className="text-[var(--c-text3)] opacity-0 group-hover:opacity-100 transition" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Detail panel */}
       {selectedPO && (

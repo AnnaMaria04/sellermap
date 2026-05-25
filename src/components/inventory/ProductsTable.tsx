@@ -170,7 +170,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
             placeholder="Поиск по названию, SKU, штрихкоду..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
+            className="h-11 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text3)] hover:text-[var(--c-text)]">
@@ -183,7 +183,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
-            "flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition",
+            "flex h-9 min-w-[44px] items-center gap-2 rounded-lg border px-3 text-sm font-medium transition",
             showFilters || activeFilterCount > 0
               ? "border-[var(--c-green)] bg-[var(--c-green-dim)] text-[var(--c-green)]"
               : "border-[var(--c-border2)] bg-transparent text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]",
@@ -220,7 +220,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
           </button>
           <button
             onClick={onAddProduct}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
+            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
           >
             <Plus size={15} />
             Добавить товар
@@ -304,196 +304,234 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
         </p>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--c-border)]">
-                <th className="w-10 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    className="h-4 w-4 rounded border-[var(--c-border2)] bg-[var(--c-bg3)] accent-[var(--c-green)]"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <SortButton col="name" label="Товар" />
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <span className="text-xs font-medium text-[var(--c-text2)]">Статус</span>
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <span className="text-xs font-medium text-[var(--c-text2)]">Наличие</span>
-                </th>
-                <th className="px-4 py-3 text-right">
-                  <SortButton col="stock" label="Остаток" />
-                </th>
-                <th className="px-4 py-3 text-right">
-                  <SortButton col="price" label="Цена" />
-                </th>
-                <th className="px-4 py-3 text-right">
-                  <SortButton col="costPrice" label="Себест." />
-                </th>
-                <th className="px-4 py-3 text-right">
-                  <SortButton col="margin" label="Маржа" />
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <span className="text-xs font-medium text-[var(--c-text2)]">Тип</span>
-                </th>
-                <th className="w-12 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((product) => {
-                const available = getAvailableStock(product);
-                const stockStatus = getStockStatus(product);
-                const isSelected = selected.has(product.id);
-
-                return (
-                  <tr
-                    key={product.id}
-                    className={cn(
-                      "group border-b border-[var(--c-border)] transition last:border-0 hover:bg-[var(--c-bg3)]",
-                      isSelected && "bg-[var(--c-green-dim)]",
+      {/* Mobile card list — shown only at <768px */}
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Package size={24} />}
+          title="Товары не найдены"
+          description="Попробуйте изменить фильтры или поиск, либо добавьте новый товар."
+          action={
+            <button
+              onClick={onAddProduct}
+              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
+            >
+              <Plus size={15} />
+              Добавить товар
+            </button>
+          }
+          className="m-4"
+        />
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="space-y-2 md:hidden">
+            {filtered.map((product) => {
+              const stockStatus = getStockStatus(product);
+              return (
+                <Link
+                  href={`/inventory/products/${product.id}`}
+                  key={product.id}
+                  className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4 active:bg-[var(--c-bg3)] transition"
+                >
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] flex items-center justify-center">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl">📦</span>
                     )}
-                  >
-                    <td className="px-4 py-3">
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
+                    <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-[var(--c-text)]">{product.price.toLocaleString("ru-RU")} ₽</p>
+                    <StockStatusBadge status={stockStatus} size="sm" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Desktop table — hidden on mobile */}
+          <div className="hidden md:block overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--c-border)]">
+                    <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleOne(product.id)}
+                        checked={allSelected}
+                        onChange={toggleAll}
                         className="h-4 w-4 rounded border-[var(--c-border2)] bg-[var(--c-bg3)] accent-[var(--c-green)]"
                       />
-                    </td>
-
-                    {/* Product info */}
-                    <td className="px-4 py-3">
-                      <Link href={`/inventory/products/${product.id}`} className="flex items-center gap-3 hover:opacity-80">
-                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
-                          {product.imageUrl ? (
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <span className="text-xl">📦</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[var(--c-text)] leading-tight">{product.name}</p>
-                          <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
-                        </div>
-                      </Link>
-                    </td>
-
-                    {/* Lifecycle status */}
-                    <td className="px-4 py-3">
-                      <ProductStatusBadge status={product.status} />
-                    </td>
-
-                    {/* Stock availability status */}
-                    <td className="px-4 py-3">
-                      <StockStatusBadge status={stockStatus} size="sm" />
-                    </td>
-
-                    {/* Stock */}
-                    <td className="px-4 py-3 text-right tabular">
-                      <div>
-                        <span className={cn(
-                          "text-sm font-semibold",
-                          stockStatus === "out_of_stock" ? "text-[var(--c-red)]" :
-                          stockStatus === "low_stock" ? "text-[var(--c-amber)]" :
-                          "text-[var(--c-text)]",
-                        )}>
-                          {available}
-                        </span>
-                        <StockStat term="incoming" value={product.inTransitUnits} className="flex justify-end" />
-                        <StockStat term="committed" value={product.reservedUnits} className="flex justify-end" />
-                      </div>
-                    </td>
-
-                    {/* Price */}
-                    <td className="px-4 py-3 text-right tabular">
-                      <span className="text-sm text-[var(--c-text)]">
-                        {product.price.toLocaleString("ru-RU")} ₽
-                      </span>
-                    </td>
-
-                    {/* Cost */}
-                    <td className="px-4 py-3 text-right tabular">
-                      <span className="text-sm text-[var(--c-text2)]">
-                        {product.costPrice.toLocaleString("ru-RU")} ₽
-                      </span>
-                    </td>
-
-                    {/* Margin */}
-                    <td className="px-4 py-3 text-right tabular">
-                      <span className={cn(
-                        "text-sm font-medium",
-                        (product.margin ?? 0) >= 30 ? "text-[var(--c-green)]" :
-                        (product.margin ?? 0) >= 15 ? "text-[var(--c-amber)]" :
-                        "text-[var(--c-red)]",
-                      )}>
-                        {product.margin?.toFixed(1) ?? "—"}%
-                      </span>
-                    </td>
-
-                    {/* Type */}
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-[var(--c-text2)]">
-                        {PRODUCT_TYPE_LABELS[product.productType]}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-3">
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenActionMenu(openActionMenu === product.id ? null : product.id);
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text3)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {openActionMenu === product.id && (
-                          <ProductActionMenu
-                            product={product}
-                            onClose={() => setOpenActionMenu(null)}
-                          />
-                        )}
-                      </div>
-                    </td>
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <SortButton col="name" label="Товар" />
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text2)]">Статус</span>
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text2)]">Наличие</span>
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      <SortButton col="stock" label="Остаток" />
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      <SortButton col="price" label="Цена" />
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      <SortButton col="costPrice" label="Себест." />
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      <SortButton col="margin" label="Маржа" />
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text2)]">Тип</span>
+                    </th>
+                    <th className="w-12 px-4 py-3" />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && (
-          <EmptyState
-            icon={<Package size={24} />}
-            title="Товары не найдены"
-            description="Попробуйте изменить фильтры или поиск, либо добавьте новый товар."
-            action={
-              <button
-                onClick={onAddProduct}
-                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
-              >
-                <Plus size={15} />
-                Добавить товар
-              </button>
-            }
-            className="m-4"
-          />
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {filtered.map((product) => {
+                    const available = getAvailableStock(product);
+                    const stockStatus = getStockStatus(product);
+                    const isSelected = selected.has(product.id);
+
+                    return (
+                      <tr
+                        key={product.id}
+                        className={cn(
+                          "group border-b border-[var(--c-border)] transition last:border-0 hover:bg-[var(--c-bg3)]",
+                          isSelected && "bg-[var(--c-green-dim)]",
+                        )}
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleOne(product.id)}
+                            className="h-4 w-4 rounded border-[var(--c-border2)] bg-[var(--c-bg3)] accent-[var(--c-green)]"
+                          />
+                        </td>
+
+                        {/* Product info */}
+                        <td className="px-4 py-3">
+                          <Link href={`/inventory/products/${product.id}`} className="flex items-center gap-3 hover:opacity-80">
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                              {product.imageUrl ? (
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <span className="text-xl">📦</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-[var(--c-text)] leading-tight truncate">{product.name}</p>
+                              <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
+                            </div>
+                          </Link>
+                        </td>
+
+                        {/* Lifecycle status */}
+                        <td className="px-4 py-3">
+                          <ProductStatusBadge status={product.status} />
+                        </td>
+
+                        {/* Stock availability status */}
+                        <td className="px-4 py-3">
+                          <StockStatusBadge status={stockStatus} size="sm" />
+                        </td>
+
+                        {/* Stock */}
+                        <td className="px-4 py-3 text-right tabular">
+                          <div>
+                            <span className={cn(
+                              "text-sm font-semibold",
+                              stockStatus === "out_of_stock" ? "text-[var(--c-red)]" :
+                              stockStatus === "low_stock" ? "text-[var(--c-amber)]" :
+                              "text-[var(--c-text)]",
+                            )}>
+                              {available}
+                            </span>
+                            <StockStat term="incoming" value={product.inTransitUnits} className="flex justify-end" />
+                            <StockStat term="committed" value={product.reservedUnits} className="flex justify-end" />
+                          </div>
+                        </td>
+
+                        {/* Price */}
+                        <td className="px-4 py-3 text-right tabular">
+                          <span className="text-sm text-[var(--c-text)]">
+                            {product.price.toLocaleString("ru-RU")} ₽
+                          </span>
+                        </td>
+
+                        {/* Cost */}
+                        <td className="px-4 py-3 text-right tabular">
+                          <span className="text-sm text-[var(--c-text2)]">
+                            {product.costPrice.toLocaleString("ru-RU")} ₽
+                          </span>
+                        </td>
+
+                        {/* Margin */}
+                        <td className="px-4 py-3 text-right tabular">
+                          <span className={cn(
+                            "text-sm font-medium",
+                            (product.margin ?? 0) >= 30 ? "text-[var(--c-green)]" :
+                            (product.margin ?? 0) >= 15 ? "text-[var(--c-amber)]" :
+                            "text-[var(--c-red)]",
+                          )}>
+                            {product.margin?.toFixed(1) ?? "—"}%
+                          </span>
+                        </td>
+
+                        {/* Type */}
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-[var(--c-text2)]">
+                            {PRODUCT_TYPE_LABELS[product.productType]}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-3">
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenActionMenu(openActionMenu === product.id ? null : product.id);
+                              }}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text3)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                            {openActionMenu === product.id && (
+                              <ProductActionMenu
+                                product={product}
+                                onClose={() => setOpenActionMenu(null)}
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

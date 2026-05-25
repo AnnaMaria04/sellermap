@@ -74,28 +74,30 @@ function ResultPageInner() {
 
   return (
     <main className="bg-off-white">
-      <PageSection className="space-y-6 py-8">
-        <ResultHeader
-          result={result}
-          savedReportId={savedReport?.id}
-          savedReportDate={savedReport?.created_at}
-        />
-        <ScoreBreakdown result={result} />
-        <MarketMap result={result} />
-        <MarginSimulator result={result} analysisInput={analysisInput} />
-        <CompetitorCards result={result} />
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-          <CardAudit result={result} />
-          <div className="space-y-6">
-            <AiInsights result={result} />
-            <ActionChecklist result={result} />
+      <PageSection className="py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
+          <ResultHeader
+            result={result}
+            savedReportId={savedReport?.id}
+            savedReportDate={savedReport?.created_at}
+          />
+          <ScoreBreakdown result={result} />
+          <MarketMap result={result} />
+          <MarginSimulator result={result} analysisInput={analysisInput} />
+          <CompetitorCards result={result} />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.9fr]">
+            <CardAudit result={result} />
+            <div className="space-y-6">
+              <AiInsights result={result} />
+              <ActionChecklist result={result} />
+            </div>
           </div>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <PackagingLogistics result={result} />
+            <SupplierPanel result={result} />
+          </div>
+          <DataSourcesPanel result={result} />
         </div>
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <PackagingLogistics result={result} />
-          <SupplierPanel result={result} />
-        </div>
-        <DataSourcesPanel result={result} />
       </PageSection>
     </main>
   );
