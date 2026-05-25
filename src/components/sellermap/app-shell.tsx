@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   ["Дашборд", "/dashboard"],
   ["Склад", "/inventory"],
+  ["Каталог", "/catalog"],
   ["Обновления", "/updates"],
 ];
 

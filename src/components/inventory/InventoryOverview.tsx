@@ -28,9 +28,10 @@ import {
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
+import { computePnL } from "@/lib/inventory/finance";
 
 export function InventoryOverview() {
-  const { products, purchaseOrders, transfers, movements } = useInventory();
+  const { products, purchaseOrders, transfers, movements, orders, customers } = useInventory();
 
   const stats = useMemo(() => getInventoryStats(products), [products]);
   const totalValue = useMemo(() => getTotalInventoryValue(products.filter((p) => p.status === "active")), [products]);
@@ -38,6 +39,9 @@ export function InventoryOverview() {
   const recentOrders = useMemo(() => purchaseOrders.filter((po) => po.status !== "closed").slice(0, 4), [purchaseOrders]);
   const recentMovements = useMemo(() => movements.slice(0, 5), [movements]);
   const activeTransfers = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
+  const pnl = useMemo(() => computePnL(orders), [orders]);
+  const pendingSalesOrders = useMemo(() => orders.filter((o) => o.status === "new" || o.status === "confirmed" || o.status === "packed").length, [orders]);
+  const vipCustomers = useMemo(() => (customers ?? []).filter((c) => c.tier === "vip").length, [customers]);
 
   return (
     <div className="space-y-6">
@@ -62,20 +66,24 @@ export function InventoryOverview() {
         </div>
 
         {/* Quick stats */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           <QuickStat label="Активных товаров" value={stats.totalProducts} color="green" />
           <QuickStat label="Деньги в товаре" value={`${(totalValue / 1000).toFixed(0)}К ₽`} color="blue" />
+          <QuickStat label="Выручка (реализ.)" value={`${(pnl.revenue / 1000).toFixed(0)}К ₽`} color="green" />
+          <QuickStat label="Заказов в работе" value={pendingSalesOrders} color={pendingSalesOrders > 0 ? "amber" : "default"} />
           <QuickStat label="Мало товара" value={stats.lowStockCount} color={stats.lowStockCount > 0 ? "amber" : "default"} />
-          <QuickStat label="Нет в наличии" value={stats.outOfStockCount} color={stats.outOfStockCount > 0 ? "red" : "default"} />
+          <QuickStat label="VIP клиентов" value={vipCustomers} color="blue" />
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         {[
-          { label: "Принять товар", icon: Truck, href: "/inventory/purchase-orders", color: "green" },
-          { label: "Создать заказ", icon: ShoppingCart, href: "/inventory/purchase-orders", color: "blue" },
-          { label: "Переместить", icon: ArrowLeftRight, href: "/inventory/transfers", color: "amber" },
+          { label: "Открыть кассу", icon: ShoppingCart, href: "/pos", color: "green" },
+          { label: "Принять товар", icon: Truck, href: "/inventory/purchase-orders", color: "blue" },
+          { label: "Заказы клиентов", icon: Package, href: "/inventory/orders", color: "amber" },
+          { label: "Переместить", icon: ArrowLeftRight, href: "/inventory/transfers", color: "default" },
+          { label: "Клиенты", icon: Bell, href: "/inventory/customers", color: "default" },
           { label: "Инвентаризация", icon: ClipboardList, href: "/inventory/stocktake", color: "default" },
         ].map((action) => (
           <Link

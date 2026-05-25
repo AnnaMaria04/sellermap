@@ -895,3 +895,49 @@ export const CUSTOMERS: Customer[] = [
   { id: "cust-009", name: "Корпоративный заказ", phone: "+7 (495) 901-23-45", email: "corp@business.ru", city: "Москва", tier: "wholesale", loyaltyPoints: 1800, totalOrders: 12, totalSpent: 89500, firstOrderAt: "2025-03-01", lastOrderAt: "2026-05-19", tags: ["корпоратив", "юрлицо"], createdAt: "2025-03-01" },
   { id: "cust-010", name: "Татьяна Белова", phone: "+7 (912) 012-34-56", city: "Новосибирск", tier: "regular", loyaltyPoints: 310, totalOrders: 3, totalSpent: 7200, firstOrderAt: "2025-09-15", lastOrderAt: "2026-05-23", tags: [], createdAt: "2025-09-15" },
 ];
+
+// ── Staff ──────────────────────────────────────────────────────────────────
+
+export type StaffRole = "owner" | "admin" | "manager" | "warehouse" | "cashier" | "viewer";
+export type StaffStatus = "active" | "invited" | "suspended";
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: StaffRole;
+  status: StaffStatus;
+  locations: string[]; // location IDs they have access to, empty = all
+  lastActiveAt?: string;
+  invitedAt: string;
+  joinedAt?: string;
+  note?: string;
+}
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  owner: "Владелец",
+  admin: "Администратор",
+  manager: "Менеджер",
+  warehouse: "Складовщик",
+  cashier: "Кассир",
+  viewer: "Просмотр",
+};
+
+export const STAFF_ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
+  owner: ["Полный доступ ко всем функциям"],
+  admin: ["Все функции, кроме смены владельца", "Управление сотрудниками"],
+  manager: ["Заказы", "Склад", "Поставки", "Клиенты", "Аналитика"],
+  warehouse: ["Склад", "Перемещения", "Инвентаризация", "Поставки"],
+  cashier: ["Касса (POS)", "Заказы", "Просмотр товаров"],
+  viewer: ["Просмотр всех разделов без редактирования"],
+};
+
+export const STAFF_MEMBERS: StaffMember[] = [
+  { id: "staff-001", name: "Главный администратор", email: "admin@myshop.ru", role: "owner", status: "active", locations: [], lastActiveAt: "2026-05-25", invitedAt: "2023-01-01", joinedAt: "2023-01-01" },
+  { id: "staff-002", name: "Алексей Громов", email: "a.gromov@myshop.ru", phone: "+7 (916) 111-22-33", role: "manager", status: "active", locations: [], lastActiveAt: "2026-05-24", invitedAt: "2024-03-10", joinedAt: "2024-03-15", note: "Старший менеджер" },
+  { id: "staff-003", name: "Светлана Кузнецова", email: "s.kuznetsova@myshop.ru", phone: "+7 (905) 222-33-44", role: "warehouse", status: "active", locations: ["loc-warehouse"], lastActiveAt: "2026-05-25", invitedAt: "2024-06-01", joinedAt: "2024-06-05" },
+  { id: "staff-004", name: "Роман Попов", email: "r.popov@myshop.ru", role: "cashier", status: "active", locations: ["loc-store"], lastActiveAt: "2026-05-23", invitedAt: "2025-01-15", joinedAt: "2025-01-20" },
+  { id: "staff-005", name: "Карина Белая", email: "k.belaya@myshop.ru", role: "manager", status: "invited", locations: [], invitedAt: "2026-05-20" },
+  { id: "staff-006", name: "Игорь Тихонов", email: "i.tikhonov@myshop.ru", role: "viewer", status: "suspended", locations: [], lastActiveAt: "2026-04-01", invitedAt: "2024-09-01", joinedAt: "2024-09-10", note: "Временно отстранён" },
+];
