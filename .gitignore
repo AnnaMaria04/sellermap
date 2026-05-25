@@ -16,8 +16,7 @@ tsconfig.tsbuildinfo
 .env.test.local
 .env.production.local
 
-# Lock files (keep package-lock.json if desired, but exclude here to avoid noise)
-# package-lock.json
+package-lock.json
 
 # OS
 .DS_Store
