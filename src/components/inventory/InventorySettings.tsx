@@ -16,10 +16,19 @@ import {
   AlertCircle,
   Check,
   ChevronDown,
+  Building2,
 } from "lucide-react";
 import { LOCATIONS } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
+import { useSellerProfile } from "@/hooks/useSellerProfile";
 import { cn } from "@/lib/utils";
+
+const BUSINESS_TYPES = [
+  { id: "ooo", label: "ООО" },
+  { id: "ip", label: "ИП" },
+  { id: "self", label: "Самозанятый" },
+  { id: "other", label: "Другое" },
+];
 
 const MONTHS = [
   "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -228,10 +237,14 @@ const COST_METHODS: { value: SettingsState["costMethod"]; label: string; descrip
 
 export function InventorySettings() {
   const { actions } = useInventory();
+  const { profile, saveProfile } = useSellerProfile();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [profileCompany, setProfileCompany] = useState(profile.company);
+  const [profileBizType, setProfileBizType] = useState(profile.businessType);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   function handleResetDemo() {
     if (!confirmReset) {
@@ -279,6 +292,48 @@ export function InventorySettings() {
           </span>
         )}
       </div>
+
+      <SectionCard icon={<Building2 size={15} />} title="Профиль компании">
+        <Field label="Название компании" hint="Отображается в отчётах и документах">
+          <input
+            type="text"
+            value={profileCompany}
+            onChange={(e) => { setProfileCompany(e.target.value); setProfileSaved(false); }}
+            placeholder="ООО «Мой Магазин» или имя ИП"
+            className="h-8 w-48 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
+          />
+        </Field>
+        <Field label="Форма собственности">
+          <div className="flex gap-2">
+            {BUSINESS_TYPES.map((bt) => (
+              <button
+                key={bt.id}
+                onClick={() => { setProfileBizType(bt.id); setProfileSaved(false); }}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-xs font-medium transition",
+                  profileBizType === bt.id
+                    ? "border-[var(--c-green)] bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                    : "border-[var(--c-border)] bg-[var(--c-bg3)] text-[var(--c-text2)] hover:text-[var(--c-text)]",
+                )}
+              >
+                {bt.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <div className="flex justify-end">
+          <button
+            onClick={async () => {
+              await saveProfile({ company: profileCompany, businessType: profileBizType });
+              setProfileSaved(true);
+              setTimeout(() => setProfileSaved(false), 2000);
+            }}
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+          >
+            {profileSaved ? <><Check size={12} /> Сохранено</> : <><Save size={12} /> Сохранить</>}
+          </button>
+        </div>
+      </SectionCard>
 
       <SectionCard icon={<Settings size={15} />} title="Основные настройки">
         <Field label="Локация по умолчанию" hint="Используется при создании новых поступлений">

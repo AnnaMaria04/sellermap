@@ -98,6 +98,26 @@ body {
   text-transform: uppercase;
 }
 
+/* Light theme */
+[data-theme="light"] {
+  --c-bg: #f6f7f9;
+  --c-bg2: #ffffff;
+  --c-bg3: #eef0f3;
+  --c-border: rgba(0,0,0,0.08);
+  --c-border2: rgba(0,0,0,0.14);
+  --c-text: #0f1214;
+  --c-text2: #5a6270;
+  --c-text3: #9ba3b0;
+  --c-green: #12a063;
+  --c-green-dim: rgba(18,160,99,0.10);
+  --c-amber: #c9790d;
+  --c-amber-dim: rgba(201,121,13,0.10);
+  --c-red: #c73333;
+  --c-red-dim: rgba(199,51,51,0.10);
+  --c-blue: #2d7dd2;
+  --c-blue-dim: rgba(45,125,210,0.10);
+}
+
 /* Inventory-specific utilities */
 :root {
   --c-blue: #4d9fff;

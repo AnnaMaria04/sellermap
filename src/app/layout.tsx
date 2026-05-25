@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geologica, Unbounded } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 
 const geologica = Geologica({
   variable: "--font-body",
@@ -32,7 +33,9 @@ export default function RootLayout({
       className={`${geologica.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
+        <ThemeProvider>
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );

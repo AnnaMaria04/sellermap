@@ -5,6 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AccountMenu } from "./AccountMenu";
+import { useInventory } from "@/contexts/InventoryContext";
+import { computeAlerts } from "@/lib/inventory/alerts";
+import { useDismissedAlerts } from "@/hooks/useDismissedAlerts";
+import { useTheme } from "@/components/ui/ThemeProvider";
 import {
   Package,
   ShoppingCart,
@@ -25,6 +29,8 @@ import {
   Menu,
   X,
   ScanLine,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -71,7 +77,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Система",
     items: [
-      { label: "Уведомления", href: "/inventory/notifications", icon: Bell },
       { label: "Интеграции", href: "/inventory/integrations", icon: Plug },
       { label: "Настройки", href: "/inventory/settings", icon: Settings },
     ],
@@ -125,6 +130,40 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
   );
 }
 
+function SidebarFooter() {
+  const { products, batches } = useInventory();
+  const { dismissed } = useDismissedAlerts();
+  const { theme, toggle } = useTheme();
+  const unread = computeAlerts(products, batches).filter((a) => !dismissed.has(a.id)).length;
+
+  return (
+    <div className="border-t border-[var(--c-border)] px-3 pb-1 pt-2 space-y-0.5">
+      <div className="flex items-center gap-1 px-1">
+        <Link
+          href="/inventory/notifications"
+          className="relative flex flex-1 items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+        >
+          <Bell size={16} className="shrink-0" />
+          <span className="truncate">Уведомления</span>
+          {unread > 0 && (
+            <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--c-red)] px-1 text-[10px] font-bold text-white">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </Link>
+        <button
+          onClick={toggle}
+          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+      </div>
+      <AccountMenu />
+    </div>
+  );
+}
+
 export function InventoryShell({ children, title, subtitle, actions }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -140,7 +179,7 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <NavList pathname={pathname} />
           </div>
-          <AccountMenu />
+          <SidebarFooter />
         </aside>
 
         {/* Mobile drawer */}
