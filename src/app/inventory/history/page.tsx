@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { MovementHistory } from "@/components/inventory/MovementHistory";
 
@@ -9,7 +10,9 @@ export default function HistoryPage() {
       title="История движений"
       subtitle="Полная история всех операций с товарами"
     >
-      <MovementHistory />
+      <Suspense fallback={<div className="py-16 text-center text-sm text-[var(--c-text3)]">Загрузка...</div>}>
+        <MovementHistory />
+      </Suspense>
     </InventoryShell>
   );
 }
