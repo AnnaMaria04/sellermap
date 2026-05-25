@@ -654,7 +654,9 @@ export function PromotionsPanel() {
       prev.map((p) => {
         if (p.id !== promo.id) return p;
         const next: PromotionStatus =
-          p.status === "paused" ? "active" : "paused";
+          p.status === "paused"
+            ? new Date(p.startsAt) > new Date() ? "scheduled" : "active"
+            : "paused";
         return { ...p, status: next };
       }),
     );

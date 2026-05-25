@@ -6,7 +6,7 @@ import {
 
 // Reference "today" for the demo dataset (mock movements are dated up to late
 // May 2026). Using a fixed anchor keeps computed metrics deterministic.
-const TODAY = new Date("2026-05-25T00:00:00Z");
+const TODAY = new Date();
 
 function daysBetween(a: Date, b: Date): number {
   return Math.max(0, Math.round((a.getTime() - b.getTime()) / 86_400_000));

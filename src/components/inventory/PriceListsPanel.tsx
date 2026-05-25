@@ -60,7 +60,7 @@ function buildItems(
   discountType: DiscountType,
   discountValue: number
 ): PriceListItem[] {
-  return products.slice(0, 4).map((p) => {
+  return products.map((p) => {
     let finalPrice = p.price;
     if (discountType === "percentage")
       finalPrice = Math.round(p.price * (1 - discountValue / 100));
@@ -444,7 +444,7 @@ export function PriceListsPanel() {
       name: list.name + " (копия)",
       isDefault: false,
       status: "draft",
-      createdAt: "2026-05-25",
+      createdAt: new Date().toISOString().split("T")[0],
     };
     setPriceLists((ls) => [...ls, copy]);
   }
@@ -463,7 +463,7 @@ export function PriceListsPanel() {
       customerGroups: newForm.customerGroups,
       validFrom: newForm.validFrom || undefined,
       validTo: newForm.validTo || undefined,
-      createdAt: "2026-05-25",
+      createdAt: new Date().toISOString().split("T")[0],
       isDefault: false,
     };
     setPriceLists((ls) => [...ls, newList]);
@@ -1036,6 +1036,14 @@ export function PriceListsPanel() {
                     return (
                       <button
                         key={g}
+                        onClick={() => {
+                          const next = active
+                            ? selected.customerGroups.filter((c) => c !== g)
+                            : [...selected.customerGroups, g];
+                          const updated = { ...selected, customerGroups: next };
+                          setSelected(updated);
+                          setPriceLists((ls) => ls.map((l) => (l.id === selected.id ? updated : l)));
+                        }}
                         style={{
                           background: active
                             ? "rgba(59,130,246,0.15)"

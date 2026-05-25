@@ -58,7 +58,7 @@ const STATUS_BADGE: Record<StaffStatus, { label: string; cls: string }> = {
   suspended: { label: "Заблокирован", cls: "bg-[var(--c-red-dim)] text-[var(--c-red)] border border-[var(--c-red)]/30" },
 };
 
-const TODAY = "2026-05-25";
+const TODAY = new Date().toISOString().split("T")[0];
 
 function formatLastActive(date?: string): string {
   if (!date) return "Никогда";

@@ -671,7 +671,7 @@ function OrderDrawer({ order, getLocationName, onClose, onFulfill, onAdvance, on
                 Собрать и отгрузить
               </button>
             )}
-            {nextStatus && order.status !== "packed" && (
+            {nextStatus && order.status !== "packed" && order.status !== "shipped" && (
               <button
                 onClick={onAdvance}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--c-blue)]/30 bg-[var(--c-blue)]/10 py-2.5 text-sm font-medium text-[var(--c-blue)] hover:bg-[var(--c-blue)]/15 transition"

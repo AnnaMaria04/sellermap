@@ -173,7 +173,8 @@ export function QuickStockAdjust({
 
   function handleSubmit() {
     if (!canSubmit || !product) return;
-    actions.adjustStock(selectedProductId, locationId, delta, "adjustment", REASON_LABELS[reason]);
+    const reasonStr = note.trim() ? `${REASON_LABELS[reason]}: ${note.trim()}` : REASON_LABELS[reason];
+    actions.adjustStock(selectedProductId, locationId, delta, "adjustment", reasonStr);
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

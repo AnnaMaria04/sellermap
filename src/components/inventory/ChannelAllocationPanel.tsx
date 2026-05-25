@@ -47,13 +47,15 @@ function fmtQty(n: number): string {
 export function ChannelAllocationPanel() {
   const { products, actions } = useInventory();
   const ACTIVE_PRODUCTS = useMemo(() => products.filter((p) => p.status === "active"), [products]);
-  const [allocations, setAllocations] = useState<Record<string, Record<SalesChannel, number>>>(() =>
-    Object.fromEntries(
-      products.filter((p) => p.channelAllocation).map((p) => [
-        p.id,
-        { ...blankAlloc(), ...(p.channelAllocation ?? {}) },
-      ]),
-    ),
+  const allocations = useMemo(
+    () =>
+      Object.fromEntries(
+        products.filter((p) => p.channelAllocation).map((p) => [
+          p.id,
+          { ...blankAlloc(), ...(p.channelAllocation ?? {}) },
+        ]),
+      ),
+    [products],
   );
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [mode, setMode] = useState<AllocationMode>("qty");
@@ -108,7 +110,6 @@ export function ChannelAllocationPanel() {
 
   function updateAllocation(productId: string, channel: SalesChannel, value: number) {
     const newAlloc = { ...(allocations[productId] ?? blankAlloc()), [channel]: Math.max(0, value) };
-    setAllocations((prev) => ({ ...prev, [productId]: newAlloc }));
     actions.updateProduct(productId, { channelAllocation: newAlloc });
   }
 
@@ -127,7 +128,7 @@ export function ChannelAllocationPanel() {
     productChannels.forEach((ch) => {
       newAlloc[ch] = (newAlloc[ch] ?? 0) + perChannel;
     });
-    setAllocations((prev) => ({ ...prev, [productId]: newAlloc }));
+    actions.updateProduct(productId, { channelAllocation: newAlloc });
   }
 
   const editingProduct = editingProductId ? products.find((p) => p.id === editingProductId) ?? null : null;

@@ -23,7 +23,7 @@ import { useInventory } from "@/contexts/InventoryContext";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function daysUntilExpiry(expiryDate: string): number {
-  const today = new Date("2026-05-25");
+  const today = new Date();
   const expiry = new Date(expiryDate);
   return Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }

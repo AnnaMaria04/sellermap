@@ -49,7 +49,7 @@ interface ProductForecast {
 // ---------------------------------------------------------------------------
 // Reference date (matches the mock dataset anchor in analytics.ts)
 // ---------------------------------------------------------------------------
-const TODAY = new Date("2026-05-25T00:00:00Z");
+const TODAY = new Date();
 
 // ---------------------------------------------------------------------------
 // Forecast helpers

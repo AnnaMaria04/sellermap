@@ -157,15 +157,42 @@ function monthLabel(key: string): string {
 export function WriteOffPanel() {
   const { products, movements } = useInventory();
   const [showForm, setShowForm] = useState(false);
-  const [history] = useState<CompletedWriteOff[]>(COMPLETED_WRITEOFFS);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const history = useMemo<CompletedWriteOff[]>(() => {
+    const woMovements = movements.filter((m) => m.type === "write_off");
+    if (woMovements.length === 0) return COMPLETED_WRITEOFFS;
+    const groups = new Map<string, typeof woMovements>();
+    woMovements.forEach((m) => {
+      const key = `${m.createdAt.slice(0, 19)}_${m.locationId}_${m.userId}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    });
+    return Array.from(groups.values())
+      .sort((a, b) => b[0].createdAt.localeCompare(a[0].createdAt))
+      .map((mvs, i) => ({
+        id: `wo-${String(i + 1).padStart(3, "0")}`,
+        locationId: mvs[0].locationId,
+        lines: mvs.map((m) => ({
+          productId: m.productId,
+          productName: m.productName,
+          sku: m.sku,
+          qty: Math.abs(m.qtyDelta),
+          reason: (m.reason as WriteOffReason) ?? "other",
+          note: m.note,
+        })),
+        totalQty: mvs.reduce((s, m) => s + Math.abs(m.qtyDelta), 0),
+        createdAt: mvs[0].createdAt,
+        createdBy: mvs[0].userName,
+      }));
+  }, [movements]);
 
   // ── Summary by reason category ────────────────────────────────────────────
   const summaryByType = useMemo(() => {
     const groups: Record<string, { count: number; qty: number; cost: number }> = {};
     history.forEach((wo) => {
       wo.lines.forEach((line) => {
-        const label = REASON_LABELS[line.reason];
+        const label = REASON_LABELS[line.reason as WriteOffReason] ?? line.reason ?? "Прочее";
         if (!groups[label]) groups[label] = { count: 0, qty: 0, cost: 0 };
         const p = products.find((p) => p.id === line.productId);
         const cost = line.qty * (p?.costPrice ?? 0);
@@ -181,7 +208,7 @@ export function WriteOffPanel() {
 
   // ── Write-off chart data — last 6 months from movements ──────────────────
   const chartData = useMemo(() => {
-    const today = new Date("2026-05-25");
+    const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -191,20 +218,6 @@ export function WriteOffPanel() {
     const byMonth: Record<string, { qty: number; cost: number }> = {};
     months.forEach((m) => { byMonth[m] = { qty: 0, cost: 0 }; });
 
-    // From movements (write_off type)
-    movements
-      .filter((mv) => mv.type === "write_off")
-      .forEach((mv) => {
-        const key = getMonthKey(mv.createdAt);
-        if (byMonth[key]) {
-          const qty = Math.abs(mv.qtyDelta);
-          const p = products.find((p) => p.id === mv.productId);
-          byMonth[key].qty += qty;
-          byMonth[key].cost += qty * (p?.costPrice ?? 0);
-        }
-      });
-
-    // Also fold in completed write-offs from local history
     history.forEach((wo) => {
       const key = getMonthKey(wo.createdAt);
       if (byMonth[key]) {
@@ -221,7 +234,7 @@ export function WriteOffPanel() {
       qty: byMonth[key].qty,
       cost: byMonth[key].cost,
     }));
-  }, [movements, products, history]);
+  }, [history, products]);
 
   // ── Totals ────────────────────────────────────────────────────────────────
   const totalQty = history.reduce((s, wo) => s + wo.totalQty, 0);
@@ -470,7 +483,7 @@ function WriteOffCard({ writeOff, products }: { writeOff: CompletedWriteOff; pro
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-[var(--c-text)] truncate">{line.productName}</p>
                   <p className="text-xs text-[var(--c-text3)]">{line.sku}</p>
-                  <p className="text-xs text-[var(--c-text2)] mt-0.5">{REASON_LABELS[line.reason]}</p>
+                  <p className="text-xs text-[var(--c-text2)] mt-0.5">{REASON_LABELS[line.reason as WriteOffReason] ?? line.reason}</p>
                   {line.note && <p className="text-xs text-[var(--c-text3)] italic mt-0.5">{line.note}</p>}
                 </div>
                 <div className="text-right shrink-0">
@@ -529,7 +542,7 @@ function WriteOffForm({ onClose }: { onClose: () => void }) {
   function handleSave() {
     if (!isValid) return;
     lines.forEach((line) => {
-      actions.adjustStock(line.productId, locationId, -line.qty, "write_off", REASON_LABELS[line.reason]);
+      actions.adjustStock(line.productId, locationId, -line.qty, "write_off", line.reason);
     });
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 700);

@@ -52,7 +52,7 @@ export function InventoryOverview() {
 
   // Last 14 days revenue sparkline data
   const revenueSparkline = useMemo(() => {
-    const today = new Date("2026-05-25");
+    const today = new Date();
     return Array.from({ length: 14 }, (_, i) => {
       const d = new Date(today);
       d.setDate(d.getDate() - (13 - i));

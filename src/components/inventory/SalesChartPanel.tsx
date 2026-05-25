@@ -157,7 +157,7 @@ export function SalesChartPanel() {
 
   // ── Chart 1: Revenue by Day (last 30 days) ───────────────────────────────────
   const revenueByDay = useMemo(() => {
-    const today = new Date("2026-05-25");
+    const today = new Date();
     const days = Array.from({ length: 30 }, (_, i) => {
       const d = new Date(today);
       d.setDate(d.getDate() - (29 - i));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Package,
   RefreshCw,
@@ -74,7 +74,8 @@ const TYPE_LABELS: Record<ReportType, string> = {
 };
 
 export function InventoryReportsPanel() {
-  const { products, movements, purchaseOrders, suppliers } = useInventory();
+  const { products, movements, purchaseOrders, suppliers, locations } = useInventory();
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(), [products]);
 
   function runExport(reportType: ReportType, reportName: string, fmt: ReportFormat) {
     const data = buildReportData(reportType, { products, movements, purchaseOrders, suppliers });
@@ -112,8 +113,8 @@ export function InventoryReportsPanel() {
 
   const [filterType, setFilterType] = useState<ReportType | "all">("all");
   const [configReport, setConfigReport] = useState<ReportTemplate | null>(null);
-  const [dateFrom, setDateFrom] = useState("2026-05-01");
-  const [dateTo, setDateTo] = useState("2026-05-25");
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [location, setLocation] = useState("all");
   const [category, setCategory] = useState("all");
   const [format, setFormat] = useState<ReportFormat>("excel");
@@ -123,7 +124,7 @@ export function InventoryReportsPanel() {
   const [scheduled, setScheduled] = useState<ScheduledReport[]>(MOCK_SCHEDULED);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [editSchedule, setEditSchedule] = useState<ScheduledReport | null>(null);
-  const [newSched, setNewSched] = useState({ reportType: "stock_balance" as ReportType, name: "", frequency: "weekly" as "daily" | "weekly" | "monthly", format: "excel" as ReportFormat, recipients: "", startDate: "2026-05-26" });
+  const [newSched, setNewSched] = useState({ reportType: "stock_balance" as ReportType, name: "", frequency: "weekly" as "daily" | "weekly" | "monthly", format: "excel" as ReportFormat, recipients: "", startDate: new Date(Date.now() + 86400000).toISOString().split("T")[0] });
 
   const filteredTemplates = REPORT_TEMPLATES.filter(t => filterType === "all" || t.id === filterType);
 
@@ -181,7 +182,7 @@ export function InventoryReportsPanel() {
       setScheduled(s => [...s, entry]);
     }
     setShowScheduleForm(false);
-    setNewSched({ reportType: "stock_balance", name: "", frequency: "weekly", format: "excel", recipients: "", startDate: "2026-05-26" });
+    setNewSched({ reportType: "stock_balance", name: "", frequency: "weekly", format: "excel", recipients: "", startDate: new Date(Date.now() + 86400000).toISOString().split("T")[0] });
   }
 
   function openEdit(r: ScheduledReport) {
@@ -322,9 +323,9 @@ export function InventoryReportsPanel() {
                   style={{ background: "var(--c-bg3)", border: "1px solid var(--c-border)", color: "var(--c-text)" }}
                   className="w-full rounded-lg px-3 py-2 text-sm outline-none">
                   <option value="all">Все локации</option>
-                  <option value="loc-warehouse">Основной склад</option>
-                  <option value="loc-store">Магазин на Арбате</option>
-                  <option value="loc-showroom">Шоурум</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -333,10 +334,9 @@ export function InventoryReportsPanel() {
                   style={{ background: "var(--c-bg3)", border: "1px solid var(--c-border)", color: "var(--c-text)" }}
                   className="w-full rounded-lg px-3 py-2 text-sm outline-none">
                   <option value="all">Все категории</option>
-                  <option value="Аксессуары">Аксессуары</option>
-                  <option value="Одежда">Одежда</option>
-                  <option value="Кофе">Кофе</option>
-                  <option value="Упаковка">Упаковка</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -426,7 +426,7 @@ export function InventoryReportsPanel() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold" style={{ color: "var(--c-text2)" }}>РАСПИСАНИЕ ОТЧЁТОВ</h3>
           <button
-            onClick={() => { setShowScheduleForm(true); setEditSchedule(null); setNewSched({ reportType: "stock_balance", name: "", frequency: "weekly", format: "excel", recipients: "", startDate: "2026-05-26" }); }}
+            onClick={() => { setShowScheduleForm(true); setEditSchedule(null); setNewSched({ reportType: "stock_balance", name: "", frequency: "weekly", format: "excel", recipients: "", startDate: new Date(Date.now() + 86400000).toISOString().split("T")[0] }); }}
             style={{ background: "var(--c-blue)", color: "#fff" }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
           >
