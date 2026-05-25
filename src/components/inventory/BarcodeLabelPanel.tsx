@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Package,
 } from "lucide-react";
-import { PRODUCTS, type Product } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -45,6 +46,7 @@ const TEMPLATES: { id: LabelTemplate; name: string; description: string; size: s
 type PrintQty = { productId: string; variantId?: string; qty: number };
 
 export function BarcodeLabelPanel({ product: initialProduct, onClose }: Props) {
+  const { products } = useInventory();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(initialProduct ?? null);
   const [template, setTemplate] = useState<LabelTemplate>("price_tag");
   const [printItems, setPrintItems] = useState<PrintQty[]>(
@@ -143,7 +145,7 @@ export function BarcodeLabelPanel({ product: initialProduct, onClose }: Props) {
               <div className="flex items-center justify-center rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] py-10">
                 <LabelPreview
                   template={template}
-                  product={selectedProduct ?? PRODUCTS[0]}
+                  product={selectedProduct ?? products[0]}
                   showLogo={showLogo}
                   showSku={showSku}
                   showBarcode={showBarcode}
@@ -210,7 +212,7 @@ export function BarcodeLabelPanel({ product: initialProduct, onClose }: Props) {
               ) : (
                 <div className="space-y-2">
                   {printItems.map((item) => {
-                    const p = PRODUCTS.find((p) => p.id === item.productId);
+                    const p = products.find((p) => p.id === item.productId);
                     if (!p) return null;
                     return (
                       <div key={item.productId} className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3">
@@ -480,10 +482,11 @@ function ToggleSetting({ label, checked, onChange }: { label: string; checked: b
 }
 
 function ProductPickerInline({ onSelect }: { onSelect: (p: Product) => void }) {
+  const { products } = useInventory();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
-  const results = PRODUCTS.filter((p) =>
+  const results = products.filter((p) =>
     q && (p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())),
   ).slice(0, 5);
 
@@ -512,7 +515,7 @@ function ProductPickerInline({ onSelect }: { onSelect: (p: Product) => void }) {
             {results.length === 0 && q && (
               <p className="py-4 text-center text-xs text-[var(--c-text3)]">Не найдено</p>
             )}
-            {results.length === 0 && !q && PRODUCTS.slice(0, 5).map((p) => (
+            {results.length === 0 && !q && products.slice(0, 5).map((p) => (
               <button key={p.id} onClick={() => { onSelect(p); setOpen(false); setQ(""); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition">
                 <Package size={13} className="text-[var(--c-text3)]" />
                 <span className="flex-1 text-left">{p.name}</span>

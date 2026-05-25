@@ -17,7 +17,8 @@ import {
   Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRODUCTS, LOCATIONS, SUPPLIERS } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 type BatchStatus = "ok" | "expiring_soon" | "expired" | "quarantine";
 
@@ -165,15 +166,9 @@ function fmt(n: number) {
   return n.toLocaleString("ru-RU");
 }
 
-function getLocationName(id: string) {
-  return LOCATIONS.find(l => l.id === id)?.name ?? id;
-}
-
-function getSupplierName(id?: string) {
-  return id ? (SUPPLIERS.find(s => s.id === id)?.name ?? id) : "—";
-}
-
 export function ExpiryTracker() {
+  const { products, locations, suppliers } = useInventory();
+  const getLocationName = (id: string) => locations.find(l => l.id === id)?.name ?? id;
   const [batches, setBatches] = useState<Batch[]>(MOCK_BATCHES);
   const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("all");
   const [locationFilter, setLocationFilter] = useState("all");
@@ -193,7 +188,7 @@ export function ExpiryTracker() {
     qty: "",
     supplierId: "",
   });
-  const [productResults, setProductResults] = useState<typeof PRODUCTS>([]);
+  const [productResults, setProductResults] = useState<Product[]>([]);
 
   const counts = useMemo(() => {
     const expired = batches.filter(b => daysUntil(b.expiryDate) < 0 && b.status !== "quarantine").length;
@@ -246,10 +241,10 @@ export function ExpiryTracker() {
 
   function handleProductSearch(q: string) {
     setForm(p => ({ ...p, productSearch: q, productId: "", productName: "", sku: "" }));
-    setProductResults(q.length > 1 ? PRODUCTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : []);
+    setProductResults(q.length > 1 ? products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : []);
   }
 
-  function selectProduct(p: typeof PRODUCTS[0]) {
+  function selectProduct(p: Product) {
     setForm(prev => ({ ...prev, productSearch: p.name, productId: p.id, productName: p.name, sku: p.sku }));
     setProductResults([]);
   }
@@ -271,7 +266,7 @@ export function ExpiryTracker() {
       status,
       receivedAt: TODAY.toISOString().split("T")[0],
       supplierId: form.supplierId || undefined,
-      costPrice: PRODUCTS.find(p => p.id === form.productId)?.costPrice ?? 0,
+      costPrice: products.find(p => p.id === form.productId)?.costPrice ?? 0,
     }, ...prev]);
     setShowRegister(false);
     setForm({ productSearch: "", productId: "", productName: "", sku: "", batchNumber: "", manufactureDate: "", expiryDate: "", locationId: "loc-warehouse", qty: "", supplierId: "" });
@@ -376,7 +371,7 @@ export function ExpiryTracker() {
           className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
         >
           <option value="all">Все склады</option>
-          {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
         {statusFilter !== "all" && (
           <button onClick={() => setStatusFilter("all")} className="flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-3 py-2 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)]">
@@ -574,7 +569,7 @@ export function ExpiryTracker() {
                   onChange={e => setForm(p => ({ ...p, locationId: e.target.value }))}
                   className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
                 >
-                  {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
 
@@ -586,7 +581,7 @@ export function ExpiryTracker() {
                   className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
                 >
                   <option value="">Не указан</option>
-                  {SUPPLIERS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
 

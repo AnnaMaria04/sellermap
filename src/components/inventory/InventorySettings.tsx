@@ -18,6 +18,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { LOCATIONS } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 const MONTHS = [
@@ -226,9 +227,21 @@ const COST_METHODS: { value: SettingsState["costMethod"]; label: string; descrip
 ];
 
 export function InventorySettings() {
+  const { actions } = useInventory();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  function handleResetDemo() {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 4000);
+      return;
+    }
+    actions.resetDemo();
+    setConfirmReset(false);
+  }
 
   function update<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -480,6 +493,30 @@ export function InventorySettings() {
               </div>
             </button>
           ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard icon={<RotateCcw size={15} />} title="Демо-данные">
+        <p className="text-xs text-[var(--c-text3)] -mt-1">
+          Все изменения склада сохраняются локально в браузере. Сбросьте данные, чтобы вернуть исходный демонстрационный набор товаров, поставщиков и движений.
+        </p>
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-[rgba(240,80,80,0.2)] bg-[var(--c-red-dim)] px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-[var(--c-text)]">Сбросить демо-данные</p>
+            <p className="text-xs text-[var(--c-text3)]">Удалит все внесённые изменения и восстановит исходные товары</p>
+          </div>
+          <button
+            onClick={handleResetDemo}
+            className={cn(
+              "flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition",
+              confirmReset
+                ? "bg-[var(--c-red)] text-white hover:opacity-90"
+                : "border border-[rgba(240,80,80,0.4)] text-[var(--c-red)] hover:bg-[rgba(240,80,80,0.1)]",
+            )}
+          >
+            <RotateCcw size={14} />
+            {confirmReset ? "Подтвердить сброс" : "Сбросить"}
+          </button>
         </div>
       </SectionCard>
 

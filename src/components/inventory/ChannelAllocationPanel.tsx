@@ -12,7 +12,8 @@ import {
   BarChart2,
   Link,
 } from "lucide-react";
-import { PRODUCTS, CHANNEL_LABELS, type SalesChannel, type Product, getAvailableStock } from "@/mock/inventory";
+import { CHANNEL_LABELS, type SalesChannel, type Product, getAvailableStock } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type AllocationMode = "percent" | "qty";
@@ -43,8 +44,6 @@ const LAST_SYNC: Record<string, string> = {
   ozon: "24 мая, 11:05",
 };
 
-const ACTIVE_PRODUCTS = PRODUCTS.filter((p) => p.status === "active");
-
 function totalAllocated(allocs: Record<SalesChannel, number>): number {
   return Object.values(allocs).reduce((s, v) => s + v, 0);
 }
@@ -54,6 +53,8 @@ function fmtQty(n: number): string {
 }
 
 export function ChannelAllocationPanel() {
+  const { products } = useInventory();
+  const ACTIVE_PRODUCTS = useMemo(() => products.filter((p) => p.status === "active"), [products]);
   const [allocations, setAllocations] =
     useState<Record<string, Record<SalesChannel, number>>>(MOCK_ALLOCATIONS);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -72,11 +73,11 @@ export function ChannelAllocationPanel() {
       if (alloc) totalAlloc += Math.min(totalAllocated(alloc), avail);
     });
     return { totalAlloc, totalUnalloc: totalAvail - totalAlloc, totalAvail };
-  }, [allocations]);
+  }, [allocations, ACTIVE_PRODUCTS]);
 
   const productsWithAlloc = useMemo(
     () => ACTIVE_PRODUCTS.filter((p) => allocations[p.id] && totalAllocated(allocations[p.id]) > 0).length,
-    [allocations]
+    [allocations, ACTIVE_PRODUCTS]
   );
 
   const connectedChannels = useMemo(() => {
@@ -89,7 +90,7 @@ export function ChannelAllocationPanel() {
       });
     });
     return set.size;
-  }, [allocations]);
+  }, [allocations, ACTIVE_PRODUCTS]);
 
   function handleSync(channel: "wildberries" | "ozon") {
     if (channel === "wildberries") {
@@ -115,7 +116,7 @@ export function ChannelAllocationPanel() {
   }
 
   function autoDistribute(productId: string) {
-    const product = PRODUCTS.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
     const avail = getAvailableStock(product);
     const currentAlloc = allocations[productId] ?? blankAlloc();
@@ -132,7 +133,7 @@ export function ChannelAllocationPanel() {
     setAllocations((prev) => ({ ...prev, [productId]: newAlloc }));
   }
 
-  const editingProduct = editingProductId ? PRODUCTS.find((p) => p.id === editingProductId) ?? null : null;
+  const editingProduct = editingProductId ? products.find((p) => p.id === editingProductId) ?? null : null;
 
   return (
     <div className="space-y-6">

@@ -17,7 +17,8 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRODUCTS } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 type PriceListStatus = "active" | "draft" | "archived" | "scheduled";
 type DiscountType = "percentage" | "fixed" | "override";
@@ -50,8 +51,8 @@ interface PriceList {
 
 const ALL_GROUPS = ["Розница", "Оптовики", "Дилеры", "VIP", "Сотрудники"];
 
-function buildItems(discountType: DiscountType, discountValue: number): PriceListItem[] {
-  return PRODUCTS.slice(0, 4).map(p => {
+function buildItems(products: Product[], discountType: DiscountType, discountValue: number): PriceListItem[] {
+  return products.slice(0, 4).map(p => {
     let finalPrice = p.price;
     if (discountType === "percentage") finalPrice = Math.round(p.price * (1 - discountValue / 100));
     if (discountType === "fixed") finalPrice = Math.max(0, p.price - discountValue);
@@ -60,12 +61,14 @@ function buildItems(discountType: DiscountType, discountValue: number): PriceLis
   });
 }
 
-const MOCK_PRICE_LISTS: PriceList[] = [
-  { id: "pl-1", name: "Розничная", description: "Стандартные розничные цены для конечных покупателей", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 0, items: buildItems("percentage", 0), customerGroups: ["Розница"], createdAt: "2025-01-10", isDefault: true },
-  { id: "pl-2", name: "Оптовая", description: "Скидка 20% для оптовых покупателей от 50 единиц", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 20, items: buildItems("percentage", 20), customerGroups: ["Оптовики"], createdAt: "2025-02-01", isDefault: false },
-  { id: "pl-3", name: "Дилерская", description: "Специальные условия для официальных дилеров", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 30, items: buildItems("percentage", 30), customerGroups: ["Дилеры"], createdAt: "2025-03-15", isDefault: false },
-  { id: "pl-4", name: "Акционная", description: "Временные цены для проведения акций и распродаж", status: "scheduled", currency: "RUB", discountType: "percentage", defaultDiscount: 15, items: buildItems("percentage", 15), customerGroups: ["Розница", "Оптовики"], validFrom: "2026-06-01", validTo: "2026-06-30", createdAt: "2026-05-20", isDefault: false },
-  { id: "pl-5", name: "VIP-клиенты", description: "Индивидуальные цены для постоянных VIP-покупателей", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 25, items: buildItems("percentage", 25), customerGroups: ["VIP"], createdAt: "2025-04-01", isDefault: false },
+type PriceListSpec = Omit<PriceList, "items">;
+
+const PRICE_LIST_SPECS: PriceListSpec[] = [
+  { id: "pl-1", name: "Розничная", description: "Стандартные розничные цены для конечных покупателей", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 0, customerGroups: ["Розница"], createdAt: "2025-01-10", isDefault: true },
+  { id: "pl-2", name: "Оптовая", description: "Скидка 20% для оптовых покупателей от 50 единиц", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 20, customerGroups: ["Оптовики"], createdAt: "2025-02-01", isDefault: false },
+  { id: "pl-3", name: "Дилерская", description: "Специальные условия для официальных дилеров", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 30, customerGroups: ["Дилеры"], createdAt: "2025-03-15", isDefault: false },
+  { id: "pl-4", name: "Акционная", description: "Временные цены для проведения акций и распродаж", status: "scheduled", currency: "RUB", discountType: "percentage", defaultDiscount: 15, customerGroups: ["Розница", "Оптовики"], validFrom: "2026-06-01", validTo: "2026-06-30", createdAt: "2026-05-20", isDefault: false },
+  { id: "pl-5", name: "VIP-клиенты", description: "Индивидуальные цены для постоянных VIP-покупателей", status: "active", currency: "RUB", discountType: "percentage", defaultDiscount: 25, customerGroups: ["VIP"], createdAt: "2025-04-01", isDefault: false },
 ];
 
 const STATUS_LABELS: Record<PriceListStatus, string> = {
@@ -93,7 +96,10 @@ function formatRub(n: number) {
 }
 
 export function PriceListsPanel() {
-  const [priceLists, setPriceLists] = useState<PriceList[]>(MOCK_PRICE_LISTS);
+  const { products } = useInventory();
+  const [priceLists, setPriceLists] = useState<PriceList[]>(() =>
+    PRICE_LIST_SPECS.map(spec => ({ ...spec, items: buildItems(products, spec.discountType, spec.defaultDiscount) }))
+  );
   const [selected, setSelected] = useState<PriceList | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -126,7 +132,7 @@ export function PriceListsPanel() {
   }
 
   function createPriceList() {
-    const items = buildItems(newForm.discountType, newForm.defaultDiscount);
+    const items = buildItems(products, newForm.discountType, newForm.defaultDiscount);
     const newList: PriceList = {
       id: "pl-" + Date.now(),
       name: newForm.name || "Новый прайс-лист",

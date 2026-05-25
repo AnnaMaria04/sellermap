@@ -12,7 +12,8 @@ import {
   Clock,
   Package,
 } from "lucide-react";
-import { PRODUCTS } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn, formatRub } from "@/lib/utils";
 
 type Tab = "cost" | "margin" | "history" | "fifo";
@@ -81,8 +82,8 @@ const MOCK_FIFO: Record<string, FifoBatch[]> = {
   ],
 };
 
-function buildCostRows(): CostRow[] {
-  return PRODUCTS.filter((p) => p.status !== "archived").map((p) => {
+function buildCostRows(products: Product[]): CostRow[] {
+  return products.filter((p) => p.status !== "archived").map((p) => {
     const unit = p.costPrice;
     const pkg = p.packagingCost ?? 0;
     const del = p.deliveryCost ?? 0;
@@ -161,6 +162,7 @@ function SortTh({
 }
 
 export function CostAnalysisPanel() {
+  const { products } = useInventory();
   const [tab, setTab] = useState<Tab>("cost");
   const [sortKey, setSortKey] = useState<SortKey>("marginPct");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -168,7 +170,7 @@ export function CostAnalysisPanel() {
   const [fifoProduct, setFifoProduct] = useState("prod-001");
   const [recalcKey, setRecalcKey] = useState(0);
 
-  const rows = useMemo(() => buildCostRows(), [recalcKey]);
+  const rows = useMemo(() => buildCostRows(products), [recalcKey, products]);
 
   const sorted = useMemo(() => {
     return [...rows].sort((a, b) => {
@@ -195,10 +197,10 @@ export function CostAnalysisPanel() {
     const totalPrice = rows.reduce((s, r) => s + r.price, 0);
     const totalMarginRub = rows.reduce((s, r) => s + r.marginRub, 0);
     const avgMarginPct = totalPrice > 0 ? (totalMarginRub / totalPrice) * 100 : 0;
-    const totalInventoryAtCost = PRODUCTS.filter((p) => p.status !== "archived").reduce((s, p) => s + p.totalPhysical * p.costPrice, 0);
-    const totalInventoryAtRetail = PRODUCTS.filter((p) => p.status !== "archived").reduce((s, p) => s + p.totalPhysical * p.price, 0);
+    const totalInventoryAtCost = products.filter((p) => p.status !== "archived").reduce((s, p) => s + p.totalPhysical * p.costPrice, 0);
+    const totalInventoryAtRetail = products.filter((p) => p.status !== "archived").reduce((s, p) => s + p.totalPhysical * p.price, 0);
     return { totalLanded, totalPrice, totalMarginRub, avgMarginPct, totalInventoryAtCost, totalInventoryAtRetail };
-  }, [rows]);
+  }, [rows, products]);
 
   const abcRows = useMemo(() => {
     const sorted2 = [...rows].sort((a, b) => b.marginRub - a.marginRub);
@@ -228,7 +230,7 @@ export function CostAnalysisPanel() {
   }).length;
 
   const fifoBatches = MOCK_FIFO[fifoProduct] ?? [];
-  const fifoProductData = PRODUCTS.find((p) => p.id === fifoProduct);
+  const fifoProductData = products.find((p) => p.id === fifoProduct);
   const weightedAvg = useMemo(() => {
     const active = fifoBatches.filter((b) => !b.depleted);
     const totalQty = active.reduce((s, b) => s + b.qtyRemaining, 0);
@@ -520,7 +522,7 @@ export function CostAnalysisPanel() {
                 onChange={(e) => setFifoProduct(e.target.value)}
                 className="h-9 appearance-none rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] pl-3 pr-8 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
               >
-                {PRODUCTS.filter((p) => MOCK_FIFO[p.id]).map((p) => (
+                {products.filter((p) => MOCK_FIFO[p.id]).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Package,
   Plus,
@@ -22,7 +22,8 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRODUCTS } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 interface BundleComponent {
   productId: string;
@@ -45,15 +46,6 @@ interface Bundle {
   createdAt: string;
   channels: string[];
 }
-
-const COMPONENT_STOCKS: Record<string, number> = {
-  "prod-001": 57,
-  "prod-002": 82,
-  "prod-003": 34,
-  "prod-004": 0,
-  "prod-005": 120,
-  "prod-006": 18,
-};
 
 const MOCK_BUNDLES: Bundle[] = [
   {
@@ -149,10 +141,10 @@ function marginColor(m: number) {
   return "text-[var(--c-red)] bg-[var(--c-red)]/10";
 }
 
-function getVirtualStock(bundle: Bundle): number {
+function getVirtualStock(bundle: Bundle, stockOf: (productId: string) => number): number {
   let min = Infinity;
   for (const c of bundle.components) {
-    const avail = COMPONENT_STOCKS[c.productId] ?? 0;
+    const avail = stockOf(c.productId);
     const possible = Math.floor(avail / c.qty);
     if (possible < min) min = possible;
   }
@@ -160,6 +152,14 @@ function getVirtualStock(bundle: Bundle): number {
 }
 
 export function BundleProductsPanel() {
+  const { products, getAvailableStock: ctxGetAvailableStock } = useInventory();
+  const stockOf = useCallback(
+    (productId: string) => {
+      const p = products.find((x) => x.id === productId);
+      return p ? ctxGetAvailableStock(p) : 0;
+    },
+    [products, ctxGetAvailableStock]
+  );
   const [bundles, setBundles] = useState<Bundle[]>(MOCK_BUNDLES);
   const [selected, setSelected] = useState<Bundle | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -187,9 +187,9 @@ export function BundleProductsPanel() {
     const avgMargin = active.length ? active.reduce((s, b) => s + b.margin, 0) / active.length : 0;
     const totalStockValue = bundles
       .filter(b => b.status === "active")
-      .reduce((s, b) => s + getVirtualStock(b) * b.sellingPrice, 0);
+      .reduce((s, b) => s + getVirtualStock(b, stockOf) * b.sellingPrice, 0);
     return { total: bundles.length, active: active.length, avgMargin, totalStockValue };
-  }, [bundles]);
+  }, [bundles, stockOf]);
 
   function handleDelete(id: string) {
     setBundles(prev => prev.filter(b => b.id !== id));
@@ -204,11 +204,11 @@ export function BundleProductsPanel() {
   function handleAssemble(bundle: Bundle) {
     const qty = parseInt(assembleQty[bundle.id] || "0", 10);
     if (!qty || qty <= 0) return;
-    setBundles(prev => prev.map(b => b.id === bundle.id ? { ...b, virtualStock: Math.max(0, getVirtualStock(b) - qty) } : b));
+    setBundles(prev => prev.map(b => b.id === bundle.id ? { ...b, virtualStock: Math.max(0, getVirtualStock(b, stockOf) - qty) } : b));
     setAssembleQty(prev => ({ ...prev, [bundle.id]: "" }));
   }
 
-  function handleAddComponent(p: typeof PRODUCTS[0]) {
+  function handleAddComponent(p: Product) {
     if (form.components.find(c => c.productId === p.id)) return;
     setForm(prev => ({
       ...prev,
@@ -220,7 +220,7 @@ export function BundleProductsPanel() {
   function handleCreateBundle() {
     if (!form.name || !form.sku || form.components.length === 0) return;
     const totalCost = form.components.reduce((s, c) => {
-      const p = PRODUCTS.find(x => x.id === c.productId);
+      const p = products.find(x => x.id === c.productId);
       return s + (p?.costPrice ?? 0) * c.qty;
     }, 0);
     const price = parseFloat(form.sellingPrice) || 0;
@@ -231,7 +231,7 @@ export function BundleProductsPanel() {
       sku: form.sku,
       status: "draft",
       components: form.components.map(c => {
-        const p = PRODUCTS.find(x => x.id === c.productId);
+        const p = products.find(x => x.id === c.productId);
         return { productId: c.productId, productName: c.productName, sku: c.sku, qty: c.qty, costContribution: (p?.costPrice ?? 0) * c.qty };
       }),
       sellingPrice: price,
@@ -249,15 +249,15 @@ export function BundleProductsPanel() {
   const liveMargin = useMemo(() => {
     const price = parseFloat(form.sellingPrice) || 0;
     const totalCost = form.components.reduce((s, c) => {
-      const p = PRODUCTS.find(x => x.id === c.productId);
+      const p = products.find(x => x.id === c.productId);
       return s + (p?.costPrice ?? 0) * c.qty;
     }, 0);
     return price > 0 ? { margin: ((price - totalCost) / price) * 100, cost: totalCost } : { margin: 0, cost: totalCost };
-  }, [form.sellingPrice, form.components]);
+  }, [form.sellingPrice, form.components, products]);
 
   const productResults = useMemo(
-    () => compSearch.length > 1 ? PRODUCTS.filter(p => p.name.toLowerCase().includes(compSearch.toLowerCase()) || p.sku.toLowerCase().includes(compSearch.toLowerCase())).slice(0, 6) : [],
-    [compSearch]
+    () => compSearch.length > 1 ? products.filter(p => p.name.toLowerCase().includes(compSearch.toLowerCase()) || p.sku.toLowerCase().includes(compSearch.toLowerCase())).slice(0, 6) : [],
+    [compSearch, products]
   );
 
   const bestBundle = useMemo(() => {
@@ -361,8 +361,8 @@ export function BundleProductsPanel() {
           </thead>
           <tbody>
             {filtered.map(bundle => {
-              const vs = getVirtualStock(bundle);
-              const hasNoStock = bundle.components.some(c => (COMPONENT_STOCKS[c.productId] ?? 0) === 0);
+              const vs = getVirtualStock(bundle, stockOf);
+              const hasNoStock = bundle.components.some(c => stockOf(c.productId) === 0);
               return (
                 <tr
                   key={bundle.id}
@@ -471,9 +471,9 @@ export function BundleProductsPanel() {
                     </thead>
                     <tbody>
                       {selected.components.map(comp => {
-                        const avail = COMPONENT_STOCKS[comp.productId] ?? 0;
+                        const avail = stockOf(comp.productId);
                         const maxFromThis = Math.floor(avail / comp.qty);
-                        const vs = getVirtualStock(selected);
+                        const vs = getVirtualStock(selected, stockOf);
                         const isLimiting = maxFromThis === vs;
                         return (
                           <tr key={comp.productId} className={cn("border-b border-[var(--c-border)] last:border-0", isLimiting && "bg-[var(--c-amber)]/5")}>

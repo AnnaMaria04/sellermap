@@ -22,16 +22,13 @@ import {
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { StockStatusBadge, ProductStatusBadge, MovementTypeBadge } from "@/components/inventory/StockStatusBadge";
 import {
-  PRODUCTS,
-  MOVEMENTS,
-  SUPPLIERS,
-  LOCATIONS,
   getAvailableStock,
   getStockStatus,
   getSupplierName,
   PRODUCT_TYPE_LABELS,
   CHANNEL_LABELS,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -40,7 +37,8 @@ interface Props {
 
 export default function ProductDetailPage({ params }: Props) {
   const { id } = use(params);
-  const product = PRODUCTS.find((p) => p.id === id);
+  const { products, movements: allMovements, suppliers, locations } = useInventory();
+  const product = products.find((p) => p.id === id);
 
   if (!product) {
     return (
@@ -60,8 +58,8 @@ export default function ProductDetailPage({ params }: Props) {
 
   const available = getAvailableStock(product);
   const stockStatus = getStockStatus(product);
-  const supplier = SUPPLIERS.find((s) => s.id === product.supplierId);
-  const movements = MOVEMENTS.filter((m) => m.productId === product.id);
+  const supplier = suppliers.find((s) => s.id === product.supplierId);
+  const movements = allMovements.filter((m) => m.productId === product.id);
   const margin = product.margin ?? 0;
 
   return (
@@ -193,7 +191,7 @@ export default function ProductDetailPage({ params }: Props) {
             {/* By location */}
             <div className="space-y-2">
               {Object.entries(product.stockByLocation).map(([locId, qty]) => {
-                const loc = LOCATIONS.find((l) => l.id === locId);
+                const loc = locations.find((l) => l.id === locId);
                 return (
                   <div key={locId} className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3">
                     <MapPin size={14} className="text-[var(--c-text3)] shrink-0" />

@@ -5,6 +5,8 @@ import {
   useContext,
   useReducer,
   useCallback,
+  useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -70,7 +72,9 @@ type InventoryAction =
   | { type: "ADD_SUPPLIER"; supplier: Supplier }
   | { type: "UPDATE_SUPPLIER"; id: string; patch: Partial<Supplier> }
   | { type: "ADD_LOCATION"; location: Location }
-  | { type: "ADD_MOVEMENT"; movement: StockMovement };
+  | { type: "ADD_MOVEMENT"; movement: StockMovement }
+  | { type: "HYDRATE"; state: InventoryState }
+  | { type: "RESET_STATE" };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -397,6 +401,13 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     case "ADD_MOVEMENT":
       return { ...state, movements: [action.movement, ...state.movements] };
 
+    // ── Hydration / demo reset ──────────────────────────────────────────────
+    case "HYDRATE":
+      return action.state;
+
+    case "RESET_STATE":
+      return initialState;
+
     default:
       return state;
   }
@@ -423,6 +434,7 @@ interface InventoryContextValue extends InventoryState {
     addSupplier: (data: Omit<Supplier, "id" | "createdAt">) => void;
     updateSupplier: (id: string, patch: Partial<Supplier>) => void;
     addLocation: (data: Omit<Location, "id">) => void;
+    resetDemo: () => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -432,8 +444,49 @@ interface InventoryContextValue extends InventoryState {
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
+// ── Persistence ────────────────────────────────────────────────────────────
+const STORAGE_KEY = "sellermap-inventory-v1";
+
+function loadPersistedState(): InventoryState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<InventoryState>;
+    return {
+      products: parsed.products ?? initialState.products,
+      suppliers: parsed.suppliers ?? initialState.suppliers,
+      locations: parsed.locations ?? initialState.locations,
+      purchaseOrders: parsed.purchaseOrders ?? initialState.purchaseOrders,
+      transfers: parsed.transfers ?? initialState.transfers,
+      stocktakes: parsed.stocktakes ?? initialState.stocktakes,
+      movements: parsed.movements ?? initialState.movements,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function InventoryProvider({ children }: { children: ReactNode }) {
+  // SSR renders the deterministic mock seed; the client rehydrates from
+  // localStorage on mount to avoid a hydration mismatch.
   const [state, dispatch] = useReducer(reducer, initialState);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const persisted = loadPersistedState();
+    if (persisted) dispatch({ type: "HYDRATE", state: persisted });
+    hydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Quota or serialization failure — non-fatal for a demo.
+    }
+  }, [state]);
 
   const actions: InventoryContextValue["actions"] = {
     addProduct: useCallback(
@@ -526,6 +579,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     addLocation: useCallback((data) => {
       const location: Location = { ...data, id: uid("loc") };
       dispatch({ type: "ADD_LOCATION", location });
+    }, []),
+    resetDemo: useCallback(() => {
+      if (typeof window !== "undefined") {
+        try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+      }
+      dispatch({ type: "RESET_STATE" });
     }, []),
   };
 

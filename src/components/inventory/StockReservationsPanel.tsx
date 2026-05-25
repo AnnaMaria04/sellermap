@@ -20,7 +20,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRODUCTS, LOCATIONS } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 type ReservationStatus = "active" | "fulfilled" | "cancelled" | "expired";
 type ReservationSource = "manual" | "wildberries" | "ozon" | "yandex_market" | "website" | "pos";
@@ -125,10 +126,6 @@ function fmt(n: number) {
   return n.toLocaleString("ru-RU");
 }
 
-function getLocationName(id: string) {
-  return LOCATIONS.find(l => l.id === id)?.name ?? id;
-}
-
 const TODAY_STR = "2026-05-25";
 const TOMORROW_STR = "2026-05-26";
 
@@ -137,6 +134,12 @@ function isExpiringToday(r: Reservation) {
 }
 
 export function StockReservationsPanel() {
+  const { products, locations } = useInventory();
+
+  function getLocationName(id: string) {
+    return locations.find(l => l.id === id)?.name ?? id;
+  }
+
   const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
@@ -158,20 +161,20 @@ export function StockReservationsPanel() {
     expiresAt: "",
     note: "",
   });
-  const [productResults, setProductResults] = useState<typeof PRODUCTS>([]);
+  const [productResults, setProductResults] = useState<Product[]>([]);
 
   const stats = useMemo(() => {
     const active = reservations.filter(r => r.status === "active");
     const totalUnits = active.reduce((s, r) => s + r.qty, 0);
     const reservedValue = active.reduce((s, r) => {
-      const p = PRODUCTS.find(x => x.id === r.productId);
+      const p = products.find(x => x.id === r.productId);
       return s + r.qty * (p?.costPrice ?? 0);
     }, 0);
     const expiringToday = active.filter(isExpiringToday).length;
     const marketplace = active.filter(r => ["wildberries", "ozon", "yandex_market"].includes(r.source)).length;
     const manual = active.filter(r => ["manual", "pos", "website"].includes(r.source)).length;
     return { totalUnits, reservedValue, expiringToday, marketplace, manual };
-  }, [reservations]);
+  }, [reservations, products]);
 
   const filtered = useMemo(() => {
     return reservations.filter(r => {
@@ -186,13 +189,13 @@ export function StockReservationsPanel() {
     const map: Record<string, { productName: string; physical: number; reserved: number }> = {};
     reservations.filter(r => r.status === "active").forEach(r => {
       if (!map[r.productId]) {
-        const p = PRODUCTS.find(x => x.id === r.productId);
+        const p = products.find(x => x.id === r.productId);
         map[r.productId] = { productName: r.productName, physical: p?.totalPhysical ?? 0, reserved: 0 };
       }
       map[r.productId].reserved += r.qty;
     });
     return Object.entries(map).map(([id, v]) => ({ productId: id, ...v, available: Math.max(0, v.physical - v.reserved) }));
-  }, [reservations]);
+  }, [reservations, products]);
 
   function handleRelease(id: string) {
     setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "cancelled" as ReservationStatus } : r));
@@ -230,10 +233,10 @@ export function StockReservationsPanel() {
 
   function handleProductSearch(q: string) {
     setForm(p => ({ ...p, productSearch: q, productId: "", productName: "", sku: "" }));
-    setProductResults(q.length > 1 ? PRODUCTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : []);
+    setProductResults(q.length > 1 ? products.filter(p => p.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : []);
   }
 
-  function selectProduct(p: typeof PRODUCTS[0]) {
+  function selectProduct(p: Product) {
     setForm(prev => ({ ...prev, productSearch: p.name, productId: p.id, productName: p.name, sku: p.sku }));
     setProductResults([]);
   }
@@ -543,7 +546,7 @@ export function StockReservationsPanel() {
                     onChange={e => setForm(p => ({ ...p, locationId: e.target.value }))}
                     className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
                   >
-                    {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
                 <div>

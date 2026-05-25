@@ -11,7 +11,8 @@ import {
   ArrowRight,
   RefreshCw,
 } from "lucide-react";
-import { PRODUCTS, SUPPLIERS, getAvailableStock, type Product } from "@/mock/inventory";
+import { getAvailableStock, type Product, type Supplier } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type ForecastHorizon = "7d" | "14d" | "30d" | "90d";
@@ -27,11 +28,11 @@ interface ProductForecast {
   confidence: number;
   forecastedSales: number;
   seasonalFactor: number;
-  supplier?: (typeof SUPPLIERS)[0];
+  supplier?: Supplier;
 }
 
 // Simulated forecast data
-function generateForecast(product: Product, horizon: ForecastHorizon): ProductForecast {
+function generateForecast(product: Product, horizon: ForecastHorizon, suppliers: Supplier[]): ProductForecast {
   const horizonDays = { "7d": 7, "14d": 14, "30d": 30, "90d": 90 }[horizon];
   const available = getAvailableStock(product);
 
@@ -47,7 +48,7 @@ function generateForecast(product: Product, horizon: ForecastHorizon): ProductFo
 
   const avgDailySales = baseDaily * seasonal * (0.8 + Math.random() * 0.4);
   const daysOfStock = available > 0 ? Math.floor(available / avgDailySales) : 0;
-  const supplier = SUPPLIERS.find((s) => s.id === product.supplierId);
+  const supplier = suppliers.find((s) => s.id === product.supplierId);
   const leadTime = supplier?.leadTimeDays ?? 14;
   const reorderPoint = Math.ceil(avgDailySales * (leadTime + 3)); // safety stock
   const reorderQty = Math.max(supplier?.minOrderQty ?? 20, Math.ceil(avgDailySales * 30));
@@ -73,19 +74,20 @@ function generateForecast(product: Product, horizon: ForecastHorizon): ProductFo
 }
 
 export function DemandForecast() {
+  const { products, suppliers } = useInventory();
   const [horizon, setHorizon] = useState<ForecastHorizon>("30d");
   const [sortBy, setSortBy] = useState<"urgency" | "sales" | "stock">("urgency");
 
   const forecasts = useMemo(
     () =>
-      PRODUCTS.filter((p) => p.status === "active")
-        .map((p) => generateForecast(p, horizon))
+      products.filter((p) => p.status === "active")
+        .map((p) => generateForecast(p, horizon, suppliers))
         .sort((a, b) => {
           if (sortBy === "urgency") return a.daysOfStock - b.daysOfStock;
           if (sortBy === "sales") return b.forecastedSales - a.forecastedSales;
           return getAvailableStock(a.product) - getAvailableStock(b.product);
         }),
-    [horizon, sortBy],
+    [horizon, sortBy, products, suppliers],
   );
 
   const urgent = forecasts.filter((f) => f.daysOfStock <= 7);

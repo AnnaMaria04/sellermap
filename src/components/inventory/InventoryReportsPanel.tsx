@@ -26,7 +26,7 @@ import {
   Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRODUCTS } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 type ReportType =
   | "stock_balance"
@@ -62,31 +62,10 @@ interface ScheduledReport {
   isActive: boolean;
 }
 
-const REPORT_TEMPLATES: ReportTemplate[] = [
-  { id: "stock_balance", name: "Остатки товаров", description: "Текущие остатки по всем локациям и складам", icon: "Package", lastGenerated: "2026-05-24", estimatedRows: PRODUCTS.length },
-  { id: "turnover", name: "Оборачиваемость", description: "Скорость реализации товаров за период", icon: "RefreshCw", lastGenerated: "2026-05-23", estimatedRows: PRODUCTS.length },
-  { id: "dead_stock", name: "Неликвидные товары", description: "Товары без движения более 60 дней", icon: "Archive", estimatedRows: 12 },
-  { id: "reorder", name: "Потребность в закупке", description: "Товары ниже точки перезаказа", icon: "ShoppingCart", lastGenerated: "2026-05-22", estimatedRows: 8 },
-  { id: "cost_analysis", name: "Анализ себестоимости", description: "Структура затрат по каждому товару", icon: "DollarSign", estimatedRows: PRODUCTS.length },
-  { id: "movement_history", name: "История движений", description: "Все приходы, расходы и перемещения за период", icon: "History", lastGenerated: "2026-05-20", estimatedRows: 340 },
-  { id: "abc_analysis", name: "ABC-анализ", description: "Классификация товаров по выручке и прибыли", icon: "BarChart3", lastGenerated: "2026-05-18", estimatedRows: PRODUCTS.length },
-  { id: "channel_sales", name: "Продажи по каналам", description: "Выручка и количество по Wildberries, Ozon, сайту", icon: "TrendingUp", estimatedRows: 45 },
-  { id: "margin_report", name: "Отчёт по марже", description: "Маржинальность каждого товара и категории", icon: "Percent", lastGenerated: "2026-05-21", estimatedRows: PRODUCTS.length },
-  { id: "supplier_performance", name: "Поставщики", description: "Своевременность, качество и статистика поставок", icon: "Truck", estimatedRows: 4 },
-];
-
 const MOCK_SCHEDULED: ScheduledReport[] = [
   { id: "sch-1", reportType: "stock_balance", name: "Ежедневные остатки", frequency: "daily", format: "excel", recipients: ["manager@store.ru", "warehouse@store.ru"], nextRun: "2026-05-26 08:00", isActive: true },
   { id: "sch-2", reportType: "turnover", name: "Еженедельная оборачиваемость", frequency: "weekly", format: "pdf", recipients: ["director@store.ru"], nextRun: "2026-05-27 09:00", isActive: true },
   { id: "sch-3", reportType: "abc_analysis", name: "Ежемесячный ABC", frequency: "monthly", format: "excel", recipients: ["analyst@store.ru", "director@store.ru"], nextRun: "2026-06-01 10:00", isActive: false },
-];
-
-const RECENT_GENERATED = [
-  { name: "Остатки товаров", date: "2026-05-24 14:32", format: "excel", rows: PRODUCTS.length },
-  { name: "Оборачиваемость", date: "2026-05-23 11:15", format: "excel", rows: PRODUCTS.length },
-  { name: "История движений", date: "2026-05-20 09:45", format: "csv", rows: 340 },
-  { name: "ABC-анализ", date: "2026-05-18 16:20", format: "excel", rows: PRODUCTS.length },
-  { name: "Отчёт по марже", date: "2026-05-21 13:10", format: "pdf", rows: PRODUCTS.length },
 ];
 
 const POPULAR_TYPES: ReportType[] = ["stock_balance", "turnover", "abc_analysis"];
@@ -105,6 +84,29 @@ const TYPE_LABELS: Record<ReportType, string> = {
 };
 
 export function InventoryReportsPanel() {
+  const { products } = useInventory();
+
+  const REPORT_TEMPLATES: ReportTemplate[] = [
+    { id: "stock_balance", name: "Остатки товаров", description: "Текущие остатки по всем локациям и складам", icon: "Package", lastGenerated: "2026-05-24", estimatedRows: products.length },
+    { id: "turnover", name: "Оборачиваемость", description: "Скорость реализации товаров за период", icon: "RefreshCw", lastGenerated: "2026-05-23", estimatedRows: products.length },
+    { id: "dead_stock", name: "Неликвидные товары", description: "Товары без движения более 60 дней", icon: "Archive", estimatedRows: 12 },
+    { id: "reorder", name: "Потребность в закупке", description: "Товары ниже точки перезаказа", icon: "ShoppingCart", lastGenerated: "2026-05-22", estimatedRows: 8 },
+    { id: "cost_analysis", name: "Анализ себестоимости", description: "Структура затрат по каждому товару", icon: "DollarSign", estimatedRows: products.length },
+    { id: "movement_history", name: "История движений", description: "Все приходы, расходы и перемещения за период", icon: "History", lastGenerated: "2026-05-20", estimatedRows: 340 },
+    { id: "abc_analysis", name: "ABC-анализ", description: "Классификация товаров по выручке и прибыли", icon: "BarChart3", lastGenerated: "2026-05-18", estimatedRows: products.length },
+    { id: "channel_sales", name: "Продажи по каналам", description: "Выручка и количество по Wildberries, Ozon, сайту", icon: "TrendingUp", estimatedRows: 45 },
+    { id: "margin_report", name: "Отчёт по марже", description: "Маржинальность каждого товара и категории", icon: "Percent", lastGenerated: "2026-05-21", estimatedRows: products.length },
+    { id: "supplier_performance", name: "Поставщики", description: "Своевременность, качество и статистика поставок", icon: "Truck", estimatedRows: 4 },
+  ];
+
+  const RECENT_GENERATED = [
+    { name: "Остатки товаров", date: "2026-05-24 14:32", format: "excel", rows: products.length },
+    { name: "Оборачиваемость", date: "2026-05-23 11:15", format: "excel", rows: products.length },
+    { name: "История движений", date: "2026-05-20 09:45", format: "csv", rows: 340 },
+    { name: "ABC-анализ", date: "2026-05-18 16:20", format: "excel", rows: products.length },
+    { name: "Отчёт по марже", date: "2026-05-21 13:10", format: "pdf", rows: products.length },
+  ];
+
   const [filterType, setFilterType] = useState<ReportType | "all">("all");
   const [configReport, setConfigReport] = useState<ReportTemplate | null>(null);
   const [dateFrom, setDateFrom] = useState("2026-05-01");
