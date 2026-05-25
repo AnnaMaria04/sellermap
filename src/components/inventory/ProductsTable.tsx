@@ -2,13 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Search,
   Plus,
   Download,
   Upload,
-  Filter,
   ChevronDown,
   MoreHorizontal,
   Barcode,
@@ -19,7 +17,6 @@ import {
   SlidersHorizontal,
   X,
   ArrowUpDown,
-  CheckSquare,
   Package,
 } from "lucide-react";
 import {

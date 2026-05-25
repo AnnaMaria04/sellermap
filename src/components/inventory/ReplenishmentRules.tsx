@@ -95,7 +95,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 export function ReplenishmentRules() {
-  const { products, suppliers, replenishmentRules: rules, actions } = useInventory();
+  const { products, suppliers, locations, replenishmentRules: rules, actions } = useInventory();
+  const defaultLocationId = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? "loc-warehouse";
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | RuleStatus>("all");
@@ -440,7 +441,7 @@ export function ReplenishmentRules() {
                                   items: [{ productId: rule.productId, productName: rule.productName, sku: rule.sku, qty: rule.reorderQty, receivedQty: 0, unitCost: 0, totalCost: 0 }],
                                   totalAmount: 0,
                                   currency: "RUB",
-                                  locationId: "loc-warehouse",
+                                  locationId: defaultLocationId,
                                   paymentStatus: "unpaid",
                                 });
                               }

@@ -487,7 +487,9 @@ export function POSSellScreen() {
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<string>("loc-store");
+  const [selectedLocation, setSelectedLocation] = useState<string>(
+    () => locations.find((l) => l.type === "store")?.id ?? locations.find((l) => l.isDefault)?.id ?? "loc-store",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Все");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");

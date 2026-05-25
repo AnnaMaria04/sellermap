@@ -150,7 +150,7 @@ export function ReturnsPanel() {
       );
     }
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [statusFilter, channelFilter, search]);
+  }, [returns, statusFilter, channelFilter, search]);
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.toLowerCase();

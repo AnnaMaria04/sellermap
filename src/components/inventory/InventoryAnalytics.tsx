@@ -46,7 +46,7 @@ type Recommendation = {
 };
 
 export function InventoryAnalytics() {
-  const { products: PRODUCTS } = useInventory();
+  const { products: PRODUCTS, locations } = useInventory();
   const stats = useMemo(() => getInventoryStats(PRODUCTS), [PRODUCTS]);
 
   const alerts: Alert[] = useMemo(() => {
@@ -305,11 +305,7 @@ export function InventoryAnalytics() {
       <div>
         <h2 className="mb-4 text-base font-semibold text-[var(--c-text)]">Распределение по локациям</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {[
-            { name: "Основной склад", id: "loc-warehouse" },
-            { name: "Магазин", id: "loc-store" },
-            { name: "Шоурум", id: "loc-showroom" },
-          ].map((loc) => {
+          {locations.map((loc) => {
             const units = PRODUCTS.reduce((s, p) => s + (p.stockByLocation[loc.id] ?? 0), 0);
             const value = PRODUCTS.reduce((s, p) => s + (p.stockByLocation[loc.id] ?? 0) * p.costPrice, 0);
             return (

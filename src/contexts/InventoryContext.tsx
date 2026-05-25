@@ -109,7 +109,7 @@ type InventoryAction =
   | { type: "RECEIVE_PO_ITEMS"; poId: string; received: Record<string, number>; locationId: string }
   | { type: "CREATE_TRANSFER"; transfer: Transfer }
   | { type: "UPDATE_TRANSFER_STATUS"; id: string; status: TransferStatus }
-  | { type: "RECEIVE_TRANSFER"; id: string }
+  | { type: "RECEIVE_TRANSFER"; id: string; partialQtys?: Record<string, number> }
   | { type: "CREATE_STOCKTAKE"; stocktake: Stocktake }
   | { type: "UPDATE_STOCKTAKE_COUNT"; stocktakeId: string; productId: string; qty: number }
   | { type: "COMPLETE_STOCKTAKE"; stocktakeId: string }
@@ -306,7 +306,7 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
       const movements: StockMovement[] = [];
 
       for (const item of transfer.items) {
-        const qty = item.qty;
+        const qty = action.partialQtys?.[item.productId] ?? item.qty;
         const product = products.find((p) => p.id === item.productId);
         if (!product) continue;
         const fromBefore = product.stockByLocation[transfer.fromLocationId] ?? 0;
@@ -884,7 +884,7 @@ interface InventoryContextValue extends InventoryState {
     receivePOItems: (poId: string, received: Record<string, number>, locationId: string) => void;
     createTransfer: (data: Omit<Transfer, "id" | "createdAt">) => void;
     updateTransferStatus: (id: string, status: TransferStatus) => void;
-    receiveTransfer: (id: string) => void;
+    receiveTransfer: (id: string, partialQtys?: Record<string, number>) => void;
     createStocktake: (locationId: string, products: StocktakeItem[], note?: string) => string;
     updateStocktakeCount: (stocktakeId: string, productId: string, qty: number) => void;
     completeStocktake: (stocktakeId: string) => void;
@@ -1060,7 +1060,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       [],
     ),
     receiveTransfer: useCallback(
-      (id) => dispatch({ type: "RECEIVE_TRANSFER", id }),
+      (id, partialQtys) => dispatch({ type: "RECEIVE_TRANSFER", id, partialQtys }),
       [],
     ),
     createStocktake: useCallback((locationId, items, note) => {

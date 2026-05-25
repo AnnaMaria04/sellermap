@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import {
   MOVEMENT_LABELS,
-  getLocationName,
   type MovementType,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
@@ -156,7 +155,7 @@ export function MovementHistory() {
         {
           key: "locationId",
           label: "Локация",
-          format: (m) => locations.find((l) => l.id === m.locationId)?.name ?? getLocationName(m.locationId),
+          format: (m) => locations.find((l) => l.id === m.locationId)?.name ?? m.locationId,
         },
         {
           key: "qtyDelta",
@@ -322,7 +321,7 @@ export function MovementHistory() {
           paginated.map((movement, idx) => {
             const isPositive = movement.qtyDelta > 0;
             const isNeutral = movement.qtyDelta === 0;
-            const locationName = getLocationName(movement.locationId);
+            const locationName = locations.find((l) => l.id === movement.locationId)?.name ?? movement.locationId;
 
             return (
               <div

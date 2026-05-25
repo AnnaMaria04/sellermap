@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
-import { PRODUCTS, type Location } from "@/mock/inventory";
+import { type Product, type Location } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
@@ -79,20 +79,20 @@ function TypeBadge({ type }: { type: LocationType }) {
   );
 }
 
-function getLocationUnits(locationId: string): number {
-  return PRODUCTS.reduce((sum, p) => sum + (p.stockByLocation[locationId] ?? 0), 0);
+function getLocationUnits(locationId: string, products: Product[]): number {
+  return products.reduce((sum, p) => sum + (p.stockByLocation[locationId] ?? 0), 0);
 }
 
-function getLocationValue(locationId: string): number {
-  return PRODUCTS.reduce((sum, p) => sum + (p.stockByLocation[locationId] ?? 0) * p.costPrice, 0);
+function getLocationValue(locationId: string, products: Product[]): number {
+  return products.reduce((sum, p) => sum + (p.stockByLocation[locationId] ?? 0) * p.costPrice, 0);
 }
 
-function getLocationProductCount(locationId: string): number {
-  return PRODUCTS.filter((p) => (p.stockByLocation[locationId] ?? 0) > 0).length;
+function getLocationProductCount(locationId: string, products: Product[]): number {
+  return products.filter((p) => (p.stockByLocation[locationId] ?? 0) > 0).length;
 }
 
-function getLocationProducts(locationId: string) {
-  return PRODUCTS.filter((p) => (p.stockByLocation[locationId] ?? 0) > 0).map((p) => ({
+function getLocationProducts(locationId: string, products: Product[]) {
+  return products.filter((p) => (p.stockByLocation[locationId] ?? 0) > 0).map((p) => ({
     id: p.id,
     name: p.name,
     sku: p.sku,
@@ -120,7 +120,7 @@ const FORM_DEFAULTS: NewLocationForm = {
 };
 
 export function LocationsManager() {
-  const { locations, actions } = useInventory();
+  const { locations, products, actions } = useInventory();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<NewLocationForm>(FORM_DEFAULTS);
@@ -130,8 +130,8 @@ export function LocationsManager() {
   const allLocations = useMemo(() => locations, [locations]);
 
   const totalUnits = useMemo(
-    () => allLocations.reduce((s, l) => s + getLocationUnits(l.id), 0),
-    [allLocations],
+    () => allLocations.reduce((s, l) => s + getLocationUnits(l.id, products), 0),
+    [allLocations, products],
   );
 
   const warehouseCount = allLocations.filter((l) => l.type === "warehouse").length;
@@ -202,9 +202,9 @@ export function LocationsManager() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {allLocations.map((loc) => {
-          const units = getLocationUnits(loc.id);
-          const value = getLocationValue(loc.id);
-          const productCount = getLocationProductCount(loc.id);
+          const units = getLocationUnits(loc.id, products);
+          const value = getLocationValue(loc.id, products);
+          const productCount = getLocationProductCount(loc.id, products);
           const capacityMax = CAPACITY_MAX[loc.type] ?? 500;
           const pct = Math.min(100, Math.round((units / capacityMax) * 100));
 
@@ -439,9 +439,10 @@ function LocationCard({
 }
 
 function LocationDetailPanel({ location, onClose }: { location: Location; onClose: () => void }) {
-  const products = useMemo(() => getLocationProducts(location.id), [location.id]);
-  const units = getLocationUnits(location.id);
-  const value = getLocationValue(location.id);
+  const { products: allProducts } = useInventory();
+  const products = useMemo(() => getLocationProducts(location.id, allProducts), [location.id, allProducts]);
+  const units = getLocationUnits(location.id, allProducts);
+  const value = getLocationValue(location.id, allProducts);
   const capacityMax = CAPACITY_MAX[location.type] ?? 500;
   const pct = Math.min(100, Math.round((units / capacityMax) * 100));
   const barColor =

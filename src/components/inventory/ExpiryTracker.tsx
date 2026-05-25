@@ -85,6 +85,7 @@ export function ExpiryTracker() {
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [confirmWriteOffAll, setConfirmWriteOffAll] = useState(false);
 
+  const defaultLocationId = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? "";
   const [form, setForm] = useState({
     productSearch: "",
     productId: "",
@@ -93,7 +94,7 @@ export function ExpiryTracker() {
     batchNumber: "",
     manufactureDate: "",
     expiryDate: "",
-    locationId: "loc-warehouse",
+    locationId: defaultLocationId,
     qty: "",
     supplierId: "",
   });
@@ -141,11 +142,20 @@ export function ExpiryTracker() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   function handleWriteOffExpired() {
+    batches
+      .filter((b) => daysUntilExpiry(b.expiryDate) < 0 && b.status !== "quarantine" && b.remainingQty > 0)
+      .forEach((b) => {
+        actions.adjustStock(b.productId, b.locationId, -b.remainingQty, "write_off", `Истёк срок годности — партия ${b.batchNumber}`);
+      });
     actions.writeOffAllExpired();
     setConfirmWriteOffAll(false);
   }
 
   function handleWriteOff(id: string) {
+    const batch = batches.find((b) => b.id === id);
+    if (batch && batch.remainingQty > 0) {
+      actions.adjustStock(batch.productId, batch.locationId, -batch.remainingQty, "write_off", `Истёк срок годности — партия ${batch.batchNumber}`);
+    }
     actions.writeOffBatch(id);
   }
 
@@ -188,7 +198,7 @@ export function ExpiryTracker() {
     };
     actions.registerBatch(newBatch);
     setShowRegister(false);
-    setForm({ productSearch: "", productId: "", productName: "", sku: "", batchNumber: "", manufactureDate: "", expiryDate: "", locationId: "loc-warehouse", qty: "", supplierId: "" });
+    setForm({ productSearch: "", productId: "", productName: "", sku: "", batchNumber: "", manufactureDate: "", expiryDate: "", locationId: defaultLocationId, qty: "", supplierId: "" });
   }
 
   return (

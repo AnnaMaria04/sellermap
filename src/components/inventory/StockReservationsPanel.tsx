@@ -150,8 +150,9 @@ export function StockReservationsPanel() {
     if (!form.productId || !form.locationId) return null;
     const p = products.find(x => x.id === form.productId);
     if (!p) return null;
-    // sum variants for this location
-    const physical = p.variants?.reduce((s, v) => s + (v.stock[form.locationId] ?? 0), 0) ?? 0;
+    const physical = p.variants?.length
+      ? p.variants.reduce((s, v) => s + (v.stock[form.locationId] ?? 0), 0)
+      : (p.stockByLocation[form.locationId] ?? 0);
     const committed = reservations
       .filter(r => r.productId === form.productId && r.locationId === form.locationId && r.status === "active")
       .reduce((s, r) => s + r.qty, 0);

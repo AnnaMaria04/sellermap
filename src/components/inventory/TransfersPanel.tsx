@@ -20,7 +20,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import {
-  getLocationName,
   type Transfer,
   type TransferStatus,
 } from "@/mock/inventory";
@@ -164,6 +163,7 @@ function SummaryStats({ transfers }: { transfers: Transfer[] }) {
 // ── Export dropdown ──────────────────────────────────────────────────────────
 
 function ExportButton({ transfers }: { transfers: Transfer[] }) {
+  const { locations } = useInventory();
   const [open, setOpen] = useState(false);
 
   function doExport(format: ExportFormat) {
@@ -175,8 +175,8 @@ function ExportButton({ transfers }: { transfers: Transfer[] }) {
       format,
       columns: [
         { key: "id",          label: "ID",                  format: (r) => r.id.toUpperCase() },
-        { key: "from",        label: "Откуда",              format: (r) => getLocationName(r.fromLocationId) },
-        { key: "to",          label: "Куда",                format: (r) => getLocationName(r.toLocationId) },
+        { key: "from",        label: "Откуда",              format: (r) => locations.find(l => l.id === r.fromLocationId)?.name ?? r.fromLocationId },
+        { key: "to",          label: "Куда",                format: (r) => locations.find(l => l.id === r.toLocationId)?.name ?? r.toLocationId },
         { key: "status",      label: "Статус",              format: (r) => STATUS_LABEL[r.status] ?? r.status },
         { key: "items",       label: "Товаров (позиций)",   format: (r) => r.items.length },
         { key: "qty",         label: "Кол-во (шт)",         format: (r) => r.items.reduce((s, i) => s + i.qty, 0), align: "right" },
@@ -226,7 +226,7 @@ interface Props {
 }
 
 export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
-  const { transfers, actions } = useInventory();
+  const { transfers, locations, actions } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
@@ -240,8 +240,8 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
         (t) =>
           t.id.toLowerCase().includes(q) ||
           t.items.some((i) => i.productName.toLowerCase().includes(q)) ||
-          getLocationName(t.fromLocationId).toLowerCase().includes(q) ||
-          getLocationName(t.toLocationId).toLowerCase().includes(q),
+          (locations.find(l => l.id === t.fromLocationId)?.name ?? t.fromLocationId).toLowerCase().includes(q) ||
+          (locations.find(l => l.id === t.toLocationId)?.name ?? t.toLocationId).toLowerCase().includes(q),
       );
     }
     if (statusFilter !== "all") {
@@ -330,7 +330,7 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
         <TransferDetailPanel
           transfer={currentSelected}
           onClose={() => setSelectedTransfer(null)}
-          onReceive={(id) => { actions.receiveTransfer(id); setSelectedTransfer(null); }}
+          onReceive={(id, partialQtys) => { actions.receiveTransfer(id, partialQtys); setSelectedTransfer(null); }}
         />
       )}
 
@@ -345,8 +345,9 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
 // ── Transfer card ─────────────────────────────────────────────────────────────
 
 function TransferCard({ transfer, onClick }: { transfer: Transfer; onClick: () => void }) {
-  const fromName = getLocationName(transfer.fromLocationId);
-  const toName   = getLocationName(transfer.toLocationId);
+  const { locations } = useInventory();
+  const fromName = locations.find(l => l.id === transfer.fromLocationId)?.name ?? transfer.fromLocationId;
+  const toName   = locations.find(l => l.id === transfer.toLocationId)?.name ?? transfer.toLocationId;
   const totalQty    = transfer.items.reduce((s, i) => s + i.qty, 0);
   const receivedQty = transfer.items.reduce((s, i) => s + i.receivedQty, 0);
 
@@ -417,15 +418,16 @@ function TransferCard({ transfer, onClick }: { transfer: Transfer; onClick: () =
 interface DetailProps {
   transfer: Transfer;
   onClose: () => void;
-  onReceive: (id: string) => void;
+  onReceive: (id: string, partialQtys?: Record<string, number>) => void;
 }
 
 function TransferDetailPanel({ transfer, onClose, onReceive }: DetailProps) {
+  const { locations } = useInventory();
   const [receiving, setReceiving] = useState(false);
   const [receiveQtys, setReceiveQtys] = useState<Record<string, string>>({});
 
-  const fromName = getLocationName(transfer.fromLocationId);
-  const toName   = getLocationName(transfer.toLocationId);
+  const fromName = locations.find(l => l.id === transfer.fromLocationId)?.name ?? transfer.fromLocationId;
+  const toName   = locations.find(l => l.id === transfer.toLocationId)?.name ?? transfer.toLocationId;
 
   const totalQty    = transfer.items.reduce((s, i) => s + i.qty, 0);
   const receivedQty = transfer.items.reduce((s, i) => s + i.receivedQty, 0);
@@ -439,7 +441,12 @@ function TransferDetailPanel({ transfer, onClose, onReceive }: DetailProps) {
   }
 
   function confirmReceive() {
-    onReceive(transfer.id);
+    const parsed: Record<string, number> = {};
+    for (const [pid, qty] of Object.entries(receiveQtys)) {
+      const n = parseInt(qty, 10);
+      if (!isNaN(n) && n > 0) parsed[pid] = n;
+    }
+    onReceive(transfer.id, Object.keys(parsed).length > 0 ? parsed : undefined);
   }
 
   return (

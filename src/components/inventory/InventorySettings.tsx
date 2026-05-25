@@ -18,7 +18,6 @@ import {
   ChevronDown,
   Building2,
 } from "lucide-react";
-import { LOCATIONS } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
 import { exportData } from "@/lib/export";
@@ -237,7 +236,7 @@ const COST_METHODS: { value: SettingsState["costMethod"]; label: string; descrip
 ];
 
 export function InventorySettings() {
-  const { actions, products, movements, suppliers } = useInventory();
+  const { actions, products, movements, suppliers, locations } = useInventory();
   const { profile, saveProfile } = useSellerProfile();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
@@ -389,7 +388,7 @@ export function InventorySettings() {
           <SelectInput
             value={settings.defaultLocationId}
             onChange={(v) => update("defaultLocationId", v)}
-            options={LOCATIONS.map((l) => ({ value: l.id, label: l.name }))}
+            options={locations.map((l) => ({ value: l.id, label: l.name }))}
           />
         </Field>
         <Field label="Валюта" hint="Основная валюта для цен и себестоимости">

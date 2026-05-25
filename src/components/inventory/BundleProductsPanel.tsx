@@ -62,7 +62,8 @@ function getVirtualStock(bundle: Bundle, stockOf: (productId: string) => number)
 }
 
 export function BundleProductsPanel() {
-  const { products, bundles, actions, getAvailableStock: ctxGetAvailableStock } = useInventory();
+  const { products, bundles, locations, actions, getAvailableStock: ctxGetAvailableStock } = useInventory();
+  const defaultLocationId = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? "loc-warehouse";
   const stockOf = useCallback(
     (productId: string) => {
       const p = products.find((x) => x.id === productId);
@@ -114,9 +115,7 @@ export function BundleProductsPanel() {
     const qty = parseInt(assembleQty[bundle.id] || "0", 10);
     if (!qty || qty <= 0) return;
     if (getVirtualStock(bundle, stockOf) < qty) return;
-    for (const c of bundle.components) {
-      actions.adjustStock(c.productId, "loc-warehouse", -(qty * c.qty), "adjustment", `Сборка комплекта «${bundle.name}» ×${qty}`);
-    }
+    actions.assembleBundle(bundle.id, qty, defaultLocationId);
     setAssembleQty(prev => ({ ...prev, [bundle.id]: "" }));
   }
 

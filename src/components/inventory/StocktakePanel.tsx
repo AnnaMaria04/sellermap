@@ -22,7 +22,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import {
-  getLocationName,
   type Stocktake,
   type StocktakeItem,
   type StocktakeStatus,
@@ -112,7 +111,7 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
           const cfg = statusConfig[stk.status];
           const counted = stk.items.filter((i) => i.countedQty !== null).length;
           const variances = stk.items.filter((i) => i.variance !== null && i.variance !== 0);
-          const locationName = getLocationName(stk.locationId);
+          const locationName = locations.find(l => l.id === stk.locationId)?.name ?? stk.locationId;
           const pct = stk.items.length > 0 ? (counted / stk.items.length) * 100 : 0;
 
           return (
@@ -200,7 +199,7 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
 // ── Detail panel ─────────────────────────────────────────────────────────────
 
 function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; onClose: () => void }) {
-  const { actions, products } = useInventory();
+  const { actions, products, locations } = useInventory();
   const [items, setItems] = useState<StocktakeItem[]>(stocktake.items);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [countValue, setCountValue] = useState("");
@@ -210,7 +209,7 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
   const [showExportMenu, setShowExportMenu] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
 
-  const locationName = getLocationName(stocktake.locationId);
+  const locationName = locations.find(l => l.id === stocktake.locationId)?.name ?? stocktake.locationId;
   const counted = items.filter((i) => i.countedQty !== null).length;
   const variances = items.filter((i) => i.variance !== null && i.variance !== 0);
   const totalVariance = variances.reduce((s, i) => s + (i.variance ?? 0), 0);

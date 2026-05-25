@@ -127,7 +127,8 @@ function rub(n: number) {
 // ---------------------------------------------------------------------------
 
 export function DemandForecast() {
-  const { products, suppliers, orders, movements, actions } = useInventory();
+  const { products, suppliers, orders, movements, locations, actions } = useInventory();
+  const defaultLocationId = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? "loc-warehouse";
   const [activeTab, setActiveTab] = useState<ActiveTab>("forecast");
   const [horizon, setHorizon] = useState<ForecastHorizon>("30d");
   const [sortBy, setSortBy] = useState<"urgency" | "sales" | "stock">(
@@ -660,7 +661,7 @@ export function DemandForecast() {
                                     ],
                                     totalAmount: unitCost * f.reorderQty,
                                     currency: f.supplier?.currency ?? "RUB",
-                                    locationId: "loc-warehouse",
+                                    locationId: defaultLocationId,
                                     paymentStatus: "unpaid",
                                     note: "Создан из прогноза спроса",
                                   });
