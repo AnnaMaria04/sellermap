@@ -123,7 +123,7 @@ type InventoryAction =
   | { type: "RELEASE_RESERVATION"; id: string }
   | { type: "FULFILL_RESERVATION"; id: string }
   | { type: "EXTEND_RESERVATION"; id: string; expiresAt: string }
-  | { type: "HYDRATE"; state: InventoryState }
+  | { type: "HYDRATE"; state: Partial<InventoryState> }
   | { type: "RESET_STATE" }
   // Returns
   | { type: "CREATE_RETURN"; returnRecord: ProductReturn }
@@ -457,17 +457,37 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
 
     // ── Prices ────────────────────────────────────────────────────────────────
     case "UPDATE_PRICES": {
-      const now = new Date().toISOString().split("T")[0];
+      const now = new Date().toISOString();
+      const newMovements: StockMovement[] = [];
+      const updatedProducts = state.products.map((p) => {
+        const upd = action.updates[p.id];
+        if (!upd) return p;
+        const newPrice = upd.price ?? p.price;
+        const newCost = upd.costPrice ?? p.costPrice;
+        const margin = newPrice > 0 ? Math.round(((newPrice - newCost) / newPrice) * 100 * 10) / 10 : 0;
+        if (upd.costPrice !== undefined && upd.costPrice !== p.costPrice) {
+          newMovements.push({
+            id: uid("mv"),
+            type: "cost_change",
+            productId: p.id,
+            productName: p.name,
+            sku: p.sku,
+            qtyBefore: p.costPrice,
+            qtyAfter: newCost,
+            qtyDelta: newCost - p.costPrice,
+            locationId: "",
+            userId: "system",
+            userName: "Система",
+            createdAt: now,
+            reason: `Себестоимость: ${p.costPrice} → ${newCost}`,
+          });
+        }
+        return { ...p, price: newPrice, costPrice: newCost, margin, updatedAt: now.split("T")[0] };
+      });
       return {
         ...state,
-        products: state.products.map((p) => {
-          const upd = action.updates[p.id];
-          if (!upd) return p;
-          const newPrice = upd.price ?? p.price;
-          const newCost = upd.costPrice ?? p.costPrice;
-          const margin = newPrice > 0 ? Math.round(((newPrice - newCost) / newPrice) * 100 * 10) / 10 : 0;
-          return { ...p, price: newPrice, costPrice: newCost, margin, updatedAt: now };
-        }),
+        products: updatedProducts,
+        movements: newMovements.length > 0 ? [...newMovements, ...state.movements] : state.movements,
       };
     }
 
@@ -590,7 +610,9 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
 
     // ── Hydration / demo reset ──────────────────────────────────────────────
     case "HYDRATE":
-      return action.state;
+      // Merge: use initialState as fallback for any collection not present in remote
+      // (e.g. tables not yet created in the user's Supabase instance).
+      return { ...initialState, ...action.state };
 
     case "RESET_STATE":
       return initialState;

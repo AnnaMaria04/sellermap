@@ -27,11 +27,16 @@ const TABLES = {
 type Collection = keyof typeof TABLES;
 const COLLECTIONS = Object.keys(TABLES) as Collection[];
 
-/** Reads the seller's full workspace. Returns null if they have no data yet. */
+/**
+ * Reads the seller's full workspace.
+ * Returns null for brand-new accounts (zero rows anywhere).
+ * Per-collection errors (e.g. table not yet created) are skipped so a missing
+ * table never prevents the rest of the workspace from loading.
+ */
 export async function loadWorkspace(
   supabase: SupabaseClient,
   ownerId: string,
-): Promise<InventoryState | null> {
+): Promise<Partial<InventoryState> | null> {
   const results = await Promise.all(
     COLLECTIONS.map((c) =>
       supabase.from(TABLES[c]).select("data").eq("owner_id", ownerId),
@@ -39,17 +44,17 @@ export async function loadWorkspace(
   );
 
   let total = 0;
-  const state = {} as Record<Collection, unknown[]>;
+  const state: Partial<Record<Collection, unknown[]>> = {};
   COLLECTIONS.forEach((c, i) => {
     const { data, error } = results[i];
-    if (error) throw error;
+    if (error) return; // table may not exist yet — skip, caller uses seed fallback
     const rows = (data ?? []).map((r: { data: unknown }) => r.data);
     state[c] = rows;
     total += rows.length;
   });
 
   if (total === 0) return null;
-  return state as unknown as InventoryState;
+  return state as Partial<InventoryState>;
 }
 
 /** Upserts all rows for one collection, then deletes rows no longer present. */

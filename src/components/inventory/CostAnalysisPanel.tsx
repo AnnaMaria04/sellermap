@@ -135,7 +135,7 @@ function SortTh({
 }
 
 export function CostAnalysisPanel() {
-  const { products, batches } = useInventory();
+  const { products, batches, movements } = useInventory();
   const [tab, setTab] = useState<Tab>("cost");
   const [sortKey, setSortKey] = useState<SortKey>("marginPct");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -189,14 +189,29 @@ export function CostAnalysisPanel() {
 
   const maxMarginRub = useMemo(() => Math.max(...rows.map((r) => r.marginRub), 1), [rows]);
 
+  const priceHistory = useMemo<PriceHistoryEntry[]>(() => {
+    const fromMovements: PriceHistoryEntry[] = movements
+      .filter((m) => m.type === "cost_change")
+      .map((m) => ({
+        id: m.id,
+        productId: m.productId,
+        productName: m.productName,
+        date: m.createdAt.split("T")[0],
+        oldCost: m.qtyBefore,
+        newCost: m.qtyAfter,
+        changedBy: m.userName,
+      }));
+    return fromMovements.length > 0 ? fromMovements : MOCK_PRICE_HISTORY;
+  }, [movements]);
+
   const filteredHistory = useMemo(() => {
-    if (!historyFilter) return MOCK_PRICE_HISTORY;
-    return MOCK_PRICE_HISTORY.filter((h) =>
+    if (!historyFilter) return priceHistory;
+    return priceHistory.filter((h) =>
       h.productName.toLowerCase().includes(historyFilter.toLowerCase()),
     );
-  }, [historyFilter]);
+  }, [historyFilter, priceHistory]);
 
-  const fifoProduct30Days = MOCK_PRICE_HISTORY.filter((h) => {
+  const fifoProduct30Days = priceHistory.filter((h) => {
     const d = new Date(h.date);
     const now = new Date();
     return (now.getTime() - d.getTime()) / 86400000 <= 30;
