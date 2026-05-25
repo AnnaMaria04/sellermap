@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn, formatRub } from "@/lib/utils";
+import { getAvailableStock } from "@/mock/inventory";
 import type { Product, Order, OrderItem } from "@/mock/inventory";
+import { BarcodeInput } from "@/components/ui/BarcodeInput";
+import { toast } from "sonner";
 
 // ── Local types ──────────────────────────────────────────────────────────────
 
