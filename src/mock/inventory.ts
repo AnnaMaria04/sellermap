@@ -790,7 +790,7 @@ export const ORDERS: Order[] = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export function getAvailableStock(product: Product): number {
-  return Math.max(0, product.totalPhysical - product.reservedUnits - product.damagedUnits - product.inTransitUnits);
+  return Math.max(0, product.totalPhysical - product.reservedUnits - product.damagedUnits);
 }
 
 export function getStockStatus(product: Product): StockStatus {

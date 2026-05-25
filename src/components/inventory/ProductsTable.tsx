@@ -47,6 +47,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
   const [typeFilter, setTypeFilter] = useState<ProductType | "all">("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out" | "in">("all");
+  const [showArchived, setShowArchived] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -55,6 +56,11 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
 
   const filtered = useMemo(() => {
     let list = [...products];
+
+    // Hide archived by default unless showArchived toggle is on
+    if (!showArchived && statusFilter === "all") {
+      list = list.filter((p) => p.status !== "archived");
+    }
 
     if (search) {
       const q = search.toLowerCase();
@@ -103,7 +109,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
     });
 
     return list;
-  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, sortKey, sortDir, products, locations]);
+  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, showArchived, sortKey, sortDir, products, locations]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -149,6 +155,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
     typeFilter !== "all",
     locationFilter !== "all",
     stockFilter !== "all",
+    showArchived,
   ].filter(Boolean).length;
 
   return (
@@ -269,9 +276,18 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
               { value: "out", label: "Нет" },
             ]}
           />
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="h-4 w-4 rounded border-[var(--c-border2)] bg-[var(--c-bg3)] accent-[var(--c-green)]"
+            />
+            <span className="text-xs text-[var(--c-text2)]">Показать архивные</span>
+          </label>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setLocationFilter("all"); setStockFilter("all"); }}
+              onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setLocationFilter("all"); setStockFilter("all"); setShowArchived(false); }}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--c-text2)] hover:text-[var(--c-red)] transition"
             >
               <X size={12} />
@@ -307,6 +323,9 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                 </th>
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium text-[var(--c-text2)]">Статус</span>
+                </th>
+                <th className="px-4 py-3 text-left">
+                  <span className="text-xs font-medium text-[var(--c-text2)]">Наличие</span>
                 </th>
                 <th className="px-4 py-3 text-right">
                   <SortButton col="stock" label="Остаток" />
@@ -367,20 +386,19 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-[var(--c-text)] leading-tight">{product.name}</p>
-                          <p className="text-xs text-[var(--c-text3)] mt-0.5">
-                            {product.sku}
-                            {product.hasVariants && ` · ${product.variants.length} вариантов`}
-                          </p>
+                          <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
                         </div>
                       </Link>
                     </td>
 
-                    {/* Status */}
+                    {/* Lifecycle status */}
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <ProductStatusBadge status={product.status} />
-                        <StockStatusBadge status={stockStatus} size="sm" />
-                      </div>
+                      <ProductStatusBadge status={product.status} />
+                    </td>
+
+                    {/* Stock availability status */}
+                    <td className="px-4 py-3">
+                      <StockStatusBadge status={stockStatus} size="sm" />
                     </td>
 
                     {/* Stock */}

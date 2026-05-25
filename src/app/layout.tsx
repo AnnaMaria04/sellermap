@@ -3,6 +3,7 @@ import { Geologica, Unbounded } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import { Toaster } from "sonner";
 
 const geologica = Geologica({
   variable: "--font-body",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Plus,
   Search,
@@ -16,6 +17,7 @@ import {
   Truck,
   Clock,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 import {
   PO_STATUS_LABELS,
@@ -26,6 +28,26 @@ import { useInventory } from "@/contexts/InventoryContext";
 import { POStatusBadge } from "./StockStatusBadge";
 import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { cn } from "@/lib/utils";
+
+function isOverdue(po: PurchaseOrder): boolean {
+  if (["closed", "issue"].includes(po.status)) return false;
+  if (!po.expectedArrival) return false;
+  return new Date(po.expectedArrival) < new Date();
+}
+
+function daysOverdue(expectedArrival: string): number {
+  const diff = Date.now() - new Date(expectedArrival).getTime();
+  return Math.floor(diff / 86400000);
+}
+
+function OverdueBadge({ expectedArrival }: { expectedArrival: string }) {
+  const days = daysOverdue(expectedArrival);
+  return (
+    <span className="inline-flex items-center rounded-full border border-[rgba(240,80,80,0.2)] bg-[var(--c-red-dim)] px-2.5 py-1 text-xs font-medium text-[var(--c-red)]">
+      Просрочен {days} дн.
+    </span>
+  );
+}
 
 interface Props {
   onCreatePO?: () => void;
@@ -156,7 +178,12 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
                     <p className="text-xs text-[var(--c-text3)]">от {formatDate(po.createdAt)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <POStatusBadge status={po.status} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <POStatusBadge status={po.status} />
+                      {isOverdue(po) && po.expectedArrival && (
+                        <OverdueBadge expectedArrival={po.expectedArrival} />
+                      )}
+                    </div>
                     {po.status === "partially_received" && (
                       <div className="mt-1.5">
                         <ReceiveProgress items={po.items} />
@@ -393,6 +420,13 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
             <FileText size={14} />
             Скачать PDF
           </button>
+          <Link
+            href={`/inventory/purchase-orders/${po.id}`}
+            className="flex w-full h-9 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+          >
+            <ExternalLink size={14} />
+            Открыть полную страницу →
+          </Link>
         </div>
       </div>
     </div>

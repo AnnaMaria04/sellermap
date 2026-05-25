@@ -96,6 +96,14 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Настройки", href: "/inventory/settings", icon: Settings },
     ],
   },
+  {
+    title: "Анализ WB",
+    items: [
+      { label: "Проверить товар", href: "/check", icon: BarChart3 },
+      { label: "Отчёты", href: "/reports", icon: FileText },
+      { label: "Обновления", href: "/updates", icon: Bell },
+    ],
+  },
 ];
 
 interface Props {

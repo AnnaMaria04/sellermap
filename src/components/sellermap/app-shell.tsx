@@ -7,8 +7,9 @@ import { LinkButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  ["Дашборд", "/dashboard"],
+  ["Анализ", "/check"],
   ["Склад", "/inventory"],
+  ["Касса", "/pos"],
   ["Каталог", "/catalog"],
   ["Обновления", "/updates"],
 ];
