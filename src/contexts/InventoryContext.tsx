@@ -839,7 +839,7 @@ interface InventoryContextValue extends InventoryState {
     receivePOItems: (poId: string, received: Record<string, number>, locationId: string) => void;
     createTransfer: (data: Omit<Transfer, "id" | "createdAt">) => void;
     receiveTransfer: (id: string) => void;
-    createStocktake: (locationId: string, products: StocktakeItem[], note?: string) => void;
+    createStocktake: (locationId: string, products: StocktakeItem[], note?: string) => string;
     updateStocktakeCount: (stocktakeId: string, productId: string, qty: number) => void;
     completeStocktake: (stocktakeId: string) => void;
     adjustStock: (productId: string, locationId: string, delta: number, movementType: MovementType, reason?: string) => void;
@@ -1015,12 +1015,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       const stocktake: Stocktake = {
         id: uid("st"),
         locationId,
-        status: "draft",
+        status: "in_progress",
         items,
         createdAt: new Date().toISOString(),
         note,
       };
       dispatch({ type: "CREATE_STOCKTAKE", stocktake });
+      return stocktake.id;
     }, []),
     updateStocktakeCount: useCallback(
       (stocktakeId, productId, qty) =>

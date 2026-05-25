@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   ClipboardList,
@@ -17,6 +19,7 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  ExternalLink,
 } from "lucide-react";
 import {
   getLocationName,
@@ -162,7 +165,17 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
                 </div>
               )}
 
-              <ChevronRight size={16} className="text-[var(--c-text3)] opacity-0 group-hover:opacity-100 shrink-0 transition" />
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={`/inventory/stocktake/${stk.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="hidden sm:flex items-center gap-1 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2.5 py-1 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg)] transition opacity-0 group-hover:opacity-100"
+                >
+                  <ExternalLink size={11} />
+                  Открыть
+                </Link>
+                <ChevronRight size={16} className="text-[var(--c-text3)] opacity-0 group-hover:opacity-100 transition" />
+              </div>
             </div>
           );
         })}
@@ -754,6 +767,7 @@ function SummaryRow({
 
 function CreateStocktakeForm({ onClose }: { onClose: () => void }) {
   const { products, locations, actions } = useInventory();
+  const router = useRouter();
   const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [note, setNote] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -772,9 +786,13 @@ function CreateStocktakeForm({ onClose }: { onClose: () => void }) {
       countedQty: null,
       variance: null,
     }));
-    actions.createStocktake(locationId, items, note || undefined);
+    const newId = actions.createStocktake(locationId, items, note || undefined);
     setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 700);
+    setTimeout(() => {
+      setSaved(false);
+      onClose();
+      router.push(`/inventory/stocktake/${newId}`);
+    }, 500);
   }
 
   return (
