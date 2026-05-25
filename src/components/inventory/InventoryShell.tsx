@@ -12,17 +12,29 @@ import {
   History,
   Truck,
   Home,
+  RotateCcw,
+  MapPin,
+  Layers,
+  Settings,
+  FileText,
+  Plug,
 } from "lucide-react";
 
 const tabs = [
-  { label: "Обзор",           href: "/inventory",               icon: Home },
-  { label: "Товары",          href: "/inventory/products",      icon: Package },
+  { label: "Обзор",           href: "/inventory",                   icon: Home },
+  { label: "Товары",          href: "/inventory/products",          icon: Package },
   { label: "Заказы поставщикам", href: "/inventory/purchase-orders", icon: ShoppingCart },
-  { label: "Перемещения",     href: "/inventory/transfers",     icon: ArrowLeftRight },
-  { label: "Инвентаризация",  href: "/inventory/stocktake",     icon: ClipboardList },
-  { label: "История",         href: "/inventory/history",       icon: History },
-  { label: "Поставщики",      href: "/inventory/suppliers",     icon: Truck },
-  { label: "Аналитика",       href: "/inventory/analytics",     icon: BarChart3 },
+  { label: "Перемещения",     href: "/inventory/transfers",         icon: ArrowLeftRight },
+  { label: "Возвраты",        href: "/inventory/returns",           icon: RotateCcw },
+  { label: "Инвентаризация",  href: "/inventory/stocktake",         icon: ClipboardList },
+  { label: "История",         href: "/inventory/history",           icon: History },
+  { label: "Поставщики",      href: "/inventory/suppliers",         icon: Truck },
+  { label: "Склады",          href: "/inventory/locations",         icon: MapPin },
+  { label: "Комплекты",       href: "/inventory/bundles",           icon: Layers },
+  { label: "Отчёты",          href: "/inventory/reports",           icon: FileText },
+  { label: "Интеграции",      href: "/inventory/integrations",      icon: Plug },
+  { label: "Аналитика",       href: "/inventory/analytics",         icon: BarChart3 },
+  { label: "Настройки",       href: "/inventory/settings",          icon: Settings },
 ];
 
 interface Props {
