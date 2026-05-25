@@ -23,6 +23,7 @@ import {
   type StocktakeStatus,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
+import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -81,6 +82,22 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
 
       {/* Stocktake cards */}
       <div className="space-y-3">
+        {stocktakes.length === 0 && (
+          <EmptyState
+            icon={<ClipboardList size={24} />}
+            title="Нет инвентаризаций"
+            description="Здесь будет история проверок остатков. Начните первую инвентаризацию, чтобы сверить фактические остатки с системными."
+            action={
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              >
+                <Plus size={15} />
+                Начать инвентаризацию
+              </button>
+            }
+          />
+        )}
         {stocktakes.map((stk) => {
           const cfg = statusConfig[stk.status];
           const counted = stk.items.filter((i) => i.countedQty !== null).length;

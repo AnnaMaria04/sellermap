@@ -20,6 +20,7 @@ import {
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { TransferStatusBadge } from "./StockStatusBadge";
+import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -107,9 +108,20 @@ export function TransfersPanel({ onCreateTransfer }: Props) {
       {/* Transfers list */}
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="flex items-center justify-center py-16 text-sm text-[var(--c-text3)]">
-            Перемещения не найдены
-          </div>
+          <EmptyState
+            icon={<Truck size={24} />}
+            title="Нет перемещений"
+            description="Перемещения не найдены. Измените фильтры или создайте новое перемещение между локациями."
+            action={
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              >
+                <Plus size={15} />
+                Создать перемещение
+              </button>
+            }
+          />
         )}
         {filtered.map((transfer) => (
           <TransferCard

@@ -33,6 +33,7 @@ import {
   CHANNEL_LABELS,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
+import { STOCK_TERMS } from "@/components/inventory/ui/StockTerms";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -206,14 +207,14 @@ export default function ProductDetailPage({ params }: Props) {
 
             {/* Summary formula */}
             <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <StockPill label="Физически" value={product.totalPhysical} color="default" />
-              <StockPill label="Резерв" value={product.reservedUnits} color="amber" minus />
-              <StockPill label="Брак" value={product.damagedUnits} color="red" minus />
-              <StockPill label="В пути" value={product.inTransitUnits} color="blue" />
+              <StockPill label={STOCK_TERMS.onHand.short} value={product.totalPhysical} color="default" />
+              <StockPill label={STOCK_TERMS.committed.short} value={product.reservedUnits} color="amber" minus />
+              <StockPill label={STOCK_TERMS.unavailable.short} value={product.damagedUnits} color="red" minus />
+              <StockPill label={STOCK_TERMS.incoming.short} value={product.inTransitUnits} color="blue" />
             </div>
             <div className="mb-5 rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] px-4 py-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[var(--c-text2)]">Доступно к продаже</span>
+                <span className="text-sm text-[var(--c-text2)]" title={STOCK_TERMS.available.hint}>{STOCK_TERMS.available.label} к продаже</span>
                 <span className={cn(
                   "text-2xl font-bold tabular",
                   stockStatus === "out_of_stock" ? "text-[var(--c-red)]" :

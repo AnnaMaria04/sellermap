@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
+import { STOCK_TERMS } from "@/components/inventory/ui/StockTerms";
 
 type ReservationStatus = "active" | "fulfilled" | "cancelled" | "expired";
 type ReservationSource = "manual" | "wildberries" | "ozon" | "yandex_market" | "website" | "pos";
@@ -421,9 +422,9 @@ export function StockReservationsPanel() {
               <thead>
                 <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                   <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text3)]">Товар</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">Физический</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">Зарезервировано</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">Доступно</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">{STOCK_TERMS.onHand.label}</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">{STOCK_TERMS.committed.label}</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text3)]">{STOCK_TERMS.available.label}</th>
                   <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text3)]" />
                 </tr>
               </thead>

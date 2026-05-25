@@ -20,6 +20,7 @@ import {
   X,
   ArrowUpDown,
   CheckSquare,
+  Package,
 } from "lucide-react";
 import {
   getAvailableStock,
@@ -32,6 +33,8 @@ import {
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, ProductStatusBadge } from "./StockStatusBadge";
+import { EmptyState } from "@/components/inventory/ui/EmptyState";
+import { StockStat } from "@/components/inventory/ui/StockTerms";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "stock" | "price" | "costPrice" | "margin" | "updatedAt";
@@ -324,13 +327,6 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-16 text-center text-sm text-[var(--c-text3)]">
-                    Товары не найдены
-                  </td>
-                </tr>
-              )}
               {filtered.map((product) => {
                 const available = getAvailableStock(product);
                 const stockStatus = getStockStatus(product);
@@ -398,12 +394,8 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                         )}>
                           {available}
                         </span>
-                        {product.inTransitUnits > 0 && (
-                          <p className="text-xs text-[var(--c-text3)]">+{product.inTransitUnits} в пути</p>
-                        )}
-                        {product.reservedUnits > 0 && (
-                          <p className="text-xs text-[var(--c-text3)]">{product.reservedUnits} резерв</p>
-                        )}
+                        <StockStat term="incoming" value={product.inTransitUnits} className="flex justify-end" />
+                        <StockStat term="committed" value={product.reservedUnits} className="flex justify-end" />
                       </div>
                     </td>
 
@@ -466,6 +458,23 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
             </tbody>
           </table>
         </div>
+        {filtered.length === 0 && (
+          <EmptyState
+            icon={<Package size={24} />}
+            title="Товары не найдены"
+            description="Попробуйте изменить фильтры или поиск, либо добавьте новый товар."
+            action={
+              <button
+                onClick={onAddProduct}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
+              >
+                <Plus size={15} />
+                Добавить товар
+              </button>
+            }
+            className="m-4"
+          />
+        )}
       </div>
     </div>
   );

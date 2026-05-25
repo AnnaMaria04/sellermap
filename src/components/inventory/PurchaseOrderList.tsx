@@ -24,6 +24,7 @@ import {
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { POStatusBadge } from "./StockStatusBadge";
+import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -143,11 +144,6 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center text-sm text-[var(--c-text3)]">Заказы не найдены</td>
-                </tr>
-              )}
               {filtered.map((po) => (
                 <tr
                   key={po.id}
@@ -205,6 +201,23 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
             </tbody>
           </table>
         </div>
+        {filtered.length === 0 && (
+          <EmptyState
+            icon={<Package size={24} />}
+            title="Нет заказов поставщикам"
+            description="Заказы не найдены. Измените фильтры или создайте новый заказ поставщику."
+            action={
+              <button
+                onClick={onCreatePO}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              >
+                <Plus size={15} />
+                Создать заказ
+              </button>
+            }
+            className="m-4"
+          />
+        )}
       </div>
 
       {/* Detail panel */}

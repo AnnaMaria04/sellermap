@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { type Supplier, type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
+import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 export function SuppliersPanel() {
@@ -61,7 +62,26 @@ export function SuppliersPanel() {
         </button>
       </div>
 
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <EmptyState
+          icon={<Building2 size={24} />}
+          title="Нет поставщиков"
+          description="Поставщики не найдены. Измените поиск или добавьте нового поставщика."
+          action={
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            >
+              <Plus size={15} />
+              Добавить поставщика
+            </button>
+          }
+        />
+      )}
+
       {/* Supplier grid */}
+      {filtered.length > 0 && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {filtered.map((supplier) => {
           const products = supplierProducts(supplier.id);
@@ -130,6 +150,7 @@ export function SuppliersPanel() {
           );
         })}
       </div>
+      )}
 
       {/* Supplier detail */}
       {selectedSupplier && (
