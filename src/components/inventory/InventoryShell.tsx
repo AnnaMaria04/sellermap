@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { AccountMenu } from "./AccountMenu";
 import {
   Package,
   ShoppingCart,
@@ -135,22 +136,28 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
     <div className="min-h-screen bg-[var(--c-bg)]">
       <div className="mx-auto flex max-w-7xl">
         {/* Desktop sidebar */}
-        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-[var(--c-border)] bg-[var(--c-bg2)] lg:block">
-          <NavList pathname={pathname} />
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)] lg:flex">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <NavList pathname={pathname} />
+          </div>
+          <AccountMenu />
         </aside>
 
         {/* Mobile drawer */}
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-            <aside className="absolute left-0 top-0 h-full w-72 overflow-y-auto border-r border-[var(--c-border)] bg-[var(--c-bg2)]">
+            <aside className="absolute left-0 top-0 flex h-full w-72 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)]">
                 <span className="text-sm font-semibold text-[var(--c-text)]">Меню склада</span>
                 <button onClick={() => setMobileOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
                   <X size={16} />
                 </button>
               </div>
-              <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+              </div>
+              <AccountMenu />
             </aside>
           </div>
         )}

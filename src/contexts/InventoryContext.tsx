@@ -7,8 +7,11 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { loadWorkspace, saveWorkspace } from "@/lib/supabase/inventory-store";
 import {
   PRODUCTS,
   SUPPLIERS,
@@ -554,57 +557,74 @@ interface InventoryContextValue extends InventoryState {
   getAvailableStock: (product: Product) => number;
   getLocationName: (id: string) => string;
   getSupplierName: (id: string | undefined) => string;
+  /** False until the seller's workspace has been loaded from Supabase. */
+  ready: boolean;
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
-// ── Persistence ────────────────────────────────────────────────────────────
-const STORAGE_KEY = "sellermap-inventory-v2";
-
-function loadPersistedState(): InventoryState | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<InventoryState>;
-    return {
-      products: parsed.products ?? initialState.products,
-      suppliers: parsed.suppliers ?? initialState.suppliers,
-      locations: parsed.locations ?? initialState.locations,
-      purchaseOrders: parsed.purchaseOrders ?? initialState.purchaseOrders,
-      transfers: parsed.transfers ?? initialState.transfers,
-      stocktakes: parsed.stocktakes ?? initialState.stocktakes,
-      movements: parsed.movements ?? initialState.movements,
-      reservations: parsed.reservations ?? initialState.reservations,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  // SSR renders the deterministic mock seed; the client rehydrates from
-  // localStorage on mount to avoid a hydration mismatch.
+  // SSR renders the deterministic mock seed; the client loads the seller's
+  // workspace from Supabase on mount. A fresh account is seeded with the demo
+  // data so there's something to explore immediately.
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
+  const ownerId = useRef<string | null>(null);
+  const supabase = useRef(createClient());
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Latest-state ref so action creators can read current data without
   // re-creating themselves on every state change.
   const stateRef = useRef(state);
   stateRef.current = state;
 
   useEffect(() => {
-    const persisted = loadPersistedState();
-    if (persisted) dispatch({ type: "HYDRATE", state: persisted });
-    hydrated.current = true;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.current.auth.getUser();
+      if (cancelled) return;
+      if (!user) {
+        // No session (e.g. SSR/demo) — keep the in-memory seed, don't persist.
+        hydrated.current = true;
+        setReady(true);
+        return;
+      }
+      ownerId.current = user.id;
+      try {
+        const remote = await loadWorkspace(supabase.current, user.id);
+        if (cancelled) return;
+        if (remote) {
+          dispatch({ type: "HYDRATE", state: remote });
+        } else {
+          // Fresh account: seed Supabase with the demo workspace.
+          await saveWorkspace(supabase.current, user.id, initialState);
+        }
+      } catch {
+        // Network/load failure — fall back to the in-memory seed.
+      } finally {
+        if (!cancelled) {
+          hydrated.current = true;
+          setReady(true);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
+  // Debounced persistence to Supabase after any mutation.
   useEffect(() => {
-    if (!hydrated.current || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Quota or serialization failure — non-fatal for a demo.
-    }
+    if (!hydrated.current || !ownerId.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const id = ownerId.current;
+      if (!id) return;
+      saveWorkspace(supabase.current, id, stateRef.current).catch(() => {
+        // Transient failure — the next mutation will retry the full sync.
+      });
+    }, 700);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, [state]);
 
   const actions: InventoryContextValue["actions"] = {
@@ -731,10 +751,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       [],
     ),
     resetDemo: useCallback(() => {
-      if (typeof window !== "undefined") {
-        try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
-      }
       dispatch({ type: "RESET_STATE" });
+      const id = ownerId.current;
+      if (id) {
+        saveWorkspace(supabase.current, id, initialState).catch(() => {});
+      }
     }, []),
   };
 
@@ -747,6 +768,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       if (!id) return "—";
       return state.suppliers.find((s) => s.id === id)?.name ?? id;
     },
+    ready,
   };
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;
