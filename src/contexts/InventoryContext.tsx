@@ -25,6 +25,7 @@ import {
   BUNDLES,
   REPLENISHMENT_RULES,
   BATCHES,
+  ORDERS,
   getAvailableStock,
   type Product,
   type Supplier,
@@ -48,6 +49,8 @@ import {
   type TriggerType,
   type InventoryBatch,
   type BatchStatus,
+  type Order,
+  type OrderStatus,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -65,6 +68,7 @@ export interface InventoryState {
   bundles: Bundle[];
   replenishmentRules: ReplenishmentRule[];
   batches: InventoryBatch[];
+  orders: Order[];
 }
 
 const initialState: InventoryState = {
@@ -80,6 +84,7 @@ const initialState: InventoryState = {
   bundles: BUNDLES,
   replenishmentRules: REPLENISHMENT_RULES,
   batches: BATCHES,
+  orders: ORDERS,
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -127,7 +132,13 @@ type InventoryAction =
   | { type: "UPDATE_BATCH"; id: string; patch: Partial<InventoryBatch> }
   | { type: "WRITE_OFF_BATCH"; id: string }
   | { type: "QUARANTINE_BATCH"; id: string }
-  | { type: "WRITE_OFF_ALL_EXPIRED" };
+  | { type: "WRITE_OFF_ALL_EXPIRED" }
+  // Orders
+  | { type: "CREATE_ORDER"; order: Order }
+  | { type: "UPDATE_ORDER_STATUS"; id: string; status: OrderStatus }
+  | { type: "FULFILL_ORDER"; id: string }
+  | { type: "CANCEL_ORDER"; id: string }
+  | { type: "IMPORT_ORDERS"; orders: Order[] };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -714,6 +725,85 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
         ),
       };
 
+    // ── Orders ────────────────────────────────────────────────────────────────
+    case "CREATE_ORDER":
+      return { ...state, orders: [action.order, ...state.orders] };
+
+    case "IMPORT_ORDERS": {
+      const existing = new Set(state.orders.map((o) => o.orderNumber));
+      const fresh = action.orders.filter((o) => !existing.has(o.orderNumber));
+      return { ...state, orders: [...fresh, ...state.orders] };
+    }
+
+    case "UPDATE_ORDER_STATUS": {
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        orders: state.orders.map((o) =>
+          o.id === action.id
+            ? {
+                ...o,
+                status: action.status,
+                ...(action.status === "shipped" ? { shippedAt: now } : {}),
+                ...(action.status === "delivered" ? { deliveredAt: now } : {}),
+              }
+            : o,
+        ),
+      };
+    }
+
+    case "CANCEL_ORDER":
+      return {
+        ...state,
+        orders: state.orders.map((o) =>
+          o.id === action.id ? { ...o, status: "cancelled" as const } : o,
+        ),
+      };
+
+    case "FULFILL_ORDER": {
+      const order = state.orders.find((o) => o.id === action.id);
+      if (!order || order.status === "shipped" || order.status === "delivered" || order.status === "cancelled") {
+        return state;
+      }
+      const now = new Date().toISOString();
+      let products = state.products;
+      const newMovements: StockMovement[] = [];
+      for (const item of order.items) {
+        const product = products.find((p) => p.id === item.productId);
+        if (!product) continue;
+        const before = product.stockByLocation[order.locationId] ?? 0;
+        products = products.map((p) =>
+          p.id === item.productId ? applyStockDelta(p, order.locationId, -item.qty) : p,
+        );
+        const after = products.find((p) => p.id === item.productId)?.stockByLocation[order.locationId] ?? 0;
+        newMovements.push({
+          id: uid("mv"),
+          type: "sale",
+          productId: item.productId,
+          productName: item.productName,
+          sku: item.sku,
+          qtyBefore: before,
+          qtyAfter: after,
+          qtyDelta: -item.qty,
+          locationId: order.locationId,
+          userId: "u-current",
+          userName: "Текущий пользователь",
+          createdAt: now,
+          reason: `Отгрузка заказа ${order.orderNumber}`,
+          referenceId: order.id,
+          referenceType: "sale",
+        });
+      }
+      return {
+        ...state,
+        products,
+        movements: [...newMovements, ...state.movements],
+        orders: state.orders.map((o) =>
+          o.id === action.id ? { ...o, status: "shipped" as const, shippedAt: now } : o,
+        ),
+      };
+    }
+
     default:
       return state;
   }
@@ -764,6 +854,11 @@ interface InventoryContextValue extends InventoryState {
     writeOffBatch: (id: string) => void;
     quarantineBatch: (id: string) => void;
     writeOffAllExpired: () => void;
+    createOrder: (order: Order) => void;
+    updateOrderStatus: (id: string, status: OrderStatus) => void;
+    fulfillOrder: (id: string) => void;
+    cancelOrder: (id: string) => void;
+    importOrders: (orders: Order[]) => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -995,6 +1090,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     writeOffBatch: useCallback((id) => dispatch({ type: "WRITE_OFF_BATCH", id }), []),
     quarantineBatch: useCallback((id) => dispatch({ type: "QUARANTINE_BATCH", id }), []),
     writeOffAllExpired: useCallback(() => dispatch({ type: "WRITE_OFF_ALL_EXPIRED" }), []),
+    createOrder: useCallback((order) => dispatch({ type: "CREATE_ORDER", order }), []),
+    updateOrderStatus: useCallback((id, status) => dispatch({ type: "UPDATE_ORDER_STATUS", id, status }), []),
+    fulfillOrder: useCallback((id) => dispatch({ type: "FULFILL_ORDER", id }), []),
+    cancelOrder: useCallback((id) => dispatch({ type: "CANCEL_ORDER", id }), []),
+    importOrders: useCallback((orders) => dispatch({ type: "IMPORT_ORDERS", orders }), []),
   };
 
   const value: InventoryContextValue = {

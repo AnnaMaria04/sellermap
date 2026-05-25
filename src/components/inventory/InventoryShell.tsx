@@ -31,6 +31,8 @@ import {
   ScanLine,
   Sun,
   Moon,
+  ShoppingBag,
+  Wallet,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -40,6 +42,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: null,
     items: [{ label: "Обзор", href: "/inventory", icon: Home }],
+  },
+  {
+    title: "Продажи",
+    items: [
+      { label: "Заказы", href: "/inventory/orders", icon: ShoppingBag },
+    ],
   },
   {
     title: "Каталог",
@@ -70,6 +78,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Аналитика",
     items: [
+      { label: "Финансы", href: "/inventory/finance", icon: Wallet },
       { label: "Аналитика", href: "/inventory/analytics", icon: BarChart3 },
       { label: "Отчёты", href: "/inventory/reports", icon: FileText },
     ],

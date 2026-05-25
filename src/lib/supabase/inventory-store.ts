@@ -19,6 +19,7 @@ const TABLES = {
   bundles: "bundles",
   replenishmentRules: "replenishment_rules",
   batches: "batches",
+  orders: "orders",
 } as const;
 
 type Collection = keyof typeof TABLES;

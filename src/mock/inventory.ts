@@ -722,6 +722,72 @@ export const BATCHES: InventoryBatch[] = [
   },
 ];
 
+// ── Orders / Sales ────────────────────────────────────────────────────────────
+export type OrderStatus =
+  | "new"
+  | "confirmed"
+  | "packed"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "returned";
+export type OrderChannel = "wildberries" | "ozon" | "yandex_market" | "website" | "pos" | "telegram";
+export type FulfillmentModel = "FBO" | "FBS" | "DBS" | "self";
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  qty: number;
+  unitPrice: number;   // price charged to the customer
+  unitCost: number;    // COGS at time of sale
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;          // marketplace order id
+  channel: OrderChannel;
+  fulfillment: FulfillmentModel;
+  status: OrderStatus;
+  items: OrderItem[];
+  locationId: string;
+  customerName?: string;
+  region?: string;              // delivery region
+  revenue: number;              // sum(unitPrice*qty)
+  commissionRate: number;       // channel commission, fraction 0..1
+  logisticsCost: number;        // delivery/fulfillment fee, ₽
+  createdAt: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  note?: string;
+  reservationId?: string;
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  new: "Новый",
+  confirmed: "Подтверждён",
+  packed: "Собран",
+  shipped: "Отправлен",
+  delivered: "Доставлен",
+  cancelled: "Отменён",
+  returned: "Возврат",
+};
+
+export const ORDERS: Order[] = [
+  { id: "ord-001", orderNumber: "WB-88234501", channel: "wildberries", fulfillment: "FBO", status: "delivered", locationId: "loc-warehouse", customerName: "Иван Петров", region: "Москва", items: [{ productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 2, unitPrice: 1290, unitCost: 540 }], revenue: 2580, commissionRate: 0.17, logisticsCost: 165, createdAt: "2026-05-12", shippedAt: "2026-05-13", deliveredAt: "2026-05-16" },
+  { id: "ord-002", orderNumber: "OZN-4491827", channel: "ozon", fulfillment: "FBS", status: "shipped", locationId: "loc-warehouse", customerName: "Мария Сидорова", region: "Санкт-Петербург", items: [{ productId: "prod-002", productName: "Футболка оверсайз хлопок", sku: "TSH-OV-002", qty: 3, unitPrice: 890, unitCost: 320 }], revenue: 2670, commissionRate: 0.15, logisticsCost: 210, createdAt: "2026-05-20", shippedAt: "2026-05-21" },
+  { id: "ord-003", orderNumber: "YM-990123", channel: "yandex_market", fulfillment: "FBS", status: "confirmed", locationId: "loc-warehouse", region: "Екатеринбург", items: [{ productId: "prod-008", productName: "Bluetooth наушники TW-Pro 500", sku: "TWS-500", qty: 1, unitPrice: 3490, unitCost: 1850 }], revenue: 3490, commissionRate: 0.13, logisticsCost: 190, createdAt: "2026-05-22" },
+  { id: "ord-004", orderNumber: "WB-88210000", channel: "wildberries", fulfillment: "FBO", status: "delivered", locationId: "loc-warehouse", region: "Казань", items: [{ productId: "prod-009", productName: "Протеиновый батончик «Заряд» 60г", sku: "BAR-ZAR-001", qty: 12, unitPrice: 149, unitCost: 65 }], revenue: 1788, commissionRate: 0.18, logisticsCost: 120, createdAt: "2026-05-18", shippedAt: "2026-05-19", deliveredAt: "2026-05-22" },
+  { id: "ord-005", orderNumber: "WEB-10042", channel: "website", fulfillment: "self", status: "new", locationId: "loc-warehouse", customerName: "Анна Козлова", region: "Москва", items: [{ productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, unitPrice: 1390, unitCost: 540 }, { productId: "prod-017", productName: "Бутылка для воды Eco 750мл", sku: "BTL-ECO-017", qty: 2, unitPrice: 690, unitCost: 240 }], revenue: 2770, commissionRate: 0, logisticsCost: 300, createdAt: "2026-05-25" },
+  { id: "ord-006", orderNumber: "OZN-4488000", channel: "ozon", fulfillment: "FBO", status: "packed", locationId: "loc-warehouse", region: "Новосибирск", items: [{ productId: "prod-017", productName: "Бутылка для воды Eco 750мл", sku: "BTL-ECO-017", qty: 5, unitPrice: 720, unitCost: 240 }], revenue: 3600, commissionRate: 0.15, logisticsCost: 240, createdAt: "2026-05-23" },
+  { id: "ord-007", orderNumber: "WB-88299100", channel: "wildberries", fulfillment: "FBO", status: "shipped", locationId: "loc-warehouse", customerName: "Петр Волков", region: "Ростов-на-Дону", items: [{ productId: "prod-019", productName: "Зарядное устройство USB-C 65W", sku: "CHG-USB-019", qty: 3, unitPrice: 1490, unitCost: 720 }], revenue: 4470, commissionRate: 0.16, logisticsCost: 175, createdAt: "2026-05-21", shippedAt: "2026-05-22" },
+  { id: "ord-008", orderNumber: "POS-0091", channel: "pos", fulfillment: "self", status: "delivered", locationId: "loc-store", region: "Москва", items: [{ productId: "prod-011", productName: "Термос нержавеющий 500мл", sku: "THRM-011", qty: 8, unitPrice: 990, unitCost: 410 }], revenue: 7920, commissionRate: 0, logisticsCost: 0, createdAt: "2026-05-21", deliveredAt: "2026-05-21" },
+  { id: "ord-009", orderNumber: "OZN-4490500", channel: "ozon", fulfillment: "FBS", status: "cancelled", locationId: "loc-warehouse", region: "Самара", items: [{ productId: "prod-013", productName: "Детский конструктор 120 деталей", sku: "TOY-013", qty: 2, unitPrice: 1190, unitCost: 480 }], revenue: 2380, commissionRate: 0.15, logisticsCost: 0, createdAt: "2026-05-19" },
+  { id: "ord-010", orderNumber: "WB-88240777", channel: "wildberries", fulfillment: "FBO", status: "returned", locationId: "loc-warehouse", region: "Уфа", items: [{ productId: "prod-002", productName: "Футболка оверсайз хлопок", sku: "TSH-OV-002", qty: 1, unitPrice: 890, unitCost: 320 }], revenue: 890, commissionRate: 0.17, logisticsCost: 150, createdAt: "2026-05-15", shippedAt: "2026-05-16" },
+  { id: "ord-011", orderNumber: "YM-991200", channel: "yandex_market", fulfillment: "FBS", status: "delivered", locationId: "loc-warehouse", region: "Челябинск", items: [{ productId: "prod-007", productName: "Ежедневник A5 кожаный", sku: "DRY-A5-007", qty: 4, unitPrice: 1590, unitCost: 690 }], revenue: 6360, commissionRate: 0.13, logisticsCost: 220, createdAt: "2026-05-17", shippedAt: "2026-05-18", deliveredAt: "2026-05-21" },
+  { id: "ord-012", orderNumber: "WB-88301234", channel: "wildberries", fulfillment: "FBO", status: "new", locationId: "loc-warehouse", region: "Краснодар", items: [{ productId: "prod-019", productName: "Зарядное устройство USB-C 65W", sku: "CHG-USB-019", qty: 2, unitPrice: 1490, unitCost: 720 }], revenue: 2980, commissionRate: 0.16, logisticsCost: 175, createdAt: "2026-05-25" },
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export function getAvailableStock(product: Product): number {
   return Math.max(0, product.totalPhysical - product.reservedUnits - product.damagedUnits - product.inTransitUnits);
