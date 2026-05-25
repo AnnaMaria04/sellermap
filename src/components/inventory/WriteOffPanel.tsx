@@ -158,7 +158,6 @@ export function WriteOffPanel() {
   const { products, movements } = useInventory();
   const [showForm, setShowForm] = useState(false);
   const [history] = useState<CompletedWriteOff[]>(COMPLETED_WRITEOFFS);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   // ── Summary by reason category ────────────────────────────────────────────
