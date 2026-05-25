@@ -34,6 +34,7 @@ import {
   type PurchaseOrder,
   type PurchaseOrderStatus,
   type Transfer,
+  type TransferStatus,
   type Stocktake,
   type StocktakeItem,
   type StockMovement,
@@ -54,6 +55,8 @@ import {
   type OrderStatus,
   type Customer,
   type CustomerTier,
+  type StaffMember,
+  STAFF_MEMBERS,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -73,6 +76,7 @@ export interface InventoryState {
   batches: InventoryBatch[];
   orders: Order[];
   customers: Customer[];
+  staff: StaffMember[];
 }
 
 const initialState: InventoryState = {
@@ -90,6 +94,7 @@ const initialState: InventoryState = {
   batches: BATCHES,
   orders: ORDERS,
   customers: CUSTOMERS,
+  staff: STAFF_MEMBERS,
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -103,6 +108,7 @@ type InventoryAction =
   | { type: "UPDATE_PO_STATUS"; id: string; status: PurchaseOrderStatus }
   | { type: "RECEIVE_PO_ITEMS"; poId: string; received: Record<string, number>; locationId: string }
   | { type: "CREATE_TRANSFER"; transfer: Transfer }
+  | { type: "UPDATE_TRANSFER_STATUS"; id: string; status: TransferStatus }
   | { type: "RECEIVE_TRANSFER"; id: string }
   | { type: "CREATE_STOCKTAKE"; stocktake: Stocktake }
   | { type: "UPDATE_STOCKTAKE_COUNT"; stocktakeId: string; productId: string; qty: number }
@@ -147,7 +153,10 @@ type InventoryAction =
   // Customers
   | { type: "CREATE_CUSTOMER"; customer: Customer }
   | { type: "UPDATE_CUSTOMER"; id: string; patch: Partial<Customer> }
-  | { type: "ADD_LOYALTY_POINTS"; id: string; points: number };
+  | { type: "ADD_LOYALTY_POINTS"; id: string; points: number }
+  // Staff
+  | { type: "ADD_STAFF"; member: StaffMember }
+  | { type: "UPDATE_STAFF"; id: string; patch: Partial<StaffMember> };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -279,6 +288,14 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     // ── Transfers ─────────────────────────────────────────────────────────────
     case "CREATE_TRANSFER":
       return { ...state, transfers: [action.transfer, ...state.transfers] };
+
+    case "UPDATE_TRANSFER_STATUS":
+      return {
+        ...state,
+        transfers: state.transfers.map((t) =>
+          t.id === action.id ? { ...t, status: action.status } : t,
+        ),
+      };
 
     case "RECEIVE_TRANSFER": {
       const transfer = state.transfers.find((t) => t.id === action.id);
@@ -821,6 +838,12 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     case "ADD_LOYALTY_POINTS":
       return { ...state, customers: state.customers.map((c) => c.id === action.id ? { ...c, loyaltyPoints: c.loyaltyPoints + action.points } : c) };
 
+    // ── Staff ─────────────────────────────────────────────────────────────────
+    case "ADD_STAFF":
+      return { ...state, staff: [action.member, ...state.staff] };
+    case "UPDATE_STAFF":
+      return { ...state, staff: state.staff.map((m) => m.id === action.id ? { ...m, ...action.patch } : m) };
+
     default:
       return state;
   }
@@ -838,6 +861,7 @@ interface InventoryContextValue extends InventoryState {
     updatePOStatus: (id: string, status: PurchaseOrderStatus) => void;
     receivePOItems: (poId: string, received: Record<string, number>, locationId: string) => void;
     createTransfer: (data: Omit<Transfer, "id" | "createdAt">) => void;
+    updateTransferStatus: (id: string, status: TransferStatus) => void;
     receiveTransfer: (id: string) => void;
     createStocktake: (locationId: string, products: StocktakeItem[], note?: string) => string;
     updateStocktakeCount: (stocktakeId: string, productId: string, qty: number) => void;
@@ -879,6 +903,8 @@ interface InventoryContextValue extends InventoryState {
     createCustomer: (data: Omit<Customer, "id" | "createdAt">) => void;
     updateCustomer: (id: string, patch: Partial<Customer>) => void;
     addLoyaltyPoints: (id: string, points: number) => void;
+    addStaff: (member: Omit<StaffMember, "id">) => void;
+    updateStaff: (id: string, patch: Partial<StaffMember>) => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -1007,6 +1033,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       };
       dispatch({ type: "CREATE_TRANSFER", transfer });
     }, []),
+    updateTransferStatus: useCallback(
+      (id, status) => dispatch({ type: "UPDATE_TRANSFER_STATUS", id, status }),
+      [],
+    ),
     receiveTransfer: useCallback(
       (id) => dispatch({ type: "RECEIVE_TRANSFER", id }),
       [],
@@ -1122,6 +1152,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     }, []),
     updateCustomer: useCallback((id, patch) => dispatch({ type: "UPDATE_CUSTOMER", id, patch }), []),
     addLoyaltyPoints: useCallback((id, points) => dispatch({ type: "ADD_LOYALTY_POINTS", id, points }), []),
+    addStaff: useCallback((data) => {
+      const member: StaffMember = { ...data, id: uid("staff") };
+      dispatch({ type: "ADD_STAFF", member });
+    }, []),
+    updateStaff: useCallback((id, patch) => dispatch({ type: "UPDATE_STAFF", id, patch }), []),
   };
 
   const value: InventoryContextValue = {

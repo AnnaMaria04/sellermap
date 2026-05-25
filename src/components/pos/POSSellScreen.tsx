@@ -26,6 +26,7 @@ import { cn, formatRub } from "@/lib/utils";
 import { getAvailableStock } from "@/mock/inventory";
 import type { Product, Order, OrderItem } from "@/mock/inventory";
 import { BarcodeInput } from "@/components/ui/BarcodeInput";
+import { usePOSSession } from "@/store/pos-session";
 import { toast } from "sonner";
 
 // ── Local types ──────────────────────────────────────────────────────────────
@@ -482,6 +483,7 @@ function ReceiptModal({
 
 export function POSSellScreen() {
   const { products, locations, actions } = useInventory();
+  const addSale = usePOSSession((s) => s.addSale);
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -716,6 +718,7 @@ export function POSSellScreen() {
       };
 
       setReceipt(receiptData);
+      addSale(total);
     } finally {
       setIsProcessing(false);
     }
@@ -729,6 +732,7 @@ export function POSSellScreen() {
     total,
     paymentMethod,
     cashTenderedNum,
+    addSale,
     change,
     storeLocations,
     locations,

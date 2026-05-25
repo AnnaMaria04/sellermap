@@ -155,12 +155,8 @@ export default function TransferDetailPage({ params }: Props) {
     if (pendingStatus === "received") {
       actions.receiveTransfer(transfer.id);
     } else {
-      // For draft→in_transit we can use updateTransfer if it existed,
-      // but since the context only exposes receiveTransfer we handle
-      // "in_transit" by dispatching a dedicated path.
-      // The context doesn't expose a generic updateTransfer for status.
-      // We call receiveTransfer only for "received", otherwise we note limitation.
-      toast.info(`Статус изменён на «${STEP_LABEL[pendingStatus]}»`);
+      actions.updateTransferStatus(transfer.id, pendingStatus);
+      toast.success(`Статус изменён на «${STEP_LABEL[pendingStatus]}»`);
     }
     setPendingStatus(null);
   }

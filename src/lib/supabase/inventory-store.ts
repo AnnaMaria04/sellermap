@@ -21,6 +21,7 @@ const TABLES = {
   batches: "batches",
   orders: "orders",
   customers: "customers",
+  staff: "staff",
 } as const;
 
 type Collection = keyof typeof TABLES;

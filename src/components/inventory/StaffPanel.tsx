@@ -18,14 +18,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  STAFF_MEMBERS,
   STAFF_ROLE_LABELS,
   STAFF_ROLE_PERMISSIONS,
-  LOCATIONS,
   type StaffMember,
   type StaffRole,
   type StaffStatus,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -72,13 +71,6 @@ function formatLastActive(date?: string): string {
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function locationName(id: string): string {
-  return LOCATIONS.find((l) => l.id === id)?.name ?? id;
-}
-
-function newId(): string {
-  return "staff-" + Math.random().toString(36).slice(2, 9);
-}
 
 // ── Avatar ─────────────────────────────────────────────────────────────────
 
@@ -117,11 +109,12 @@ function StatusBadge({ status }: { status: StaffStatus }) {
 
 interface InviteModalProps {
   onClose: () => void;
-  onInvite: (member: StaffMember) => void;
+  onInvite: (member: Omit<StaffMember, "id">) => void;
 }
 
 function InviteModal({ onClose, onInvite }: InviteModalProps) {
   const uid = useId();
+  const { locations } = useInventory();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<StaffRole>("manager");
@@ -145,7 +138,6 @@ function InviteModal({ onClose, onInvite }: InviteModalProps) {
     ev.preventDefault();
     if (!validate()) return;
     onInvite({
-      id: newId(),
       name: name.trim(),
       email: email.trim(),
       role,
@@ -252,7 +244,7 @@ function InviteModal({ onClose, onInvite }: InviteModalProps) {
                 />
                 <span className="text-sm text-[var(--c-text)]">Весь склад (все локации)</span>
               </label>
-              {LOCATIONS.map((loc) => (
+              {locations.map((loc) => (
                 <label key={loc.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-[var(--c-bg3)] transition">
                   <input
                     type="checkbox"
@@ -297,6 +289,7 @@ interface DrawerProps {
 }
 
 function DetailDrawer({ member, onClose, onSave }: DrawerProps) {
+  const { locations } = useInventory();
   const [role, setRole] = useState<StaffRole>(member.role);
   const [status, setStatus] = useState<StaffStatus>(member.status);
   const [note, setNote] = useState(member.note ?? "");
@@ -425,7 +418,7 @@ function DetailDrawer({ member, onClose, onSave }: DrawerProps) {
                   />
                   <span className="text-sm text-[var(--c-text)]">Весь склад</span>
                 </label>
-                {LOCATIONS.map((loc) => (
+                {locations.map((loc) => (
                   <label key={loc.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-[var(--c-bg3)] transition">
                     <input
                       type="checkbox"
@@ -523,7 +516,7 @@ function DetailDrawer({ member, onClose, onSave }: DrawerProps) {
 // ── Main panel ─────────────────────────────────────────────────────────────
 
 export function StaffPanel() {
-  const [staff, setStaff] = useState<StaffMember[]>(STAFF_MEMBERS);
+  const { staff, actions, getLocationName } = useInventory();
   const [showInvite, setShowInvite] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -534,22 +527,22 @@ export function StaffPanel() {
   const invited = staff.filter((m) => m.status === "invited").length;
   const suspended = staff.filter((m) => m.status === "suspended").length;
 
-  function handleInvite(member: StaffMember) {
-    setStaff((prev) => [...prev, member]);
+  function handleInvite(member: Omit<StaffMember, "id">) {
+    actions.addStaff(member);
   }
 
   function handleSave(updated: StaffMember) {
-    setStaff((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    actions.updateStaff(updated.id, updated);
   }
 
   function handleRemove(id: string) {
-    setStaff((prev) => prev.filter((m) => m.id !== id));
+    actions.updateStaff(id, { status: "suspended" });
     if (selectedId === id) setSelectedId(null);
   }
 
   function handleToggleSuspend(member: StaffMember) {
     const newStatus: StaffStatus = member.status === "suspended" ? "active" : "suspended";
-    setStaff((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: newStatus } : m)));
+    actions.updateStaff(member.id, { status: newStatus });
   }
 
   return (
@@ -636,7 +629,7 @@ export function StaffPanel() {
                       <span className="text-sm text-[var(--c-text2)]">
                         {member.locations.length === 0
                           ? "Весь склад"
-                          : member.locations.map(locationName).join(", ")}
+                          : member.locations.map(getLocationName).join(", ")}
                       </span>
                     </td>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Plus,
   Search,
@@ -16,6 +17,7 @@ import {
   FileText,
   Calendar,
   CheckCheck,
+  ExternalLink,
 } from "lucide-react";
 import {
   getLocationName,
@@ -675,6 +677,13 @@ function TransferDetailPanel({ transfer, onClose, onReceive }: DetailProps) {
               Закрыть
             </button>
           )}
+          <Link
+            href={`/inventory/transfers/${transfer.id}`}
+            className="flex w-full h-9 items-center justify-center gap-1.5 rounded-lg text-xs text-[var(--c-text3)] hover:text-[var(--c-text2)] transition"
+          >
+            <ExternalLink size={13} />
+            Открыть полную страницу →
+          </Link>
         </div>
       </div>
     </div>
