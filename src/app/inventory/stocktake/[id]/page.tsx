@@ -184,7 +184,7 @@ function InProgressView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24">
       {/* Header row */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <Link
@@ -194,44 +194,10 @@ function InProgressView({
           <ArrowLeft size={14} />
           Назад
         </Link>
-        {allCounted && (
-          <button
-            onClick={() => setShowCompleteConfirm(true)}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
-          >
-            <CheckCircle size={15} />
-            Завершить
-          </button>
-        )}
       </div>
 
-      {/* Progress bar */}
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-5 py-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-[var(--c-text2)]">
-            {counted} из {total} товаров пересчитано
-          </p>
-          <p className="text-sm font-semibold tabular text-[var(--c-text)]">
-            {pct}%
-          </p>
-        </div>
-        <div className="h-2 rounded-full bg-[var(--c-bg3)] overflow-hidden">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all duration-500",
-              pct === 100
-                ? "bg-[var(--c-green)]"
-                : pct > 50
-                  ? "bg-[var(--c-amber)]"
-                  : "bg-[var(--c-text3)]",
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Barcode input */}
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-5 py-4 space-y-2">
+      {/* Barcode input — prominent scan area */}
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-4 space-y-2">
         <label className="flex items-center gap-1.5 text-xs font-medium text-[var(--c-text2)]">
           <Barcode size={13} />
           Сканировать штрихкод
@@ -245,7 +211,7 @@ function InProgressView({
             placeholder="Сканировать штрихкод или введите артикул..."
             onKeyDown={handleScan}
             className={cn(
-              "h-10 w-full rounded-lg border px-3 text-sm transition focus:outline-none",
+              "h-12 w-full rounded-lg border px-3 text-base transition focus:outline-none",
               scanFlash?.type === "err"
                 ? "border-[var(--c-red)] bg-[var(--c-red-dim)] text-[var(--c-text)]"
                 : scanFlash?.type === "ok"
@@ -280,18 +246,40 @@ function InProgressView({
         ))}
       </div>
 
-      {/* Sticky bottom bar */}
-      <div className="sticky bottom-0 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-5 py-3 flex items-center justify-between gap-4">
-        <p className="text-sm text-[var(--c-text2)]">
-          {counted} из {total} товаров пересчитано — {pct}% готово
-        </p>
+      {/* Sticky bottom bar — fixed to viewport bottom on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--c-border)] bg-[var(--c-bg)] px-4 py-3">
+        {/* Progress bar */}
+        <div className="mb-2 space-y-1">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[var(--c-text2)]">
+              {counted} из {total} товаров пересчитано
+            </p>
+            <p className="text-xs font-semibold tabular text-[var(--c-text)]">
+              {pct}%
+            </p>
+          </div>
+          <div className="h-1.5 rounded-full bg-[var(--c-bg3)] overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                pct === 100
+                  ? "bg-[var(--c-green)]"
+                  : pct > 50
+                    ? "bg-[var(--c-amber)]"
+                    : "bg-[var(--c-text3)]",
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+        {/* Action button */}
         {allCounted && (
           <button
             onClick={() => setShowCompleteConfirm(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-[var(--c-green)] hover:underline"
+            className="h-12 w-full rounded-xl bg-[var(--c-green)] text-base font-semibold text-[var(--c-bg)] flex items-center justify-center gap-2 hover:opacity-90 transition"
           >
-            Перейти к дисперсиям
-            <ChevronRight size={14} />
+            <CheckCircle size={18} />
+            Завершить инвентаризацию
           </button>
         )}
       </div>
@@ -612,7 +600,7 @@ function ItemCard({
   }
 
   return (
-    <div className={cn("rounded-xl border p-4 transition", rowCls)}>
+    <div className={cn("rounded-xl border p-4 transition min-h-[72px]", rowCls)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -702,20 +690,20 @@ function ItemCard({
                 onChange={(e) => setVal(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 placeholder={String(item.systemQty)}
-                className="flex-1 h-9 rounded-lg border border-[var(--c-green)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] focus:outline-none tabular"
+                className="h-12 w-20 rounded-lg border border-[var(--c-green)] bg-[var(--c-bg2)] px-3 text-center text-lg text-[var(--c-text)] focus:outline-none tabular"
               />
               <button
                 onClick={submit}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--c-green)] text-[var(--c-bg)]"
+                className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--c-green)] text-[var(--c-bg)]"
               >
-                <CheckCircle size={14} />
+                <CheckCircle size={18} />
               </button>
               <button
                 onClick={() => {
                   setEditing(false);
                   setVal("");
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)]"
+                className="flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)]"
               >
                 ✕
               </button>
@@ -727,7 +715,7 @@ function ItemCard({
                 setVal(item.countedQty !== null ? String(item.countedQty) : "");
               }}
               className={cn(
-                "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
+                "flex w-full min-h-[44px] items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
                 isCounted
                   ? "border-[rgba(31,209,131,0.2)] bg-[var(--c-bg2)] hover:border-[var(--c-green)]"
                   : "border-[var(--c-border2)] bg-[var(--c-bg2)] hover:border-[var(--c-green)]",
@@ -739,7 +727,7 @@ function ItemCard({
               {isCounted && (
                 <span
                   className={cn(
-                    "font-semibold tabular",
+                    "font-semibold tabular text-lg",
                     isShortage
                       ? "text-[var(--c-red)]"
                       : isSurplus
