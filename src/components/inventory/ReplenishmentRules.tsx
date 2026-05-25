@@ -16,6 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PRODUCTS, SUPPLIERS } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type RuleStatus = "active" | "paused" | "triggered";
@@ -220,6 +221,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 export function ReplenishmentRules() {
+  const { actions } = useInventory();
   const [rules, setRules] = useState<ReplenishmentRule[]>(MOCK_RULES);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -355,7 +357,6 @@ export function ReplenishmentRules() {
     } else {
       setRules((prev) => [base, ...prev]);
     }
-    console.log(editRule ? "Обновлено правило:" : "Новое правило:", base);
     setFormSaved(true);
     setTimeout(() => {
       setFormSaved(false);
@@ -563,7 +564,20 @@ export function ReplenishmentRules() {
                       <div className="flex items-center gap-1">
                         {status === "triggered" && (
                           <button
-                            onClick={() => console.log("Создать заказ для", rule.productName)}
+                            onClick={() => {
+                              if (rule.supplierId) {
+                                actions.addPurchaseOrder({
+                                  supplierId: rule.supplierId,
+                                  supplierName: rule.supplierName ?? rule.supplierId,
+                                  status: "draft",
+                                  items: [{ productId: rule.productId, productName: rule.productName, sku: rule.sku, qty: rule.reorderQty, receivedQty: 0, unitCost: 0, totalCost: 0 }],
+                                  totalAmount: 0,
+                                  currency: "RUB",
+                                  locationId: "loc-warehouse",
+                                  paymentStatus: "unpaid",
+                                });
+                              }
+                            }}
                             className="flex items-center gap-1 rounded-lg bg-amber-500/15 border border-amber-500/25 px-2 py-1 text-[10px] font-medium text-amber-400 hover:bg-amber-500/25 transition whitespace-nowrap"
                           >
                             <ShoppingCart size={10} />

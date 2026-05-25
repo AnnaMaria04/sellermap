@@ -18,13 +18,11 @@ import {
   FileText,
 } from "lucide-react";
 import {
-  PURCHASE_ORDERS,
-  SUPPLIERS,
-  LOCATIONS,
   PO_STATUS_LABELS,
   type PurchaseOrder,
   type PurchaseOrderStatus,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { POStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
@@ -33,13 +31,14 @@ interface Props {
 }
 
 export function PurchaseOrderList({ onCreatePO }: Props) {
+  const { purchaseOrders, suppliers, locations, actions } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | "all">("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
 
   const filtered = useMemo(() => {
-    let list = [...PURCHASE_ORDERS];
+    let list = [...purchaseOrders];
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -56,17 +55,17 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
       list = list.filter((po) => po.supplierId === supplierFilter);
     }
     return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [search, statusFilter, supplierFilter]);
+  }, [search, statusFilter, supplierFilter, purchaseOrders]);
 
   const stats = useMemo(() => {
-    const all = PURCHASE_ORDERS;
+    const all = purchaseOrders;
     return {
       open: all.filter((po) => !["closed", "draft"].includes(po.status)).length,
       inTransit: all.filter((po) => po.status === "in_transit").length,
       issues: all.filter((po) => po.status === "issue").length,
       totalValue: all.filter((po) => po.status !== "draft").reduce((s, po) => s + po.totalAmount, 0),
     };
-  }, []);
+  }, [purchaseOrders]);
 
   return (
     <div className="space-y-6">
@@ -108,7 +107,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
           className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
         >
           <option value="all">Все поставщики</option>
-          {SUPPLIERS.map((s) => (
+          {suppliers.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
@@ -217,6 +216,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
 }
 
 function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void }) {
+  const { locations, actions } = useInventory();
   const [receiving, setReceiving] = useState(false);
   const [receiveQtys, setReceiveQtys] = useState<Record<string, string>>({});
 
@@ -251,7 +251,7 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
           <div className="grid grid-cols-2 gap-3">
             <InfoCell label="Создан" value={formatDate(po.createdAt)} />
             <InfoCell label="Ожид. поставка" value={po.expectedArrival ? formatDate(po.expectedArrival) : "—"} />
-            <InfoCell label="Локация" value={LOCATIONS.find((l) => l.id === po.locationId)?.name ?? po.locationId} />
+            <InfoCell label="Локация" value={locations.find((l) => l.id === po.locationId)?.name ?? po.locationId} />
             {po.trackingNumber && <InfoCell label="Трэк" value={po.trackingNumber} />}
           </div>
 
@@ -358,6 +358,17 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
                 Отмена
               </button>
               <button
+                onClick={() => {
+                  const received: Record<string, number> = {};
+                  Object.entries(receiveQtys).forEach(([productId, qtyStr]) => {
+                    const qty = parseInt(qtyStr);
+                    if (!isNaN(qty) && qty > 0) received[productId] = qty;
+                  });
+                  if (Object.keys(received).length > 0) {
+                    actions.receivePOItems(po.id, received, po.locationId);
+                    setReceiving(false);
+                  }
+                }}
                 className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
               >
                 <Check size={14} />

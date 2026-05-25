@@ -14,13 +14,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  TRANSFERS,
-  LOCATIONS,
-  PRODUCTS,
   getLocationName,
   type Transfer,
   type TransferStatus,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { TransferStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +27,14 @@ interface Props {
 }
 
 export function TransfersPanel({ onCreateTransfer }: Props) {
+  const { transfers, actions } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const filtered = useMemo(() => {
-    let list = [...TRANSFERS];
+    let list = [...transfers];
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -50,17 +49,17 @@ export function TransfersPanel({ onCreateTransfer }: Props) {
       list = list.filter((t) => t.status === statusFilter);
     }
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [search, statusFilter]);
+  }, [transfers, search, statusFilter]);
 
   return (
     <div className="space-y-6">
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Всего перемещений", value: TRANSFERS.length, color: "text-[var(--c-text)]" },
-          { label: "В пути", value: TRANSFERS.filter((t) => t.status === "in_transit").length, color: "text-[var(--c-amber)]" },
-          { label: "Принято", value: TRANSFERS.filter((t) => t.status === "received").length, color: "text-[var(--c-green)]" },
-          { label: "Частично", value: TRANSFERS.filter((t) => t.status === "partial").length, color: "text-[var(--c-blue)]" },
+          { label: "Всего перемещений", value: transfers.length, color: "text-[var(--c-text)]" },
+          { label: "В пути", value: transfers.filter((t) => t.status === "in_transit").length, color: "text-[var(--c-amber)]" },
+          { label: "Принято", value: transfers.filter((t) => t.status === "received").length, color: "text-[var(--c-green)]" },
+          { label: "Частично", value: transfers.filter((t) => t.status === "partial").length, color: "text-[var(--c-blue)]" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
             <p className="text-xs text-[var(--c-text2)] mb-1.5">{stat.label}</p>
@@ -200,6 +199,7 @@ function TransferCard({ transfer, onClick }: { transfer: Transfer; onClick: () =
 }
 
 function TransferDetailPanel({ transfer, onClose }: { transfer: Transfer; onClose: () => void }) {
+  const { actions } = useInventory();
   const [receiving, setReceiving] = useState(false);
   const [receiveQtys, setReceiveQtys] = useState<Record<string, string>>({});
   const fromName = getLocationName(transfer.fromLocationId);
@@ -287,7 +287,7 @@ function TransferDetailPanel({ transfer, onClose }: { transfer: Transfer; onClos
         <div className="border-t border-[var(--c-border)] bg-[var(--c-bg2)] p-4 space-y-2">
           {!receiving && transfer.status === "in_transit" && (
             <button
-              onClick={() => setReceiving(true)}
+              onClick={() => { actions.receiveTransfer(transfer.id); onClose(); }}
               className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
             >
               <Package size={16} />
@@ -312,7 +312,8 @@ function TransferDetailPanel({ transfer, onClose }: { transfer: Transfer; onClos
 }
 
 function CreateTransferForm({ onClose }: { onClose: () => void }) {
-  const [fromId, setFromId] = useState(LOCATIONS.find((l) => l.isDefault)?.id ?? "");
+  const { products, locations, actions } = useInventory();
+  const [fromId, setFromId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [toId, setToId] = useState("");
   const [expectedArrival, setExpectedArrival] = useState("");
   const [note, setNote] = useState("");
@@ -323,13 +324,13 @@ function CreateTransferForm({ onClose }: { onClose: () => void }) {
 
   const filteredProducts = useMemo(() => {
     const q = searchQ.toLowerCase();
-    return PRODUCTS.filter((p) =>
+    return products.filter((p) =>
       p.status === "active" &&
       (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
     ).slice(0, 8);
-  }, [searchQ]);
+  }, [products, searchQ]);
 
-  function addLine(p: typeof PRODUCTS[0]) {
+  function addLine(p: typeof products[0]) {
     if (lines.find((l) => l.productId === p.id)) return;
     setLines((prev) => [...prev, { productId: p.id, productName: p.name, sku: p.sku, qty: 1 }]);
     setShowSearch(false);
@@ -337,6 +338,15 @@ function CreateTransferForm({ onClose }: { onClose: () => void }) {
   }
 
   function handleSave() {
+    if (!isValid) return;
+    actions.createTransfer({
+      fromLocationId: fromId,
+      toLocationId: toId,
+      status: "in_transit",
+      items: lines.map((l) => ({ ...l, receivedQty: 0 })),
+      expectedArrival: expectedArrival || undefined,
+      note: note || undefined,
+    });
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 700);
   }
@@ -366,7 +376,7 @@ function CreateTransferForm({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setFromId(e.target.value)}
                   className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
                 >
-                  {LOCATIONS.filter((l) => !["damaged", "in_transit"].includes(l.type)).map((l) => (
+                  {locations.filter((l) => !["damaged", "in_transit"].includes(l.type)).map((l) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>
@@ -380,7 +390,7 @@ function CreateTransferForm({ onClose }: { onClose: () => void }) {
                   className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
                 >
                   <option value="">Выберите...</option>
-                  {LOCATIONS.filter((l) => l.id !== fromId).map((l) => (
+                  {locations.filter((l) => l.id !== fromId).map((l) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>

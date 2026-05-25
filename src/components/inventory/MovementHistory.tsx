@@ -13,24 +13,24 @@ import {
   Minus,
 } from "lucide-react";
 import {
-  MOVEMENTS,
-  LOCATIONS,
-  PRODUCTS,
   MOVEMENT_LABELS,
   getLocationName,
   type MovementType,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { MovementTypeBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
 export function MovementHistory() {
+  const { movements, locations, products } = useInventory();
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<MovementType | "all">("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
 
   const filtered = useMemo(() => {
-    let list = [...MOVEMENTS];
+    let list = [...movements];
 
     if (search) {
       const q = search.toLowerCase();
@@ -53,14 +53,14 @@ export function MovementHistory() {
     }
 
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [search, typeFilter, locationFilter, productFilter]);
+  }, [movements, search, typeFilter, locationFilter, productFilter]);
 
   const stats = useMemo(() => {
-    const all = MOVEMENTS;
+    const all = movements;
     const inbound = all.filter((m) => m.qtyDelta > 0).reduce((s, m) => s + m.qtyDelta, 0);
     const outbound = all.filter((m) => m.qtyDelta < 0).reduce((s, m) => s + Math.abs(m.qtyDelta), 0);
     return { total: all.length, inbound, outbound };
-  }, []);
+  }, [movements]);
 
   return (
     <div className="space-y-6">
@@ -110,7 +110,7 @@ export function MovementHistory() {
           className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
         >
           <option value="all">Все локации</option>
-          {LOCATIONS.map((l) => (
+          {locations.map((l) => (
             <option key={l.id} value={l.id}>{l.name}</option>
           ))}
         </select>
@@ -121,7 +121,7 @@ export function MovementHistory() {
           className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
         >
           <option value="all">Все товары</option>
-          {PRODUCTS.map((p) => (
+          {products.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>

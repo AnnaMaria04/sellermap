@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react";
-import { PRODUCTS, LOCATIONS } from "@/mock/inventory";
+import { LOCATIONS } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type ReturnStatus = "pending" | "inspected" | "restocked" | "written_off" | "refunded";
@@ -235,6 +236,7 @@ interface NewReturnLine {
 }
 
 export function ReturnsPanel() {
+  const { products, actions } = useInventory();
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ReturnStatus | "all">("all");
@@ -285,12 +287,12 @@ export function ReturnsPanel() {
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.toLowerCase();
-    return PRODUCTS.filter(
+    return products.filter(
       (p) => p.status === "active" && (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)),
     ).slice(0, 8);
   }, [productSearch]);
 
-  function addProductLine(p: (typeof PRODUCTS)[0]) {
+  function addProductLine(p: (typeof products)[0]) {
     if (formLines.find((l) => l.productId === p.id)) return;
     setFormLines((prev) => [...prev, { productId: p.id, productName: p.name, sku: p.sku, qty: 1, condition: "good" }]);
     setShowProductSearch(false);
@@ -299,7 +301,10 @@ export function ReturnsPanel() {
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log("Новый возврат:", { formChannel, formOrderRef, formCustomer, formReason, formNote, formLines });
+    const defaultLoc = "loc-returns";
+    formLines.forEach((line) => {
+      actions.adjustStock(line.productId, defaultLoc, line.qty, "return", REASON_LABELS[formReason as ReturnReason] ?? formReason);
+    });
     setFormSaved(true);
     setTimeout(() => {
       setFormSaved(false);
@@ -626,13 +631,21 @@ export function ReturnsPanel() {
 }
 
 function ReturnDetailPanel({ ret, onClose }: { ret: Return; onClose: () => void }) {
+  const { actions } = useInventory();
   const [itemActions, setItemActions] = useState<Record<string, ReturnItem["action"]>>(
     Object.fromEntries(ret.items.map((item, i) => [i, item.action])),
   );
   const [processed, setProcessed] = useState(false);
 
   function handleProcess() {
-    console.log("Обработка возврата", ret.id, itemActions);
+    ret.items.forEach((item, i) => {
+      const action = itemActions[i] ?? item.action;
+      if (action === "restock") {
+        actions.adjustStock(item.productId, ret.locationId, item.qty, "return", "Возврат — оприходование");
+      } else if (action === "write_off") {
+        actions.adjustStock(item.productId, ret.locationId, -item.qty, "write_off", "Возврат — списание");
+      }
+    });
     setProcessed(true);
     setTimeout(() => { setProcessed(false); onClose(); }, 700);
   }

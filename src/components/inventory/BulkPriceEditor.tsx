@@ -13,7 +13,8 @@ import {
   DollarSign,
   Percent,
 } from "lucide-react";
-import { PRODUCTS, type Product } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type SortField = "name" | "price" | "cost" | "margin";
@@ -25,8 +26,6 @@ const PRICE_HISTORY: Record<string, number> = {
   "prod-007": 3490,
 };
 
-const ACTIVE_PRODUCTS = PRODUCTS.filter((p) => p.status === "active");
-
 function formatRub(n: number): string {
   return n.toLocaleString("ru-RU") + " ₽";
 }
@@ -37,6 +36,8 @@ function calcMargin(price: number, cost: number): number {
 }
 
 export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
+  const { products, actions } = useInventory();
+  const activeProducts = products.filter((p) => p.status === "active");
   const [prices, setPrices] = useState<Map<string, number>>(new Map());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
@@ -48,7 +49,7 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
   const [bulkVal, setBulkVal] = useState("");
 
   const rows = useMemo(() => {
-    let list = ACTIVE_PRODUCTS.map((p) => ({
+    let list = activeProducts.map((p) => ({
       product: p,
       currentPrice: p.price,
       newPrice: prices.get(p.id) ?? p.price,
@@ -69,20 +70,20 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
     });
 
     return list;
-  }, [prices, onlyChanged, sortField, sortDir]);
+  }, [activeProducts, prices, onlyChanged, sortField, sortDir]);
 
   const changedCount = useMemo(() => {
     let count = 0;
-    ACTIVE_PRODUCTS.forEach((p) => {
+    activeProducts.forEach((p) => {
       const np = prices.get(p.id);
       if (np !== undefined && np !== p.price) count++;
     });
     return count;
-  }, [prices]);
+  }, [activeProducts, prices]);
 
   const avgChangePct = useMemo(() => {
     let sum = 0; let cnt = 0;
-    ACTIVE_PRODUCTS.forEach((p) => {
+    activeProducts.forEach((p) => {
       const np = prices.get(p.id);
       if (np !== undefined && np !== p.price && p.price > 0) {
         sum += ((np - p.price) / p.price) * 100;
@@ -90,15 +91,15 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
       }
     });
     return cnt > 0 ? Math.round(sum / cnt * 10) / 10 : 0;
-  }, [prices]);
+  }, [activeProducts, prices]);
 
   const totalGmvOld = useMemo(
-    () => ACTIVE_PRODUCTS.reduce((s, p) => s + p.price * p.totalPhysical, 0),
-    []
+    () => activeProducts.reduce((s, p) => s + p.price * p.totalPhysical, 0),
+    [activeProducts]
   );
   const totalGmvNew = useMemo(
-    () => ACTIVE_PRODUCTS.reduce((s, p) => s + (prices.get(p.id) ?? p.price) * p.totalPhysical, 0),
-    [prices]
+    () => activeProducts.reduce((s, p) => s + (prices.get(p.id) ?? p.price) * p.totalPhysical, 0),
+    [activeProducts, prices]
   );
 
   function setPrice(id: string, val: number) {
@@ -124,11 +125,11 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
   function applyBulk() {
     const val = parseFloat(bulkVal);
     if (isNaN(val)) return;
-    const targets = selected.size > 0 ? [...selected] : ACTIVE_PRODUCTS.map((p) => p.id);
+    const targets = selected.size > 0 ? [...selected] : activeProducts.map((p) => p.id);
     setPrices((prev) => {
       const next = new Map(prev);
       targets.forEach((id) => {
-        const product = ACTIVE_PRODUCTS.find((p) => p.id === id);
+        const product = activeProducts.find((p) => p.id === id);
         if (!product) return;
         const base = prev.get(id) ?? product.price;
         let newP = base;
@@ -149,7 +150,9 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
   }
 
   function handleApply() {
-    console.log("Применить изменения цен:", Object.fromEntries(prices));
+    const updates: Record<string, { price?: number; costPrice?: number }> = {};
+    prices.forEach((price, id) => { updates[id] = { price }; });
+    actions.updatePrices(updates);
     setApplied(true);
     setTimeout(() => setApplied(false), 2000);
   }
@@ -175,7 +178,7 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <p className="text-xs text-[var(--c-text2)] mb-1.5">Товаров</p>
-          <p className="text-xl font-bold text-[var(--c-text)]">{ACTIVE_PRODUCTS.length}</p>
+          <p className="text-xl font-bold text-[var(--c-text)]">{activeProducts.length}</p>
         </div>
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <p className="text-xs text-[var(--c-text2)] mb-1.5">Изменено</p>
@@ -419,7 +422,7 @@ export function BulkPriceEditor({ onClose }: { onClose?: () => void }) {
 
       <div className="flex items-center justify-between border-t border-[var(--c-border)] pt-4">
         <p className="text-xs text-[var(--c-text3)]">
-          Показано {rows.length} из {ACTIVE_PRODUCTS.length} товаров
+          Показано {rows.length} из {activeProducts.length} товаров
           · GMV до: {(totalGmvOld / 1000).toFixed(0)} тыс ₽
           · после: {(totalGmvNew / 1000).toFixed(0)} тыс ₽
         </p>

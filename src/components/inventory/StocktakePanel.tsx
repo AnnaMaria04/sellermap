@@ -17,14 +17,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import {
-  STOCKTAKES,
-  LOCATIONS,
-  PRODUCTS,
   getLocationName,
   type Stocktake,
   type StocktakeItem,
   type StocktakeStatus,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -32,6 +30,7 @@ interface Props {
 }
 
 export function StocktakePanel({ onCreateStocktake }: Props) {
+  const { stocktakes, locations, actions } = useInventory();
   const [selectedStocktake, setSelectedStocktake] = useState<Stocktake | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -62,10 +61,10 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Всего" value={STOCKTAKES.length} />
-        <StatCard label="В процессе" value={STOCKTAKES.filter((s) => s.status === "in_progress").length} color="amber" />
-        <StatCard label="Завершено" value={STOCKTAKES.filter((s) => s.status === "completed").length} color="green" />
-        <StatCard label="Расхождений" value={STOCKTAKES.flatMap((s) => s.items).filter((i) => i.variance !== null && i.variance !== 0).length} color="red" />
+        <StatCard label="Всего" value={stocktakes.length} />
+        <StatCard label="В процессе" value={stocktakes.filter((s) => s.status === "in_progress").length} color="amber" />
+        <StatCard label="Завершено" value={stocktakes.filter((s) => s.status === "completed").length} color="green" />
+        <StatCard label="Расхождений" value={stocktakes.flatMap((s) => s.items).filter((i) => i.variance !== null && i.variance !== 0).length} color="red" />
       </div>
 
       {/* List header */}
@@ -82,7 +81,7 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
 
       {/* Stocktake cards */}
       <div className="space-y-3">
-        {STOCKTAKES.map((stk) => {
+        {stocktakes.map((stk) => {
           const cfg = statusConfig[stk.status];
           const counted = stk.items.filter((i) => i.countedQty !== null).length;
           const variances = stk.items.filter((i) => i.variance !== null && i.variance !== 0);
@@ -158,6 +157,7 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
 }
 
 function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; onClose: () => void }) {
+  const { actions } = useInventory();
   const [items, setItems] = useState<StocktakeItem[]>(stocktake.items);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [countValue, setCountValue] = useState("");
@@ -170,6 +170,7 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
   function submitCount(productId: string) {
     const qty = parseInt(countValue);
     if (isNaN(qty) || qty < 0) return;
+    actions.updateStocktakeCount(stocktake.id, productId, qty);
     setItems((prev) =>
       prev.map((item) =>
         item.productId === productId
@@ -326,7 +327,10 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
 
         <div className="border-t border-[var(--c-border)] bg-[var(--c-bg2)] p-4 space-y-2">
           {stocktake.status === "in_progress" && (
-            <button className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition">
+            <button
+              onClick={() => { actions.completeStocktake(stocktake.id); onClose(); }}
+              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            >
               <CheckCircle size={16} />
               Завершить и подтвердить корректировки
             </button>
@@ -343,13 +347,26 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
 }
 
 function CreateStocktakeForm({ onClose }: { onClose: () => void }) {
-  const [locationId, setLocationId] = useState(LOCATIONS.find((l) => l.isDefault)?.id ?? "");
+  const { products, locations, actions } = useInventory();
+  const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [note, setNote] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [allProducts, setAllProducts] = useState(true);
   const [saved, setSaved] = useState(false);
 
   function handleSave() {
+    const productList = allProducts
+      ? products.filter((p) => p.status === "active")
+      : products.filter((p) => selectedProducts.includes(p.id) && p.status === "active");
+    const items = productList.map((p) => ({
+      productId: p.id,
+      productName: p.name,
+      sku: p.sku,
+      systemQty: p.stockByLocation[locationId] ?? 0,
+      countedQty: null,
+      variance: null,
+    }));
+    actions.createStocktake(locationId, items, note || undefined);
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 700);
   }
@@ -373,7 +390,7 @@ function CreateStocktakeForm({ onClose }: { onClose: () => void }) {
               onChange={(e) => setLocationId(e.target.value)}
               className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
             >
-              {LOCATIONS.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
+              {locations.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
@@ -406,7 +423,7 @@ function CreateStocktakeForm({ onClose }: { onClose: () => void }) {
 
             {!allProducts && (
               <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
-                {PRODUCTS.filter((p) => p.status === "active").map((p) => (
+                {products.filter((p) => p.status === "active").map((p) => (
                   <label key={p.id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--c-bg3)] cursor-pointer transition">
                     <input
                       type="checkbox"

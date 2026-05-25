@@ -18,7 +18,8 @@ import {
   Trash2,
   Info,
 } from "lucide-react";
-import { SUPPLIERS, LOCATIONS, CHANNEL_LABELS, PRODUCT_TYPE_LABELS, type SalesChannel, type ProductType } from "@/mock/inventory";
+import { CHANNEL_LABELS, PRODUCT_TYPE_LABELS, type SalesChannel, type ProductType, type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -40,6 +41,7 @@ const TABS: { id: Tab; label: string }[] = [
 type VariantOption = { name: string; values: string[] };
 
 export function AddProductForm({ onClose, onSave }: Props) {
+  const { suppliers, locations, actions } = useInventory();
   const [tab, setTab] = useState<Tab>("basic");
   const [saved, setSaved] = useState(false);
 
@@ -130,16 +132,58 @@ export function AddProductForm({ onClose, onSave }: Props) {
   }
 
   function handleSave() {
+    if (!name.trim()) return;
+    const now = new Date().toISOString().split("T")[0];
+    const stockByLocation: Record<string, number> = {};
+    Object.entries(selectedLocations).forEach(([locId, qtyStr]) => {
+      const qty = parseInt(qtyStr);
+      if (!isNaN(qty) && qty > 0) stockByLocation[locId] = qty;
+    });
+    const defaultLoc = locations.find((l) => l.isDefault);
+    if (defaultLoc && !stockByLocation[defaultLoc.id]) stockByLocation[defaultLoc.id] = 0;
+    const totalPhysical = Object.values(stockByLocation).reduce((s, v) => s + v, 0);
+    const margin = priceNum > 0 ? Math.round(((priceNum - costNum) / priceNum) * 1000) / 10 : 0;
+    const product: Product = {
+      id: `prod-${Date.now()}`,
+      name: name.trim(),
+      description: description || undefined,
+      category: category || "Без категории",
+      productType,
+      status,
+      sku: sku || `SKU-${Date.now()}`,
+      barcode: barcode || undefined,
+      hasVariants,
+      variants: [],
+      price: priceNum,
+      costPrice: costNum,
+      packagingCost: packagingNum || undefined,
+      deliveryCost: deliveryNum || undefined,
+      channelCommission: commissionNum || undefined,
+      margin,
+      supplierId: supplierId || undefined,
+      channels,
+      tags,
+      requiresLabeling,
+      labelingType: requiresLabeling ? labelingType : undefined,
+      gtin: gtin || undefined,
+      batchNumber: batchNumber || undefined,
+      expiryDate: expiryDate || undefined,
+      weight: weight ? parseFloat(weight) : undefined,
+      dimensions: length && width && height
+        ? { length: parseFloat(length), width: parseFloat(width), height: parseFloat(height) }
+        : undefined,
+      createdAt: now,
+      updatedAt: now,
+      stockByLocation,
+      reservedUnits: 0,
+      damagedUnits: 0,
+      inTransitUnits: 0,
+      totalPhysical,
+    };
+    actions.addProduct(product);
     setSaved(true);
     setTimeout(() => {
-      onSave?.({
-        name, description, category, productType, status,
-        price: priceNum, costPrice: costNum,
-        sku, barcode, trackInventory, supplierId,
-        channels, hasVariants, options,
-        requiresLabeling, labelingType, gtin,
-        tags,
-      });
+      onSave?.(product);
       setSaved(false);
       onClose();
     }, 800);
@@ -494,7 +538,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
                 {trackInventory && (
                   <FormSection title="Количество по локациям">
                     <div className="space-y-2">
-                      {LOCATIONS.filter((l) => !["damaged", "returns", "in_transit"].includes(l.type)).map((loc) => (
+                      {locations.filter((l) => !["damaged", "returns", "in_transit"].includes(l.type)).map((loc) => (
                         <div key={loc.id} className="flex items-center gap-3 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3">
                           <div className="flex-1">
                             <p className="text-sm font-medium text-[var(--c-text)]">{loc.name}</p>
@@ -521,7 +565,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
                     className={selectCls}
                   >
                     <option value="">Выберите поставщика</option>
-                    {SUPPLIERS.map((s) => (
+                    {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>{s.name} ({s.country})</option>
                     ))}
                   </select>

@@ -18,15 +18,17 @@ import {
   Edit3,
   Trash2,
 } from "lucide-react";
-import { SUPPLIERS, PRODUCTS, type Supplier } from "@/mock/inventory";
+import { type Supplier, type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 export function SuppliersPanel() {
+  const { suppliers, products, actions } = useInventory();
   const [search, setSearch] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const filtered = SUPPLIERS.filter(
+  const filtered = suppliers.filter(
     (s) =>
       search === "" ||
       s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,7 +36,7 @@ export function SuppliersPanel() {
   );
 
   const supplierProducts = (supplierId: string) =>
-    PRODUCTS.filter((p) => p.supplierId === supplierId);
+    products.filter((p) => p.supplierId === supplierId);
 
   return (
     <div className="space-y-6">
@@ -161,7 +163,7 @@ function SupplierDetailPanel({
   onClose,
 }: {
   supplier: Supplier;
-  products: typeof PRODUCTS;
+  products: Product[];
   onClose: () => void;
 }) {
   return (
@@ -300,6 +302,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function AddSupplierForm({ onClose }: { onClose: () => void }) {
+  const { actions } = useInventory();
   const [name, setName] = useState("");
   const [country, setCountry] = useState("Россия");
   const [contactName, setContactName] = useState("");
@@ -314,6 +317,21 @@ function AddSupplierForm({ onClose }: { onClose: () => void }) {
   const [saved, setSaved] = useState(false);
 
   function handleSave() {
+    if (!name.trim()) return;
+    actions.addSupplier({
+      name: name.trim(),
+      country,
+      contactName: contactName || undefined,
+      email: email || undefined,
+      phone: phone || undefined,
+      telegramHandle: telegram || undefined,
+      leadTimeDays: parseInt(leadTime) || 7,
+      minOrderQty: minOrder ? parseInt(minOrder) : undefined,
+      currency,
+      paymentTerms: paymentTerms || undefined,
+      notes: notes || undefined,
+      rating: 5,
+    });
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 700);
   }

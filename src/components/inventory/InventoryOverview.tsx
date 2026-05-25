@@ -18,11 +18,6 @@ import {
   History,
 } from "lucide-react";
 import {
-  PRODUCTS,
-  PURCHASE_ORDERS,
-  TRANSFERS,
-  STOCKTAKES,
-  MOVEMENTS,
   getAvailableStock,
   getStockStatus,
   getInventoryStats,
@@ -30,16 +25,19 @@ import {
   getTotalInventoryValue,
   PO_STATUS_LABELS,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
 export function InventoryOverview() {
-  const stats = useMemo(() => getInventoryStats(PRODUCTS), []);
-  const totalValue = useMemo(() => getTotalInventoryValue(PRODUCTS.filter((p) => p.status === "active")), []);
-  const lowStockProducts = useMemo(() => getLowStockProducts(PRODUCTS).slice(0, 5), []);
-  const recentOrders = useMemo(() => PURCHASE_ORDERS.filter((po) => po.status !== "closed").slice(0, 4), []);
-  const recentMovements = useMemo(() => MOVEMENTS.slice(0, 5), []);
-  const activeTransfers = useMemo(() => TRANSFERS.filter((t) => t.status === "in_transit"), []);
+  const { products, purchaseOrders, transfers, movements } = useInventory();
+
+  const stats = useMemo(() => getInventoryStats(products), [products]);
+  const totalValue = useMemo(() => getTotalInventoryValue(products.filter((p) => p.status === "active")), [products]);
+  const lowStockProducts = useMemo(() => getLowStockProducts(products).slice(0, 5), [products]);
+  const recentOrders = useMemo(() => purchaseOrders.filter((po) => po.status !== "closed").slice(0, 4), [purchaseOrders]);
+  const recentMovements = useMemo(() => movements.slice(0, 5), [movements]);
+  const activeTransfers = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
 
   return (
     <div className="space-y-6">
@@ -152,7 +150,7 @@ export function InventoryOverview() {
           icon={<ShoppingCart size={16} className="text-[var(--c-blue)]" />}
           href="/inventory/purchase-orders"
           linkLabel="Все заказы"
-          count={PURCHASE_ORDERS.filter((po) => !["closed", "draft"].includes(po.status)).length}
+          count={purchaseOrders.filter((po) => !["closed", "draft"].includes(po.status)).length}
         >
           {recentOrders.length === 0 ? (
             <EmptyRow message="Нет активных заказов" />

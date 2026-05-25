@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
-import { LOCATIONS, PRODUCTS, type Location } from "@/mock/inventory";
+import { PRODUCTS, type Location } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type LocationType = Location["type"];
@@ -119,13 +120,14 @@ const FORM_DEFAULTS: NewLocationForm = {
 };
 
 export function LocationsManager() {
+  const { locations, actions } = useInventory();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<NewLocationForm>(FORM_DEFAULTS);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof NewLocationForm, string>>>({});
   const [saved, setSaved] = useState(false);
 
-  const allLocations = useMemo(() => LOCATIONS, []);
+  const allLocations = useMemo(() => locations, [locations]);
 
   const totalUnits = useMemo(
     () => allLocations.reduce((s, l) => s + getLocationUnits(l.id), 0),
@@ -150,7 +152,13 @@ export function LocationsManager() {
       setFormErrors(errs);
       return;
     }
-    console.log("Новая локация:", formData);
+    actions.addLocation({
+      name: formData.name,
+      type: formData.type as Location["type"],
+      address: formData.address || undefined,
+      isDefault: false,
+      capacity: formData.capacity ? parseInt(String(formData.capacity)) : undefined,
+    });
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -539,14 +547,14 @@ function LocationDetailPanel({ location, onClose }: { location: Location; onClos
 
         <div className="grid grid-cols-2 gap-2 border-t border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <button
-            onClick={() => console.log("Перемещение из", location.id)}
+            onClick={() => {}}
             className="flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--c-border)] text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
           >
             <ArrowRightLeft size={14} />
             Переместить
           </button>
           <button
-            onClick={() => console.log("Инвентаризация", location.id)}
+            onClick={() => {}}
             className="flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
           >
             <ClipboardList size={14} />

@@ -14,7 +14,8 @@ import {
   Clock,
   ChevronDown,
 } from "lucide-react";
-import { PRODUCTS, LOCATIONS, MOVEMENTS, type Product } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type AdjustType = "add" | "remove" | "set";
@@ -115,8 +116,9 @@ export function QuickStockAdjust({
   onClose: () => void;
   productId?: string;
 }) {
+  const { products, locations, actions } = useInventory();
   const [selectedProductId, setSelectedProductId] = useState(productId ?? "");
-  const [locationId, setLocationId] = useState(LOCATIONS.find((l) => l.isDefault)?.id ?? "");
+  const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [adjustType, setAdjustType] = useState<AdjustType>("add");
   const [qty, setQty] = useState(1);
   const [reason, setReason] = useState<AdjustReason>("stocktake");
@@ -146,18 +148,18 @@ export function QuickStockAdjust({
   }
 
   const product = useMemo(
-    () => PRODUCTS.find((p) => p.id === selectedProductId) ?? null,
-    [selectedProductId],
+    () => products.find((p) => p.id === selectedProductId) ?? null,
+    [selectedProductId, products],
   );
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.toLowerCase();
-    return PRODUCTS.filter(
+    return products.filter(
       (p) =>
         p.status === "active" &&
         (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)),
     ).slice(0, 8);
-  }, [productSearch]);
+  }, [productSearch, products]);
 
   const currentStock = product ? getProductStock(product, locationId) : 0;
 
@@ -180,7 +182,8 @@ export function QuickStockAdjust({
     : [];
 
   function handleSubmit() {
-    if (!product || !locationId) return;
+    if (!canSubmit || !product) return;
+    actions.adjustStock(selectedProductId, locationId, delta, "adjustment", REASON_LABELS[reason]);
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
@@ -283,7 +286,7 @@ export function QuickStockAdjust({
               <span className="inline-flex items-center gap-1"><MapPin size={11} /> Локация</span>
             </label>
             <SelectInput value={locationId} onChange={setLocationId}>
-              {LOCATIONS.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
+              {locations.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </SelectInput>

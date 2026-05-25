@@ -13,7 +13,8 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
-import { PRODUCTS, LOCATIONS, type Product } from "@/mock/inventory";
+import { type Product } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type WriteOffReason =
@@ -79,6 +80,7 @@ const COMPLETED_WRITEOFFS: CompletedWriteOff[] = [
 ];
 
 export function WriteOffPanel() {
+  const { products } = useInventory();
   const [showForm, setShowForm] = useState(false);
   const [history] = useState<CompletedWriteOff[]>(COMPLETED_WRITEOFFS);
 
@@ -100,7 +102,7 @@ export function WriteOffPanel() {
           <p className="text-xs text-[var(--c-text2)] mb-1.5">Сумма потерь</p>
           <p className="text-2xl font-bold text-[var(--c-red)]">
             ~{(history.flatMap((wo) => wo.lines).reduce((s, l) => {
-              const p = PRODUCTS.find((p) => p.id === l.productId);
+              const p = products.find((p) => p.id === l.productId);
               return s + l.qty * (p?.costPrice ?? 0);
             }, 0)).toLocaleString("ru-RU")} ₽
           </p>
@@ -130,8 +132,9 @@ export function WriteOffPanel() {
 }
 
 function WriteOffCard({ writeOff }: { writeOff: CompletedWriteOff }) {
+  const { locations } = useInventory();
   const [expanded, setExpanded] = useState(false);
-  const locationName = LOCATIONS.find((l) => l.id === writeOff.locationId)?.name ?? writeOff.locationId;
+  const locationName = locations.find((l) => l.id === writeOff.locationId)?.name ?? writeOff.locationId;
 
   return (
     <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-hidden">
@@ -174,7 +177,8 @@ function WriteOffCard({ writeOff }: { writeOff: CompletedWriteOff }) {
 }
 
 function WriteOffForm({ onClose }: { onClose: () => void }) {
-  const [locationId, setLocationId] = useState(LOCATIONS.find((l) => l.isDefault)?.id ?? "");
+  const { products, locations, actions } = useInventory();
+  const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [lines, setLines] = useState<WriteOffLine[]>([]);
   const [note, setNote] = useState("");
   const [searchQ, setSearchQ] = useState("");
@@ -183,11 +187,11 @@ function WriteOffForm({ onClose }: { onClose: () => void }) {
 
   const filteredProducts = useMemo(() => {
     const q = searchQ.toLowerCase();
-    return PRODUCTS.filter((p) =>
+    return products.filter((p) =>
       p.status === "active" &&
       (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
     ).slice(0, 8);
-  }, [searchQ]);
+  }, [searchQ, products]);
 
   function addLine(p: Product) {
     if (lines.find((l) => l.productId === p.id)) return;
@@ -211,6 +215,10 @@ function WriteOffForm({ onClose }: { onClose: () => void }) {
   }
 
   function handleSave() {
+    if (!isValid) return;
+    lines.forEach((line) => {
+      actions.adjustStock(line.productId, locationId, -line.qty, "write_off", REASON_LABELS[line.reason]);
+    });
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 700);
   }
@@ -249,7 +257,7 @@ function WriteOffForm({ onClose }: { onClose: () => void }) {
               onChange={(e) => setLocationId(e.target.value)}
               className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
             >
-              {LOCATIONS.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
+              {locations.filter((l) => !["in_transit"].includes(l.type)).map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>

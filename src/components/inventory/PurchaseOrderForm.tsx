@@ -14,11 +14,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import {
-  SUPPLIERS,
-  LOCATIONS,
-  PRODUCTS,
   type PurchaseOrderStatus,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 interface OrderLine {
@@ -35,8 +33,9 @@ interface Props {
 }
 
 export function PurchaseOrderForm({ onClose, onSave }: Props) {
+  const { products, suppliers, locations, actions } = useInventory();
   const [supplierId, setSupplierId] = useState("");
-  const [locationId, setLocationId] = useState(LOCATIONS.find((l) => l.isDefault)?.id ?? "");
+  const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [expectedArrival, setExpectedArrival] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [note, setNote] = useState("");
@@ -45,18 +44,18 @@ export function PurchaseOrderForm({ onClose, onSave }: Props) {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const supplier = SUPPLIERS.find((s) => s.id === supplierId);
+  const supplier = suppliers.find((s) => s.id === supplierId);
 
   const filteredProducts = useMemo(() => {
-    if (!searchProduct) return PRODUCTS.filter((p) => p.status === "active").slice(0, 8);
+    if (!searchProduct) return products.filter((p) => p.status === "active").slice(0, 8);
     const q = searchProduct.toLowerCase();
-    return PRODUCTS.filter((p) =>
+    return products.filter((p) =>
       p.status === "active" &&
       (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
     ).slice(0, 8);
-  }, [searchProduct]);
+  }, [searchProduct, products]);
 
-  function addLine(product: typeof PRODUCTS[0]) {
+  function addLine(product: typeof products[0]) {
     if (lines.find((l) => l.productId === product.id)) return;
     setLines((prev) => [
       ...prev,
@@ -85,12 +84,34 @@ export function PurchaseOrderForm({ onClose, onSave }: Props) {
   const totalAmount = lines.reduce((s, l) => s + l.qty * l.unitCost, 0);
 
   function handleSave(status: PurchaseOrderStatus = "draft") {
+    if (!supplierId || lines.length === 0) return;
+    const supplier = suppliers.find((s) => s.id === supplierId);
+    actions.addPurchaseOrder({
+      supplierId,
+      supplierName: supplier?.name ?? supplierId,
+      status,
+      items: lines.map((l) => ({
+        productId: l.productId,
+        productName: l.productName,
+        sku: l.sku,
+        qty: l.qty,
+        receivedQty: 0,
+        unitCost: l.unitCost,
+        totalCost: l.qty * l.unitCost,
+      })),
+      totalAmount,
+      currency: supplier?.currency ?? "RUB",
+      expectedArrival: expectedArrival || undefined,
+      note: note || undefined,
+      locationId,
+      paymentStatus: "unpaid",
+    });
     setSaved(true);
     setTimeout(() => {
-      onSave?.({ supplierId, locationId, expectedArrival, paymentTerms, note, lines, totalAmount, status });
       setSaved(false);
+      onSave?.({});
       onClose();
-    }, 700);
+    }, 800);
   }
 
   const isValid = supplierId && lines.length > 0;
@@ -125,7 +146,7 @@ export function PurchaseOrderForm({ onClose, onSave }: Props) {
                   className={selectCls}
                 >
                   <option value="">Выберите поставщика</option>
-                  {SUPPLIERS.map((s) => (
+                  {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} — {s.country} (срок {s.leadTimeDays}д)
                     </option>
@@ -177,7 +198,7 @@ export function PurchaseOrderForm({ onClose, onSave }: Props) {
                     onChange={(e) => setLocationId(e.target.value)}
                     className={selectCls}
                   >
-                    {LOCATIONS.filter((l) => ["warehouse", "store", "showroom"].includes(l.type)).map((l) => (
+                    {locations.filter((l) => ["warehouse", "store", "showroom"].includes(l.type)).map((l) => (
                       <option key={l.id} value={l.id}>{l.name}</option>
                     ))}
                   </select>

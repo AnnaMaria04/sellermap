@@ -60,10 +60,7 @@ export default function ProductsPage() {
       {showAddProduct && (
         <AddProductForm
           onClose={() => setShowAddProduct(false)}
-          onSave={(data) => {
-            console.log("Saved product:", data);
-            setShowAddProduct(false);
-          }}
+          onSave={() => setShowAddProduct(false)}
         />
       )}
       {showImport && <ImportWizard onClose={() => setShowImport(false)} />}

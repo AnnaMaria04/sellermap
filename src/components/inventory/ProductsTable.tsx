@@ -22,8 +22,6 @@ import {
   CheckSquare,
 } from "lucide-react";
 import {
-  PRODUCTS,
-  LOCATIONS,
   getAvailableStock,
   getStockStatus,
   getSupplierName,
@@ -32,6 +30,7 @@ import {
   type ProductStatus,
   type ProductType,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, ProductStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +38,7 @@ type SortKey = "name" | "stock" | "price" | "costPrice" | "margin" | "updatedAt"
 type SortDir = "asc" | "desc";
 
 export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () => void; onImport?: () => void }) {
+  const { products, locations } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<ProductType | "all">("all");
@@ -51,7 +51,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
-    let list = [...PRODUCTS];
+    let list = [...products];
 
     if (search) {
       const q = search.toLowerCase();
@@ -100,7 +100,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
     });
 
     return list;
-  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, sortKey, sortDir]);
+  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, sortKey, sortDir, products, locations]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -252,7 +252,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
             onChange={setLocationFilter}
             options={[
               { value: "all", label: "Все локации" },
-              ...LOCATIONS.map((l) => ({ value: l.id, label: l.name })),
+              ...locations.map((l) => ({ value: l.id, label: l.name })),
             ]}
           />
           <FilterSelect
@@ -525,6 +525,7 @@ function BulkActionsMenu({ count, onClear }: { count: number; onClear: () => voi
 }
 
 function ProductActionMenu({ product, onClose }: { product: Product; onClose: () => void }) {
+  const { actions } = useInventory();
   return (
     <div
       className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-xl"
@@ -538,8 +539,8 @@ function ProductActionMenu({ product, onClose }: { product: Product; onClose: ()
         <MenuItem icon={Copy} label="Дублировать" />
         <MenuItem icon={ShoppingCart} label="Создать заказ" />
         <div className="my-1 border-t border-[var(--c-border)]" />
-        <MenuItem icon={Archive} label="Архивировать" />
-        <MenuItem icon={Trash2} label="Удалить" danger />
+        <MenuItem icon={Archive} label="Архивировать" onClick={() => { actions.archiveProduct(product.id); onClose(); }} />
+        <MenuItem icon={Trash2} label="Удалить" danger onClick={() => { actions.deleteProduct(product.id); onClose(); }} />
       </div>
     </div>
   );
