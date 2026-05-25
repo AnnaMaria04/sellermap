@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInitialStockStatus } from "../src/lib/inventory/foundation.js";
+import { createInitialStockStatus } from "../src/lib/inventory/foundation";
 import {
   buildNotificationFromRecommendation,
   createPurchaseOrderDraft,
@@ -8,7 +8,7 @@ import {
   receivePurchaseOrder,
   recommendReorder,
   type InventoryStore,
-} from "../src/lib/inventory/manager.js";
+} from "../src/lib/inventory/manager";
 
 describe("inventory manager", () => {
   it("returns availability views for a product across snapshots", () => {

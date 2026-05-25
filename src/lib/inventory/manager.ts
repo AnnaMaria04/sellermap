@@ -12,7 +12,7 @@ import {
   type ReceivingLine,
   type StockMovement,
   calculateAvailableToSell,
-} from "./foundation.js";
+} from "./foundation";
 
 export interface InventoryStore {
   products: ProductCard[];

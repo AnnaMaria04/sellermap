@@ -3,7 +3,7 @@ import {
   calculateAvailableToSell,
   createInitialStockStatus,
   inventoryFlowChecklist,
-} from "../src/lib/inventory/foundation.js";
+} from "../src/lib/inventory/foundation";
 
 describe("inventory foundation", () => {
   it("calculates available-to-sell from physical stock minus unavailable quantities", () => {
