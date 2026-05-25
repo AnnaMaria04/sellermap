@@ -130,6 +130,28 @@ function buildCategoryRows(metrics: ProductMetrics[]): CategoryRow[] {
 }
 
 // ---------------------------------------------------------------------------
+// SortIcon (module-scope to avoid React Compiler "cannot create during render")
+// ---------------------------------------------------------------------------
+
+function SortIcon({
+  col, sortKey, sortDir,
+}: { col: string; sortKey: string; sortDir: "asc" | "desc" }) {
+  if (sortKey !== col)
+    return <ArrowUpDown size={11} className="text-[var(--c-text3)]" />;
+  return (
+    <ArrowUpDown
+      size={11}
+      className={cn(
+        "transition",
+        sortDir === "asc"
+          ? "text-[var(--c-green)]"
+          : "text-[var(--c-green)] rotate-180",
+      )}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -241,22 +263,6 @@ export function TurnoverAnalysis() {
     }
   }
 
-  function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col)
-      return <ArrowUpDown size={11} className="text-[var(--c-text3)]" />;
-    return (
-      <ArrowUpDown
-        size={11}
-        className={cn(
-          "transition",
-          sortDir === "asc"
-            ? "text-[var(--c-green)]"
-            : "text-[var(--c-green)] rotate-180",
-        )}
-      />
-    );
-  }
-
   // ---- Render --------------------------------------------------------------
 
   return (
@@ -347,7 +353,7 @@ export function TurnoverAnalysis() {
                     className="flex items-center gap-1.5 hover:text-[var(--c-text)] transition"
                   >
                     Товар
-                    <SortIcon col="name" />
+                    <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text2)]">
@@ -356,7 +362,7 @@ export function TurnoverAnalysis() {
                     className="flex items-center justify-end gap-1.5 w-full hover:text-[var(--c-text)] transition"
                   >
                     Продажи/день
-                    <SortIcon col="velocity" />
+                    <SortIcon col="velocity" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text2)]">
@@ -365,7 +371,7 @@ export function TurnoverAnalysis() {
                     className="flex items-center justify-end gap-1.5 w-full hover:text-[var(--c-text)] transition"
                   >
                     Дней оборота
-                    <SortIcon col="turnover" />
+                    <SortIcon col="turnover" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-[var(--c-text2)]">
@@ -374,7 +380,7 @@ export function TurnoverAnalysis() {
                     className="flex items-center justify-end gap-1.5 w-full hover:text-[var(--c-text)] transition"
                   >
                     Дни запаса
-                    <SortIcon col="daysOfStock" />
+                    <SortIcon col="daysOfStock" sortKey={sortKey} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">

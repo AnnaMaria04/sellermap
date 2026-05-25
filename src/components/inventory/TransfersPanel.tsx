@@ -248,7 +248,7 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
       list = list.filter((t) => t.status === statusFilter);
     }
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [transfers, search, statusFilter]);
+  }, [transfers, search, statusFilter, locations]);
 
   // Keep selected transfer in sync when transfers change (e.g. after receive)
   const currentSelected = useMemo(

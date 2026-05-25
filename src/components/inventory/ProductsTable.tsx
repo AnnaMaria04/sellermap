@@ -37,6 +37,20 @@ import { cn } from "@/lib/utils";
 type SortKey = "name" | "stock" | "price" | "costPrice" | "margin" | "updatedAt";
 type SortDir = "asc" | "desc";
 
+function SortButton({
+  col, label, sortKey, onSort,
+}: { col: SortKey; label: string; sortKey: SortKey; onSort: (col: SortKey) => void }) {
+  return (
+    <button
+      className="flex items-center gap-1 text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+      onClick={() => onSort(col)}
+    >
+      {label}
+      <ArrowUpDown size={12} className={sortKey === col ? "text-[var(--c-green)]" : ""} />
+    </button>
+  );
+}
+
 export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () => void; onImport?: () => void }) {
   const { products, locations } = useInventory();
   const [search, setSearch] = useState("");
@@ -136,16 +150,6 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
       setSortDir("asc");
     }
   }
-
-  const SortButton = ({ col, label }: { col: SortKey; label: string }) => (
-    <button
-      className="flex items-center gap-1 text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
-      onClick={() => handleSort(col)}
-    >
-      {label}
-      <ArrowUpDown size={12} className={sortKey === col ? "text-[var(--c-green)]" : ""} />
-    </button>
-  );
 
   const activeFilterCount = [
     statusFilter !== "all",
@@ -369,7 +373,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                       />
                     </th>
                     <th className="px-4 py-3 text-left">
-                      <SortButton col="name" label="Товар" />
+                      <SortButton col="name" label="Товар" sortKey={sortKey} onSort={handleSort} />
                     </th>
                     <th className="px-4 py-3 text-left">
                       <span className="text-xs font-medium text-[var(--c-text2)]">Статус</span>
@@ -378,16 +382,16 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                       <span className="text-xs font-medium text-[var(--c-text2)]">Наличие</span>
                     </th>
                     <th className="px-4 py-3 text-right">
-                      <SortButton col="stock" label="Остаток" />
+                      <SortButton col="stock" label="Остаток" sortKey={sortKey} onSort={handleSort} />
                     </th>
                     <th className="px-4 py-3 text-right">
-                      <SortButton col="price" label="Цена" />
+                      <SortButton col="price" label="Цена" sortKey={sortKey} onSort={handleSort} />
                     </th>
                     <th className="px-4 py-3 text-right">
-                      <SortButton col="costPrice" label="Себест." />
+                      <SortButton col="costPrice" label="Себест." sortKey={sortKey} onSort={handleSort} />
                     </th>
                     <th className="px-4 py-3 text-right">
-                      <SortButton col="margin" label="Маржа" />
+                      <SortButton col="margin" label="Маржа" sortKey={sortKey} onSort={handleSort} />
                     </th>
                     <th className="px-4 py-3 text-left">
                       <span className="text-xs font-medium text-[var(--c-text2)]">Тип</span>
