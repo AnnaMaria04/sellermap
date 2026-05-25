@@ -23,6 +23,7 @@ import {
   Lock,
   Menu,
   X,
+  ScanLine,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -38,6 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Товары", href: "/inventory/products", icon: Package },
       { label: "Комплекты", href: "/inventory/bundles", icon: Layers },
+      { label: "Маркировка", href: "/inventory/labeling", icon: ScanLine },
     ],
   },
   {
