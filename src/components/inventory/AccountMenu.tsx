@@ -12,12 +12,12 @@ export function AccountMenu() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    supabase?.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
   }, []);
 
   async function signOut() {
     setBusy(true);
-    await createClient().auth.signOut();
+    await createClient()?.auth.signOut();
     router.push("/login");
   }
 

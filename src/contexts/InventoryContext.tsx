@@ -571,7 +571,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
   const ownerId = useRef<string | null>(null);
-  const supabase = useRef(createClient());
+  // createClient() returns null when env vars are absent (SSR prerender).
+  // Initialised lazily inside the effect so it only runs client-side.
+  const supabase = useRef<ReturnType<typeof createClient>>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Latest-state ref so action creators can read current data without
   // re-creating themselves on every state change.
@@ -579,8 +581,15 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
 
   useEffect(() => {
+    supabase.current = createClient();
     let cancelled = false;
     (async () => {
+      if (!supabase.current) {
+        // Env vars not configured — run in demo/in-memory mode.
+        hydrated.current = true;
+        setReady(true);
+        return;
+      }
       const { data: { user } } = await supabase.current.auth.getUser();
       if (cancelled) return;
       if (!user) {
@@ -613,12 +622,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 
   // Debounced persistence to Supabase after any mutation.
   useEffect(() => {
-    if (!hydrated.current || !ownerId.current) return;
+    if (!hydrated.current || !ownerId.current || !supabase.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       const id = ownerId.current;
-      if (!id) return;
-      saveWorkspace(supabase.current, id, stateRef.current).catch(() => {
+      const sb = supabase.current;
+      if (!id || !sb) return;
+      saveWorkspace(sb, id, stateRef.current).catch(() => {
         // Transient failure — the next mutation will retry the full sync.
       });
     }, 700);
@@ -753,8 +763,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     resetDemo: useCallback(() => {
       dispatch({ type: "RESET_STATE" });
       const id = ownerId.current;
-      if (id) {
-        saveWorkspace(supabase.current, id, initialState).catch(() => {});
+      const sb = supabase.current;
+      if (id && sb) {
+        saveWorkspace(sb, id, initialState).catch(() => {});
       }
     }, []),
   };

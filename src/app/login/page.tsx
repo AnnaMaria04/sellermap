@@ -23,6 +23,7 @@ function LoginForm() {
     setError(null);
     setInfo(null);
     const supabase = createClient();
+    if (!supabase) { setError("Supabase не настроен"); setBusy(false); return; }
 
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
