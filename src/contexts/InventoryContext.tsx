@@ -21,6 +21,10 @@ import {
   STOCKTAKES,
   MOVEMENTS,
   RESERVATIONS,
+  RETURNS,
+  BUNDLES,
+  REPLENISHMENT_RULES,
+  BATCHES,
   getAvailableStock,
   type Product,
   type Supplier,
@@ -34,6 +38,16 @@ import {
   type MovementType,
   type Reservation,
   type ReservationSource,
+  type ProductReturn,
+  type ReturnStatus,
+  type ReturnItem,
+  type ReturnItemAction,
+  type Bundle,
+  type BundleComponent,
+  type ReplenishmentRule,
+  type TriggerType,
+  type InventoryBatch,
+  type BatchStatus,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -47,6 +61,10 @@ export interface InventoryState {
   stocktakes: Stocktake[];
   movements: StockMovement[];
   reservations: Reservation[];
+  returns: ProductReturn[];
+  bundles: Bundle[];
+  replenishmentRules: ReplenishmentRule[];
+  batches: InventoryBatch[];
 }
 
 const initialState: InventoryState = {
@@ -58,6 +76,10 @@ const initialState: InventoryState = {
   stocktakes: STOCKTAKES,
   movements: MOVEMENTS,
   reservations: RESERVATIONS,
+  returns: RETURNS,
+  bundles: BUNDLES,
+  replenishmentRules: REPLENISHMENT_RULES,
+  batches: BATCHES,
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -86,7 +108,26 @@ type InventoryAction =
   | { type: "FULFILL_RESERVATION"; id: string }
   | { type: "EXTEND_RESERVATION"; id: string; expiresAt: string }
   | { type: "HYDRATE"; state: InventoryState }
-  | { type: "RESET_STATE" };
+  | { type: "RESET_STATE" }
+  // Returns
+  | { type: "CREATE_RETURN"; returnRecord: ProductReturn }
+  | { type: "PROCESS_RETURN"; id: string }
+  | { type: "UPDATE_RETURN_STATUS"; id: string; status: ReturnStatus }
+  // Bundles
+  | { type: "CREATE_BUNDLE"; bundle: Bundle }
+  | { type: "UPDATE_BUNDLE"; id: string; patch: Partial<Bundle> }
+  | { type: "DELETE_BUNDLE"; id: string }
+  | { type: "ASSEMBLE_BUNDLE"; bundleId: string; qty: number; locationId: string }
+  // Replenishment rules
+  | { type: "CREATE_RULE"; rule: ReplenishmentRule }
+  | { type: "UPDATE_RULE"; id: string; patch: Partial<ReplenishmentRule> }
+  | { type: "DELETE_RULE"; id: string }
+  // Batches
+  | { type: "REGISTER_BATCH"; batch: InventoryBatch }
+  | { type: "UPDATE_BATCH"; id: string; patch: Partial<InventoryBatch> }
+  | { type: "WRITE_OFF_BATCH"; id: string }
+  | { type: "QUARANTINE_BATCH"; id: string }
+  | { type: "WRITE_OFF_ALL_EXPIRED" };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -517,6 +558,162 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     case "RESET_STATE":
       return initialState;
 
+    // ── Returns ───────────────────────────────────────────────────────────────
+    case "CREATE_RETURN":
+      return { ...state, returns: [action.returnRecord, ...state.returns] };
+
+    case "UPDATE_RETURN_STATUS":
+      return {
+        ...state,
+        returns: state.returns.map((r) =>
+          r.id === action.id ? { ...r, status: action.status } : r,
+        ),
+      };
+
+    case "PROCESS_RETURN": {
+      const ret = state.returns.find((r) => r.id === action.id);
+      if (!ret) return state;
+      const now = new Date().toISOString();
+      let products = state.products;
+      const newMovements: StockMovement[] = [];
+      for (const item of ret.items) {
+        const product = products.find((p) => p.id === item.productId);
+        if (!product) continue;
+        const before = product.stockByLocation[ret.locationId] ?? 0;
+        if (item.action === "restock") {
+          products = products.map((p) =>
+            p.id === item.productId ? applyStockDelta(p, ret.locationId, item.qty) : p,
+          );
+        } else if (item.action === "write_off") {
+          // write-off: no stock increase, just track the movement
+        }
+        newMovements.push({
+          id: uid("mv"),
+          type: item.action === "restock" ? "return" : "write_off",
+          productId: item.productId,
+          productName: item.productName,
+          sku: item.sku,
+          qtyBefore: before,
+          qtyAfter: item.action === "restock" ? before + item.qty : before,
+          qtyDelta: item.action === "restock" ? item.qty : 0,
+          locationId: ret.locationId,
+          userId: "u-current",
+          userName: "Текущий пользователь",
+          createdAt: now,
+          reason: `Возврат: ${item.condition}`,
+          referenceId: ret.id,
+          referenceType: "return" as const,
+        });
+      }
+      return {
+        ...state,
+        products,
+        returns: state.returns.map((r) =>
+          r.id === action.id ? { ...r, status: "restocked" as const, processedAt: now } : r,
+        ),
+        movements: [...newMovements, ...state.movements],
+      };
+    }
+
+    // ── Bundles ───────────────────────────────────────────────────────────────
+    case "CREATE_BUNDLE":
+      return { ...state, bundles: [action.bundle, ...state.bundles] };
+
+    case "UPDATE_BUNDLE":
+      return {
+        ...state,
+        bundles: state.bundles.map((b) =>
+          b.id === action.id ? { ...b, ...action.patch } : b,
+        ),
+      };
+
+    case "DELETE_BUNDLE":
+      return { ...state, bundles: state.bundles.filter((b) => b.id !== action.id) };
+
+    case "ASSEMBLE_BUNDLE": {
+      const bundle = state.bundles.find((b) => b.id === action.bundleId);
+      if (!bundle) return state;
+      const now = new Date().toISOString();
+      let products = state.products;
+      const newMovements: StockMovement[] = [];
+      for (const comp of bundle.components) {
+        const needed = comp.qty * action.qty;
+        const product = products.find((p) => p.id === comp.productId);
+        if (!product) continue;
+        const before = product.stockByLocation[action.locationId] ?? 0;
+        products = products.map((p) =>
+          p.id === comp.productId ? applyStockDelta(p, action.locationId, -needed) : p,
+        );
+        newMovements.push({
+          id: uid("mv"),
+          type: "adjustment",
+          productId: comp.productId,
+          productName: comp.productName,
+          sku: comp.sku,
+          qtyBefore: before,
+          qtyAfter: Math.max(0, before - needed),
+          qtyDelta: -needed,
+          locationId: action.locationId,
+          userId: "u-current",
+          userName: "Текущий пользователь",
+          createdAt: now,
+          reason: `Сборка комплекта «${bundle.name}» ×${action.qty}`,
+        });
+      }
+      return { ...state, products, movements: [...newMovements, ...state.movements] };
+    }
+
+    // ── Replenishment Rules ───────────────────────────────────────────────────
+    case "CREATE_RULE":
+      return { ...state, replenishmentRules: [action.rule, ...state.replenishmentRules] };
+
+    case "UPDATE_RULE":
+      return {
+        ...state,
+        replenishmentRules: state.replenishmentRules.map((r) =>
+          r.id === action.id ? { ...r, ...action.patch } : r,
+        ),
+      };
+
+    case "DELETE_RULE":
+      return { ...state, replenishmentRules: state.replenishmentRules.filter((r) => r.id !== action.id) };
+
+    // ── Batches ───────────────────────────────────────────────────────────────
+    case "REGISTER_BATCH":
+      return { ...state, batches: [action.batch, ...state.batches] };
+
+    case "UPDATE_BATCH":
+      return {
+        ...state,
+        batches: state.batches.map((b) =>
+          b.id === action.id ? { ...b, ...action.patch } : b,
+        ),
+      };
+
+    case "WRITE_OFF_BATCH":
+      return {
+        ...state,
+        batches: state.batches.map((b) =>
+          b.id === action.id ? { ...b, remainingQty: 0, status: "expired" as const } : b,
+        ),
+      };
+
+    case "QUARANTINE_BATCH":
+      return {
+        ...state,
+        batches: state.batches.map((b) =>
+          b.id === action.id ? { ...b, status: "quarantine" as const } : b,
+        ),
+      };
+
+    case "WRITE_OFF_ALL_EXPIRED":
+      return {
+        ...state,
+        batches: state.batches.map((b) =>
+          b.status === "expired" ? { ...b, remainingQty: 0 } : b,
+        ),
+      };
+
     default:
       return state;
   }
@@ -552,6 +749,21 @@ interface InventoryContextValue extends InventoryState {
     fulfillReservation: (id: string) => void;
     extendReservation: (id: string, expiresAt: string) => void;
     resetDemo: () => void;
+    createReturn: (returnRecord: ProductReturn) => void;
+    processReturn: (id: string) => void;
+    updateReturnStatus: (id: string, status: ReturnStatus) => void;
+    createBundle: (bundle: Bundle) => void;
+    updateBundle: (id: string, patch: Partial<Bundle>) => void;
+    deleteBundle: (id: string) => void;
+    assembleBundle: (bundleId: string, qty: number, locationId: string) => void;
+    createRule: (rule: ReplenishmentRule) => void;
+    updateRule: (id: string, patch: Partial<ReplenishmentRule>) => void;
+    deleteRule: (id: string) => void;
+    registerBatch: (batch: InventoryBatch) => void;
+    updateBatch: (id: string, patch: Partial<InventoryBatch>) => void;
+    writeOffBatch: (id: string) => void;
+    quarantineBatch: (id: string) => void;
+    writeOffAllExpired: () => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -768,6 +980,21 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         saveWorkspace(sb, id, initialState).catch(() => {});
       }
     }, []),
+    createReturn: useCallback((returnRecord) => dispatch({ type: "CREATE_RETURN", returnRecord }), []),
+    processReturn: useCallback((id) => dispatch({ type: "PROCESS_RETURN", id }), []),
+    updateReturnStatus: useCallback((id, status) => dispatch({ type: "UPDATE_RETURN_STATUS", id, status }), []),
+    createBundle: useCallback((bundle) => dispatch({ type: "CREATE_BUNDLE", bundle }), []),
+    updateBundle: useCallback((id, patch) => dispatch({ type: "UPDATE_BUNDLE", id, patch }), []),
+    deleteBundle: useCallback((id) => dispatch({ type: "DELETE_BUNDLE", id }), []),
+    assembleBundle: useCallback((bundleId, qty, locationId) => dispatch({ type: "ASSEMBLE_BUNDLE", bundleId, qty, locationId }), []),
+    createRule: useCallback((rule) => dispatch({ type: "CREATE_RULE", rule }), []),
+    updateRule: useCallback((id, patch) => dispatch({ type: "UPDATE_RULE", id, patch }), []),
+    deleteRule: useCallback((id) => dispatch({ type: "DELETE_RULE", id }), []),
+    registerBatch: useCallback((batch) => dispatch({ type: "REGISTER_BATCH", batch }), []),
+    updateBatch: useCallback((id, patch) => dispatch({ type: "UPDATE_BATCH", id, patch }), []),
+    writeOffBatch: useCallback((id) => dispatch({ type: "WRITE_OFF_BATCH", id }), []),
+    quarantineBatch: useCallback((id) => dispatch({ type: "QUARANTINE_BATCH", id }), []),
+    writeOffAllExpired: useCallback(() => dispatch({ type: "WRITE_OFF_ALL_EXPIRED" }), []),
   };
 
   const value: InventoryContextValue = {

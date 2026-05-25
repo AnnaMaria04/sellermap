@@ -11,12 +11,15 @@ import {
   DollarSign,
   Store,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   AlertCircle,
   Check,
   Upload,
   Trash2,
   Info,
+  Loader2,
+  Download,
 } from "lucide-react";
 import { CHANNEL_LABELS, PRODUCT_TYPE_LABELS, type SalesChannel, type ProductType, type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
@@ -25,6 +28,16 @@ import { cn } from "@/lib/utils";
 interface Props {
   onClose: () => void;
   onSave?: (data: unknown) => void;
+}
+
+interface WbPreview {
+  nmId: number;
+  name?: string;
+  brand?: string;
+  category?: string;
+  price?: number;
+  photos?: { big?: string }[];
+  sizes?: { name: string }[];
 }
 
 type Tab = "basic" | "pricing" | "inventory" | "variants" | "shipping" | "labeling";
@@ -89,6 +102,13 @@ export function AddProductForm({ onClose, onSave }: Props) {
   const [batchNumber, setBatchNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
 
+  // WB Import
+  const [showWbImport, setShowWbImport] = useState(false);
+  const [wbNmId, setWbNmId] = useState("");
+  const [wbLoading, setWbLoading] = useState(false);
+  const [wbPreview, setWbPreview] = useState<WbPreview | null>(null);
+  const [wbError, setWbError] = useState<string | null>(null);
+
   const priceNum = parseFloat(price) || 0;
   const costNum = parseFloat(costPrice) || 0;
   const packagingNum = parseFloat(packagingCost) || 0;
@@ -129,6 +149,33 @@ export function AddProductForm({ onClose, onSave }: Props) {
 
   function removeOption(idx: number) {
     setOptions(options.filter((_, i) => i !== idx));
+  }
+
+  async function fetchWbProduct() {
+    if (!wbNmId.trim()) return;
+    setWbLoading(true);
+    setWbError(null);
+    setWbPreview(null);
+    try {
+      const res = await fetch(`/api/wb-product?nm=${encodeURIComponent(wbNmId.trim())}`);
+      if (!res.ok) throw new Error("Товар не найден");
+      setWbPreview(await res.json());
+    } catch (e) {
+      setWbError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setWbLoading(false);
+    }
+  }
+
+  function applyWbData() {
+    if (!wbPreview) return;
+    if (wbPreview.name) setName(wbPreview.name);
+    if (wbPreview.category) setCategory(wbPreview.category);
+    if (wbPreview.brand) setTags((prev) => [...new Set([...prev, wbPreview!.brand!])]);
+    if (wbPreview.price) setPrice(String(wbPreview.price));
+    setShowWbImport(false);
+    setWbPreview(null);
+    setWbNmId("");
   }
 
   function handleSave() {
@@ -238,6 +285,63 @@ export function AddProductForm({ onClose, onSave }: Props) {
             {/* ── BASIC ─────────────────────────────────────── */}
             {tab === "basic" && (
               <>
+                {/* WB Import */}
+                <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowWbImport((v) => !v)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download size={14} />
+                      Импортировать данные с Wildberries
+                    </span>
+                    {showWbImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {showWbImport && (
+                    <div className="border-t border-[var(--c-border)] px-4 pb-4 pt-3 space-y-3">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={wbNmId}
+                          onChange={(e) => setWbNmId(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void fetchWbProduct())}
+                          placeholder="Артикул WB (nmId)"
+                          className="flex-1 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void fetchWbProduct()}
+                          disabled={wbLoading || !wbNmId.trim()}
+                          className="rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] disabled:opacity-60"
+                        >
+                          {wbLoading ? <Loader2 size={14} className="animate-spin" /> : "Найти"}
+                        </button>
+                      </div>
+                      {wbError && <p className="text-xs text-[var(--c-red)]">{wbError}</p>}
+                      {wbPreview && (
+                        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-3 space-y-2">
+                          {wbPreview.photos?.[0]?.big && (
+                            <img src={wbPreview.photos[0].big} alt="" className="h-16 w-16 rounded object-cover" />
+                          )}
+                          <p className="text-sm font-medium text-[var(--c-text)]">{wbPreview.name}</p>
+                          <p className="text-xs text-[var(--c-text2)]">{wbPreview.brand} · {wbPreview.category}</p>
+                          {wbPreview.price && (
+                            <p className="text-xs text-[var(--c-text2)]">{wbPreview.price.toLocaleString("ru")} ₽</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={applyWbData}
+                            className="rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890]"
+                          >
+                            Использовать данные
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <FormSection title="Название и описание">
                   <FormField label="Название товара" required>
                     <input

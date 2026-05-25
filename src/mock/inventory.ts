@@ -562,6 +562,165 @@ export const RESERVATIONS: Reservation[] = [
   { id: "res-010", productId: "prod-007", productName: "Ежедневник A5 кожаный",         sku: "DRY-A5-007",  locationId: "loc-warehouse", qty: 4,  source: "manual",        customerName: "Корпоративный заказ", status: "active", createdAt: "2026-05-19", expiresAt: "2026-05-31" },
 ];
 
+// ── Returns ──────────────────────────────────────────────────────────────────
+export type ReturnStatus = "pending" | "inspected" | "restocked" | "written_off" | "refunded";
+export type ReturnReason = "wrong_item" | "defective" | "not_as_described" | "changed_mind" | "damaged_shipping" | "other";
+export type ReturnItemCondition = "new" | "good" | "damaged" | "unsellable";
+export type ReturnItemAction = "restock" | "write_off" | "quarantine";
+
+export interface ReturnItem {
+  productId: string; productName: string; sku: string;
+  qty: number;
+  condition: ReturnItemCondition;
+  action: ReturnItemAction;
+}
+
+export interface ProductReturn {
+  id: string;
+  status: ReturnStatus;
+  channel: SalesChannel | "manual";
+  orderRef: string;
+  customerName: string;
+  items: ReturnItem[];
+  totalValue: number;
+  reason: ReturnReason;
+  createdAt: string;
+  processedAt?: string;
+  locationId: string;
+  note?: string;
+}
+
+export const RETURNS: ProductReturn[] = [];
+
+// ── Bundles ───────────────────────────────────────────────────────────────────
+export interface BundleComponent {
+  productId: string; productName: string; sku: string;
+  qty: number;
+  costContribution: number;
+}
+
+export interface Bundle {
+  id: string;
+  name: string;
+  sku: string;
+  status: "active" | "draft" | "archived";
+  components: BundleComponent[];
+  sellingPrice: number;
+  totalCost: number;
+  margin: number;
+  createdAt: string;
+  channels: SalesChannel[];
+}
+
+export const BUNDLES: Bundle[] = [];
+
+// ── Replenishment Rules ───────────────────────────────────────────────────────
+export type TriggerType = "min_stock" | "days_of_stock" | "reorder_point";
+
+export interface ReplenishmentRule {
+  id: string;
+  productId: string; productName: string; sku: string;
+  supplierId?: string; supplierName?: string;
+  triggerType: TriggerType;
+  minStock?: number;
+  daysOfStock?: number;
+  reorderQty: number;
+  isActive: boolean;
+  lastTriggered?: string;
+  nextCheck: string;
+}
+
+export const REPLENISHMENT_RULES: ReplenishmentRule[] = [];
+
+// ── Inventory Batches ─────────────────────────────────────────────────────────
+export type BatchStatus = "ok" | "expiring_soon" | "expired" | "quarantine";
+
+export interface InventoryBatch {
+  id: string;
+  productId: string; productName: string; sku: string;
+  batchNumber: string;
+  qty: number;
+  remainingQty: number;
+  manufactureDate?: string;
+  expiryDate: string;
+  locationId: string;
+  status: BatchStatus;
+  receivedAt: string;
+  supplierId?: string;
+  costPrice: number;
+}
+
+// Today: 2026-05-25
+// Products with expiryDate + batchNumber:
+//   prod-003  COF-ETH-001  expiry 2027-03-15  batch ETH-2026-03-001  warehouse stock 8   costPrice 620  → ok (>30 days)
+//   prod-009  BAR-ZAR-001  expiry 2026-11-30  batch ZR-2026-04-001   warehouse stock 450 costPrice 65   → ok (>30 days)
+//   prod-010  SHP-ALO-300  expiry 2027-06-01  batch SHP-2025-12-A    warehouse stock 180 costPrice 145  → ok (>30 days)
+//   prod-016  HCR-75-NAT   expiry 2026-09-01  batch HCR-2025-09-B    warehouse stock 0   costPrice 85   → expiring_soon (within 30 days? 2026-09-01 is ~99 days away → ok)
+//   prod-020  CSM-LOS-001  expiry 2027-06-01  batch LOS-2025-06-A    warehouse stock 35  costPrice 180  → ok
+// Note: 2026-09-01 is ~99 days from 2026-05-25, so HCR is "ok".
+// None are expired or within 30 days from today (2026-05-25). All are "ok".
+export const BATCHES: InventoryBatch[] = [
+  {
+    id: "bat-001",
+    productId: "prod-003", productName: "Кофе Ethiopia Yirgacheffe", sku: "COF-ETH-001",
+    batchNumber: "ETH-2026-03-001",
+    qty: 8, remainingQty: 8,
+    expiryDate: "2027-03-15",
+    locationId: "loc-warehouse",
+    status: "ok",
+    receivedAt: "2026-05-01",
+    supplierId: "sup-004",
+    costPrice: 620,
+  },
+  {
+    id: "bat-002",
+    productId: "prod-009", productName: "Протеиновый батончик «Заряд» 60г", sku: "BAR-ZAR-001",
+    batchNumber: "ZR-2026-04-001",
+    qty: 450, remainingQty: 450,
+    expiryDate: "2026-11-30",
+    locationId: "loc-warehouse",
+    status: "ok",
+    receivedAt: "2026-04-15",
+    supplierId: "sup-006",
+    costPrice: 65,
+  },
+  {
+    id: "bat-003",
+    productId: "prod-010", productName: "Натуральный шампунь с алоэ 300мл", sku: "SHP-ALO-300",
+    batchNumber: "SHP-2025-12-A",
+    qty: 180, remainingQty: 180,
+    expiryDate: "2027-06-01",
+    locationId: "loc-warehouse",
+    status: "ok",
+    receivedAt: "2025-12-10",
+    supplierId: "sup-006",
+    costPrice: 145,
+  },
+  {
+    id: "bat-004",
+    productId: "prod-016", productName: "Крем для рук питательный 75мл", sku: "HCR-75-NAT",
+    batchNumber: "HCR-2025-09-B",
+    qty: 0, remainingQty: 0,
+    expiryDate: "2026-09-01",
+    locationId: "loc-warehouse",
+    status: "ok",
+    receivedAt: "2025-09-15",
+    supplierId: "sup-006",
+    costPrice: 85,
+  },
+  {
+    id: "bat-005",
+    productId: "prod-020", productName: "Лосьон для тела «Арктика» 250мл", sku: "CSM-LOS-001",
+    batchNumber: "LOS-2025-06-A",
+    qty: 35, remainingQty: 35,
+    expiryDate: "2027-06-01",
+    locationId: "loc-warehouse",
+    status: "ok",
+    receivedAt: "2025-06-20",
+    costPrice: 180,
+  },
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export function getAvailableStock(product: Product): number {
   return Math.max(0, product.totalPhysical - product.reservedUnits - product.damagedUnits - product.inTransitUnits);

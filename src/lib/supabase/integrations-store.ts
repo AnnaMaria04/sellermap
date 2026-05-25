@@ -1,0 +1,121 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ChannelKind } from "@/lib/integrations/types";
+
+export interface PersistedIntegration {
+  id: string;
+  kind: ChannelKind;
+  name: string;
+  credentials: Record<string, string>;
+  autoSync: boolean;
+  intervalMinutes: number;
+  connectedAt: string;
+  lastSyncAt?: string;
+  status: string;
+}
+
+/** Load all integrations for a given owner from the `integrations` table. */
+export async function loadIntegrations(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<PersistedIntegration[]> {
+  const { data, error } = await supabase
+    .from("integrations")
+    .select("id, kind, status, credentials, last_sync_at, created_at")
+    .eq("owner_id", ownerId);
+
+  if (error) throw error;
+  if (!data) return [];
+
+  return data.map((row: {
+    id: string;
+    kind: ChannelKind;
+    status: string;
+    credentials: Record<string, string> | null;
+    last_sync_at: string | null;
+    created_at: string | null;
+  }) => {
+    const creds: Record<string, string> = row.credentials ?? {};
+    const name = creds._meta_name ?? row.kind;
+    const autoSync = creds._meta_auto_sync === "true";
+    const intervalMinutes = creds._meta_interval ? parseInt(creds._meta_interval, 10) : 60;
+
+    // Strip meta keys from the credentials returned to callers
+    const cleanCreds: Record<string, string> = {};
+    for (const [k, v] of Object.entries(creds)) {
+      if (!k.startsWith("_meta_")) cleanCreds[k] = v;
+    }
+
+    return {
+      id: row.id,
+      kind: row.kind,
+      name,
+      credentials: cleanCreds,
+      autoSync,
+      intervalMinutes,
+      connectedAt: row.created_at ?? new Date().toISOString(),
+      lastSyncAt: row.last_sync_at ?? undefined,
+      status: row.status,
+    };
+  });
+}
+
+/** Upsert a single integration row. Meta fields are stored inside credentials JSONB. */
+export async function saveIntegration(
+  supabase: SupabaseClient,
+  ownerId: string,
+  integration: PersistedIntegration,
+): Promise<void> {
+  const credentialsWithMeta: Record<string, string> = {
+    ...integration.credentials,
+    _meta_name: integration.name,
+    _meta_auto_sync: String(integration.autoSync),
+    _meta_interval: String(integration.intervalMinutes),
+  };
+
+  const { error } = await supabase.from("integrations").upsert(
+    {
+      id: integration.id,
+      owner_id: ownerId,
+      kind: integration.kind,
+      status: integration.status,
+      credentials: credentialsWithMeta,
+      last_sync_at: integration.lastSyncAt ?? null,
+      created_at: integration.connectedAt,
+    },
+    { onConflict: "owner_id,id" },
+  );
+
+  if (error) throw error;
+}
+
+/** Update last_sync_at and status after a sync run. */
+export async function updateIntegrationSync(
+  supabase: SupabaseClient,
+  id: string,
+  ownerId: string,
+  lastSyncAt: string,
+  status: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("integrations")
+    .update({ last_sync_at: lastSyncAt, status })
+    .eq("id", id)
+    .eq("owner_id", ownerId);
+
+  if (error) throw error;
+}
+
+/** Remove an integration row. */
+export async function deleteIntegration(
+  supabase: SupabaseClient,
+  id: string,
+  ownerId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("integrations")
+    .delete()
+    .eq("id", id)
+    .eq("owner_id", ownerId);
+
+  if (error) throw error;
+}

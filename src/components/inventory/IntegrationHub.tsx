@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Settings,
   RefreshCw,
@@ -25,6 +25,14 @@ import {
 } from "@/lib/integrations/types";
 import { useInventory } from "@/contexts/InventoryContext";
 import { type Product, type SalesChannel } from "@/mock/inventory";
+import { createClient } from "@/lib/supabase/client";
+import {
+  loadIntegrations,
+  saveIntegration,
+  updateIntegrationSync,
+  deleteIntegration,
+  type PersistedIntegration,
+} from "@/lib/supabase/integrations-store";
 
 type IntegrationStatus = "connected" | "disconnected" | "error" | "syncing";
 
@@ -111,6 +119,37 @@ function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
   };
 }
 
+/** Convert component-local ConnectedIntegration to the DB-persisted shape. */
+function toPersistedIntegration(ci: ConnectedIntegration): PersistedIntegration {
+  return {
+    id: ci.id,
+    kind: ci.kind,
+    name: ci.name,
+    credentials: ci.credentials,
+    autoSync: ci.autoSync,
+    intervalMinutes: ci.intervalMinutes,
+    connectedAt: ci.connectedAt ?? new Date().toISOString(),
+    lastSyncAt: ci.lastSync,
+    status: ci.status,
+  };
+}
+
+/** Rehydrate a PersistedIntegration back into a ConnectedIntegration. */
+function fromPersistedIntegration(pi: PersistedIntegration): ConnectedIntegration {
+  return {
+    id: pi.id,
+    kind: pi.kind,
+    name: pi.name,
+    status: pi.status as ConnectedIntegration["status"],
+    credentials: pi.credentials,
+    autoSync: pi.autoSync,
+    intervalMinutes: pi.intervalMinutes,
+    connectedAt: pi.connectedAt,
+    lastSync: pi.lastSyncAt,
+    log: [],
+  };
+}
+
 export function IntegrationHub() {
   const { products, actions } = useInventory();
 
@@ -129,6 +168,19 @@ export function IntegrationHub() {
   const [editSettings, setEditSettings] = useState({ autoSync: true, interval: 60 });
 
   const selectedAdapter: ChannelAdapter | undefined = addKind ? getAdapter(addKind) : undefined;
+
+  // Load persisted integrations on mount
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!userId) return;
+      loadIntegrations(supabase, userId).then((rows) => {
+        setIntegrations(rows.map(fromPersistedIntegration));
+      }).catch(() => {/* silently ignore — works offline */});
+    });
+  }, []);
 
   function resetAddForm() {
     setAddKind(null);
@@ -169,6 +221,16 @@ export function IntegrationHub() {
     setIntegrations((list) => [...list, newInt]);
     setShowAddPicker(false);
     resetAddForm();
+
+    // Persist to Supabase (fire-and-forget — in-memory state is already updated)
+    const supabase = createClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        const userId = data.user?.id;
+        if (!userId) return;
+        saveIntegration(supabase, userId, toPersistedIntegration(newInt)).catch(() => {});
+      });
+    }
   }
 
   /** Pull products through the adapter and upsert them into inventory by SKU. */
@@ -205,19 +267,32 @@ export function IntegrationHub() {
       message: result.message,
     };
 
+    const syncedAt = nowStamp();
+    const newStatus: ConnectedIntegration["status"] = result.ok ? "connected" : "error";
+
     setSyncing(null);
     setIntegrations((list) =>
       list.map((i) =>
         i.id === id
           ? {
               ...i,
-              status: result.ok ? "connected" : "error",
-              lastSync: nowStamp(),
+              status: newStatus,
+              lastSync: syncedAt,
               log: [entry, ...i.log].slice(0, 20),
             }
           : i,
       ),
     );
+
+    // Persist sync result to Supabase
+    const supabase = createClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        const userId = data.user?.id;
+        if (!userId) return;
+        updateIntegrationSync(supabase, id, userId, syncedAt, newStatus).catch(() => {});
+      });
+    }
   }
 
   function openSettings(integration: ConnectedIntegration) {
@@ -242,6 +317,16 @@ export function IntegrationHub() {
     setIntegrations((list) => list.filter((i) => i.id !== id));
     setDisconnectConfirm(null);
     setSettingsOpen(null);
+
+    // Remove from Supabase (fire-and-forget)
+    const supabase = createClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        const userId = data.user?.id;
+        if (!userId) return;
+        deleteIntegration(supabase, id, userId).catch(() => {});
+      });
+    }
   }
 
   function getStatusDot(status: IntegrationStatus, isSyncing: boolean) {

@@ -13,6 +13,7 @@ function LoginForm() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -26,7 +27,10 @@ function LoginForm() {
     if (!supabase) { setError("Supabase не настроен"); setBusy(false); return; }
 
     if (mode === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) setError(error.message);
       else router.push(next);
     } else {
@@ -36,6 +40,12 @@ function LoginForm() {
       else setInfo("Проверьте почту — мы отправили ссылку для подтверждения.");
     }
     setBusy(false);
+  }
+
+  function fillTest() {
+    setEmail("test@sellermap.com");
+    setPassword("Test1234!");
+    setMode("signin");
   }
 
   return (
@@ -79,6 +89,18 @@ function LoginForm() {
               />
             </div>
 
+            {mode === "signin" && (
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded accent-[var(--c-green)]"
+                />
+                <span className="text-xs text-[var(--c-text2)]">Запомнить меня</span>
+              </label>
+            )}
+
             {error && (
               <div className="flex items-start gap-2 rounded-lg bg-[var(--c-red-dim)] px-3 py-2 text-xs text-[var(--c-red)]">
                 <AlertCircle size={14} className="mt-0.5 shrink-0" />
@@ -101,12 +123,21 @@ function LoginForm() {
             </button>
           </form>
 
-          <button
-            onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
-            className="mt-4 w-full text-center text-xs text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
-          >
-            {mode === "signin" ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
-          </button>
+          <div className="mt-4 flex items-center justify-between">
+            <button
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
+              className="text-xs text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+            >
+              {mode === "signin" ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
+            </button>
+            <button
+              type="button"
+              onClick={fillTest}
+              className="text-xs text-[var(--c-text3)] transition hover:text-[var(--c-text2)]"
+            >
+              Тест-вход
+            </button>
+          </div>
         </div>
       </div>
     </div>

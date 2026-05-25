@@ -15,6 +15,10 @@ const TABLES = {
   stocktakes: "stocktakes",
   movements: "movements",
   reservations: "reservations",
+  returns: "returns",
+  bundles: "bundles",
+  replenishmentRules: "replenishment_rules",
+  batches: "batches",
 } as const;
 
 type Collection = keyof typeof TABLES;
