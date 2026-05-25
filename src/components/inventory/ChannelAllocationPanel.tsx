@@ -30,14 +30,6 @@ const CHANNEL_COLORS: Record<SalesChannel, { bg: string; text: string; border: s
   delivery:    { bg: "rgba(245,166,35,0.15)",  text: "#f5a623", border: "rgba(245,166,35,0.35)" },
 };
 
-const MOCK_ALLOCATIONS: Record<string, Record<SalesChannel, number>> = {
-  "prod-001": { wildberries: 50, ozon: 30, yandex_market: 0, website: 15, pos: 0, telegram: 0, delivery: 0 },
-  "prod-002": { wildberries: 120, ozon: 80, yandex_market: 0, website: 20, pos: 30, telegram: 0, delivery: 0 },
-  "prod-003": { wildberries: 0, ozon: 0, yandex_market: 0, website: 4, pos: 4, telegram: 0, delivery: 0 },
-  "prod-004": { wildberries: 0, ozon: 0, yandex_market: 0, website: 0, pos: 800, telegram: 0, delivery: 0 },
-  "prod-006": { wildberries: 0, ozon: 0, yandex_market: 0, website: 0, pos: 0, telegram: 0, delivery: 0 },
-  "prod-007": { wildberries: 0, ozon: 10, yandex_market: 0, website: 5, pos: 10, telegram: 0, delivery: 0 },
-};
 
 const LAST_SYNC: Record<string, string> = {
   wildberries: "24 мая, 14:32",
@@ -53,10 +45,16 @@ function fmtQty(n: number): string {
 }
 
 export function ChannelAllocationPanel() {
-  const { products } = useInventory();
+  const { products, actions } = useInventory();
   const ACTIVE_PRODUCTS = useMemo(() => products.filter((p) => p.status === "active"), [products]);
-  const [allocations, setAllocations] =
-    useState<Record<string, Record<SalesChannel, number>>>(MOCK_ALLOCATIONS);
+  const [allocations, setAllocations] = useState<Record<string, Record<SalesChannel, number>>>(() =>
+    Object.fromEntries(
+      products.filter((p) => p.channelAllocation).map((p) => [
+        p.id,
+        { ...blankAlloc(), ...(p.channelAllocation ?? {}) },
+      ]),
+    ),
+  );
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [mode, setMode] = useState<AllocationMode>("qty");
   const [syncingWb, setSyncingWb] = useState(false);
@@ -109,10 +107,9 @@ export function ChannelAllocationPanel() {
   }
 
   function updateAllocation(productId: string, channel: SalesChannel, value: number) {
-    setAllocations((prev) => ({
-      ...prev,
-      [productId]: { ...(prev[productId] ?? blankAlloc()), [channel]: Math.max(0, value) },
-    }));
+    const newAlloc = { ...(allocations[productId] ?? blankAlloc()), [channel]: Math.max(0, value) };
+    setAllocations((prev) => ({ ...prev, [productId]: newAlloc }));
+    actions.updateProduct(productId, { channelAllocation: newAlloc });
   }
 
   function autoDistribute(productId: string) {

@@ -13,146 +13,13 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react";
-import { LOCATIONS } from "@/mock/inventory";
+import {
+  type ProductReturn, type ReturnStatus, type ReturnReason, type ReturnItem,
+  type SalesChannel,
+} from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
-type ReturnStatus = "pending" | "inspected" | "restocked" | "written_off" | "refunded";
-type ReturnReason = "wrong_item" | "defective" | "not_as_described" | "changed_mind" | "damaged_shipping" | "other";
-
-interface ReturnItem {
-  productId: string;
-  productName: string;
-  sku: string;
-  qty: number;
-  condition: "new" | "good" | "damaged" | "unsellable";
-  action: "restock" | "write_off" | "quarantine";
-}
-
-interface Return {
-  id: string;
-  status: ReturnStatus;
-  channel: string;
-  orderRef: string;
-  customerName: string;
-  items: ReturnItem[];
-  totalValue: number;
-  reason: ReturnReason;
-  createdAt: string;
-  processedAt?: string;
-  locationId: string;
-  note?: string;
-}
-
-const MOCK_RETURNS: Return[] = [
-  {
-    id: "RET-001",
-    status: "pending",
-    channel: "wildberries",
-    orderRef: "WB-45892",
-    customerName: "Анна Соколова",
-    items: [
-      { productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, condition: "good", action: "restock" },
-    ],
-    totalValue: 2950,
-    reason: "changed_mind",
-    createdAt: "2026-05-23",
-    locationId: "loc-returns",
-    note: "Клиент передумал, товар без повреждений",
-  },
-  {
-    id: "RET-002",
-    status: "inspected",
-    channel: "ozon",
-    orderRef: "OZ-10234",
-    customerName: "Дмитрий Кузнецов",
-    items: [
-      { productId: "prod-002", productName: "Футболка оверсайз хлопок", sku: "TSH-002", qty: 2, condition: "damaged", action: "write_off" },
-    ],
-    totalValue: 2980,
-    reason: "damaged_shipping",
-    createdAt: "2026-05-21",
-    locationId: "loc-returns",
-    note: "Повреждена при доставке, следы вскрытия",
-  },
-  {
-    id: "RET-003",
-    status: "restocked",
-    channel: "website",
-    orderRef: "WEB-8820",
-    customerName: "Мария Николаева",
-    items: [
-      { productId: "prod-007", productName: "Ежедневник A5 кожаный", sku: "DRY-A5-001", qty: 1, condition: "new", action: "restock" },
-    ],
-    totalValue: 3200,
-    reason: "wrong_item",
-    createdAt: "2026-05-18",
-    processedAt: "2026-05-19",
-    locationId: "loc-warehouse",
-  },
-  {
-    id: "RET-004",
-    status: "written_off",
-    channel: "wildberries",
-    orderRef: "WB-38471",
-    customerName: "Алексей Попов",
-    items: [
-      { productId: "prod-002", productName: "Футболка оверсайз хлопок", sku: "TSH-002", qty: 1, condition: "unsellable", action: "write_off" },
-      { productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, condition: "damaged", action: "write_off" },
-    ],
-    totalValue: 4440,
-    reason: "defective",
-    createdAt: "2026-05-15",
-    processedAt: "2026-05-16",
-    locationId: "loc-damaged",
-    note: "Производственный брак, не подлежит восстановлению",
-  },
-  {
-    id: "RET-005",
-    status: "refunded",
-    channel: "pos",
-    orderRef: "POS-1192",
-    customerName: "Ирина Степанова",
-    items: [
-      { productId: "prod-004", productName: "Крафт-пакет с ручками 30x40", sku: "PKG-KRAFT-001", qty: 10, condition: "good", action: "restock" },
-    ],
-    totalValue: 450,
-    reason: "not_as_described",
-    createdAt: "2026-05-20",
-    processedAt: "2026-05-20",
-    locationId: "loc-warehouse",
-  },
-  {
-    id: "RET-006",
-    status: "pending",
-    channel: "ozon",
-    orderRef: "OZ-11550",
-    customerName: "Сергей Волков",
-    items: [
-      { productId: "prod-006", productName: "Кепка с логотипом", sku: "CAP-001", qty: 1, condition: "damaged", action: "quarantine" },
-    ],
-    totalValue: 890,
-    reason: "defective",
-    createdAt: "2026-05-24",
-    locationId: "loc-returns",
-    note: "Скрытый брак, брак пошива",
-  },
-  {
-    id: "RET-007",
-    status: "inspected",
-    channel: "yandex",
-    orderRef: "YM-5602",
-    customerName: "Екатерина Морозова",
-    items: [
-      { productId: "prod-003", productName: "Кофе Ethiopia Yirgacheffe", sku: "COF-ETH-001", qty: 1, condition: "new", action: "restock" },
-    ],
-    totalValue: 1800,
-    reason: "other",
-    createdAt: "2026-05-22",
-    locationId: "loc-returns",
-    note: "Ошибка в заказе на стороне маркетплейса",
-  },
-];
 
 const STATUS_LABELS: Record<ReturnStatus, string> = {
   pending: "Ожидает",
@@ -236,8 +103,8 @@ interface NewReturnLine {
 }
 
 export function ReturnsPanel() {
-  const { products, actions } = useInventory();
-  const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
+  const { products, returns, actions } = useInventory();
+  const [selectedReturn, setSelectedReturn] = useState<ProductReturn | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ReturnStatus | "all">("all");
   const [channelFilter, setChannelFilter] = useState("all");
@@ -253,13 +120,13 @@ export function ReturnsPanel() {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [formSaved, setFormSaved] = useState(false);
 
-  const pendingCount = MOCK_RETURNS.filter((r) => r.status === "pending").length;
-  const inspectedCount = MOCK_RETURNS.filter((r) => r.status === "inspected").length;
-  const restockedCount = MOCK_RETURNS.filter((r) => r.status === "restocked").length;
-  const writtenOffCount = MOCK_RETURNS.filter((r) => r.status === "written_off").length;
-  const totalReturnValue = MOCK_RETURNS.reduce((s, r) => s + r.totalValue, 0);
+  const pendingCount = returns.filter((r) => r.status === "pending").length;
+  const inspectedCount = returns.filter((r) => r.status === "inspected").length;
+  const restockedCount = returns.filter((r) => r.status === "restocked").length;
+  const writtenOffCount = returns.filter((r) => r.status === "written_off").length;
+  const totalReturnValue = returns.reduce((s, r) => s + r.totalValue, 0);
 
-  const processedReturns = MOCK_RETURNS.filter((r) => r.processedAt && r.createdAt);
+  const processedReturns = returns.filter((r) => r.processedAt && r.createdAt);
   const avgDays = processedReturns.length > 0
     ? Math.round(
         processedReturns.reduce((s, r) => {
@@ -270,7 +137,7 @@ export function ReturnsPanel() {
     : 0;
 
   const filtered = useMemo(() => {
-    let list = [...MOCK_RETURNS];
+    let list = [...returns];
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (channelFilter !== "all") list = list.filter((r) => r.channel === channelFilter);
     if (search) {
@@ -290,7 +157,7 @@ export function ReturnsPanel() {
     return products.filter(
       (p) => p.status === "active" && (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)),
     ).slice(0, 8);
-  }, [productSearch]);
+  }, [productSearch, products]);
 
   function addProductLine(p: (typeof products)[0]) {
     if (formLines.find((l) => l.productId === p.id)) return;
@@ -301,10 +168,25 @@ export function ReturnsPanel() {
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const defaultLoc = "loc-returns";
-    formLines.forEach((line) => {
-      actions.adjustStock(line.productId, defaultLoc, line.qty, "return", REASON_LABELS[formReason as ReturnReason] ?? formReason);
-    });
+    const id = `RET-${Date.now()}`;
+    const now = new Date().toISOString().slice(0, 10);
+    const returnRecord: ProductReturn = {
+      id,
+      status: "pending",
+      channel: formChannel as SalesChannel | "manual",
+      orderRef: formOrderRef,
+      customerName: formCustomer,
+      reason: formReason as ReturnReason,
+      items: formLines.map((l) => ({ ...l, action: "restock" as const })),
+      totalValue: formLines.reduce((s, l) => {
+        const p = products.find((p) => p.id === l.productId);
+        return s + (p?.price ?? 0) * l.qty;
+      }, 0),
+      createdAt: now,
+      locationId: "loc-returns",
+      note: formNote || undefined,
+    };
+    actions.createReturn(returnRecord);
     setFormSaved(true);
     setTimeout(() => {
       setFormSaved(false);
@@ -318,7 +200,7 @@ export function ReturnsPanel() {
     }, 700);
   }
 
-  const channels = Array.from(new Set(MOCK_RETURNS.map((r) => r.channel)));
+  const channels = Array.from(new Set(returns.map((r) => r.channel)));
 
   return (
     <div className="space-y-6">
@@ -630,8 +512,8 @@ export function ReturnsPanel() {
   );
 }
 
-function ReturnDetailPanel({ ret, onClose }: { ret: Return; onClose: () => void }) {
-  const { actions } = useInventory();
+function ReturnDetailPanel({ ret, onClose }: { ret: ProductReturn; onClose: () => void }) {
+  const { locations, actions } = useInventory();
   const [itemActions, setItemActions] = useState<Record<string, ReturnItem["action"]>>(
     Object.fromEntries(ret.items.map((item, i) => [i, item.action])),
   );
@@ -646,11 +528,12 @@ function ReturnDetailPanel({ ret, onClose }: { ret: Return; onClose: () => void 
         actions.adjustStock(item.productId, ret.locationId, -item.qty, "write_off", "Возврат — списание");
       }
     });
+    actions.updateReturnStatus(ret.id, "restocked");
     setProcessed(true);
     setTimeout(() => { setProcessed(false); onClose(); }, 700);
   }
 
-  const locationName = LOCATIONS.find((l) => l.id === ret.locationId)?.name ?? ret.locationId;
+  const locationName = locations.find((l) => l.id === ret.locationId)?.name ?? ret.locationId;
 
   return (
     <div className="fixed inset-0 z-50 flex">

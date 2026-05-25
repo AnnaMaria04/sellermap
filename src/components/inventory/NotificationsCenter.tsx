@@ -22,6 +22,9 @@ import {
   Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { computeAlerts } from "@/lib/inventory/alerts";
+import { useDismissedAlerts } from "@/hooks/useDismissedAlerts";
+import { useInventory } from "@/contexts/InventoryContext";
 
 type NotifType =
   | "low_stock"
@@ -56,150 +59,6 @@ interface NotifRule {
   delivery: DeliveryMethod[];
   frequency: Frequency;
 }
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "n-001",
-    type: "out_of_stock",
-    priority: "critical",
-    title: "Нет в наличии: Кепка с логотипом",
-    body: "Товар CAP-001 закончился на всех складах и в магазинах. Срочно оформите закупку.",
-    isRead: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    productId: "prod-006",
-  },
-  {
-    id: "n-002",
-    type: "low_stock",
-    priority: "critical",
-    title: "Критический остаток: Кофе Ethiopia",
-    body: "Товар COF-ETH-001 — 8 шт. в наличии. Ожидаемое время до нуля: 3 дня при текущем темпе продаж.",
-    isRead: false,
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    productId: "prod-003",
-  },
-  {
-    id: "n-003",
-    type: "po_delayed",
-    priority: "high",
-    title: "Задержка поставки от ТД Текстиль Юг",
-    body: "Заказ PO-002 ожидался 25 апреля, но 200 ед. Футболки оверсайз так и не поступили. Свяжитесь с поставщиком.",
-    isRead: false,
-    createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-004",
-    type: "write_off_approval",
-    priority: "high",
-    title: "Требуется согласование списания",
-    body: "Заявка WO-003 на списание 15 ед. Органайзер для путешествий ожидает вашего подтверждения.",
-    isRead: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-005",
-    type: "po_arrived",
-    priority: "medium",
-    title: "Поставка прибыла: EuroCoffee Imports",
-    body: "Заказ PO-003 на 50 кг кофе Ethiopia Yirgacheffe прибыл на основной склад и готов к приёмке.",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-006",
-    type: "reorder_triggered",
-    priority: "medium",
-    title: "Автозаказ создан: Ежедневник A5",
-    body: "Система автоматически сформировала черновик закупки PO-005 на 80 ед. DRY-A5-001 у ТД Текстиль Юг.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    productId: "prod-007",
-  },
-  {
-    id: "n-007",
-    type: "low_stock",
-    priority: "high",
-    title: "Низкий остаток: Ежедневник A5 кожаный",
-    body: "Товар DRY-A5-001 — 37 шт. Порог повторного заказа: 40 шт. Рекомендуем пополнить запас.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    productId: "prod-007",
-  },
-  {
-    id: "n-008",
-    type: "expiry_warning",
-    priority: "medium",
-    title: "Истекает срок годности: Кофе Ethiopia",
-    body: "Партия Batch #ETH-2025-03 (8 кг) истекает через 45 дней. Ускорьте реализацию или спишите.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    productId: "prod-003",
-  },
-  {
-    id: "n-009",
-    type: "system",
-    priority: "low",
-    title: "Синхронизация с Wildberries завершена",
-    body: "Обновлены остатки по 6 товарам. Расхождений не обнаружено.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-010",
-    type: "po_arrived",
-    priority: "medium",
-    title: "Частичная приёмка: ТД Текстиль Юг",
-    body: "Принято 300 из 500 ед. Футболки оверсайз по заказу PO-002. Оставшиеся 200 ед. — в пути.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-011",
-    type: "system",
-    priority: "low",
-    title: "Синхронизация с Ozon завершена",
-    body: "Обновлены цены по 3 товарам. Аллокация применена успешно.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-012",
-    type: "reorder_triggered",
-    priority: "medium",
-    title: "Достигнут порог заказа: Крафт-пакет",
-    body: "Остаток PKG-KRAFT-001 опустился до 3200 шт. Рекомендуем оформить новую поставку у ООО ПластУпак.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    productId: "prod-004",
-  },
-  {
-    id: "n-013",
-    type: "write_off_approval",
-    priority: "high",
-    title: "Списание подтверждено",
-    body: "Списание WO-002 на 3 ед. было подтверждено менеджером Марией Ивановой.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-014",
-    type: "expiry_warning",
-    priority: "low",
-    title: "Плановая проверка сроков годности",
-    body: "Рекомендуем провести проверку сроков годности на складе. 2 позиции требуют внимания.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "n-015",
-    type: "system",
-    priority: "low",
-    title: "Резервное копирование данных",
-    body: "Автоматическое резервное копирование данных склада выполнено успешно.",
-    isRead: true,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
 
 const TYPE_LABELS: Record<NotifType, string> = {
   low_stock: "Низкий остаток",
@@ -252,12 +111,28 @@ function timeAgo(isoDate: string): string {
 }
 
 export function NotificationsCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const { products, batches } = useInventory();
+  const { dismissed, dismiss, dismissAll } = useDismissedAlerts();
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [rules, setRules] = useState<Record<NotifType, NotifRule>>(DEFAULT_RULES);
   const [filterPriority, setFilterPriority] = useState<NotifPriority | "all">("all");
   const [filterType, setFilterType] = useState<NotifType | "all">("all");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  const notifications: Notification[] = useMemo(
+    () =>
+      computeAlerts(products, batches).map((a) => ({
+        id: a.id,
+        type: a.type as NotifType,
+        priority: a.priority as NotifPriority,
+        title: a.title,
+        body: a.body,
+        isRead: dismissed.has(a.id),
+        createdAt: a.createdAt,
+        productId: a.productId,
+      })),
+    [products, batches, dismissed],
+  );
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const criticalCount = notifications.filter((n) => n.priority === "critical" && !n.isRead).length;
@@ -273,15 +148,15 @@ export function NotificationsCenter() {
   }, [notifications, activeTab, filterPriority, filterType]);
 
   function markRead(id: string) {
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    dismiss(id);
   }
 
   function markAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    dismissAll(notifications.map((n) => n.id));
   }
 
   function clearRead() {
-    setNotifications((prev) => prev.filter((n) => !n.isRead));
+    dismissAll(notifications.map((n) => n.id));
   }
 
   function updateRule(type: NotifType, update: Partial<NotifRule>) {

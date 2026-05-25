@@ -15,137 +15,11 @@ import {
   Package,
   ChevronDown,
 } from "lucide-react";
-import { PRODUCTS, SUPPLIERS } from "@/mock/inventory";
+import { type ReplenishmentRule, type TriggerType } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 type RuleStatus = "active" | "paused" | "triggered";
-type TriggerType = "min_stock" | "days_of_stock" | "reorder_point";
-
-interface ReplenishmentRule {
-  id: string;
-  productId: string;
-  productName: string;
-  sku: string;
-  supplierId?: string;
-  supplierName?: string;
-  triggerType: TriggerType;
-  minStock?: number;
-  daysOfStock?: number;
-  reorderQty: number;
-  isActive: boolean;
-  lastTriggered?: string;
-  nextCheck: string;
-}
-
-const MOCK_RULES: ReplenishmentRule[] = [
-  {
-    id: "rule-001",
-    productId: "prod-001",
-    productName: "Органайзер для путешествий",
-    sku: "ORG-001",
-    supplierId: "sup-002",
-    supplierName: "ShenzhenGoods Co.",
-    triggerType: "min_stock",
-    minStock: 30,
-    reorderQty: 200,
-    isActive: true,
-    lastTriggered: "2026-05-01",
-    nextCheck: "2026-05-26",
-  },
-  {
-    id: "rule-002",
-    productId: "prod-002",
-    productName: "Футболка оверсайз хлопок",
-    sku: "TSH-002",
-    supplierId: "sup-001",
-    supplierName: "ТД Текстиль Юг",
-    triggerType: "days_of_stock",
-    daysOfStock: 14,
-    reorderQty: 500,
-    isActive: true,
-    nextCheck: "2026-05-27",
-  },
-  {
-    id: "rule-003",
-    productId: "prod-003",
-    productName: "Кофе Ethiopia Yirgacheffe",
-    sku: "COF-ETH-001",
-    supplierId: "sup-004",
-    supplierName: "EuroCoffee Imports",
-    triggerType: "reorder_point",
-    minStock: 10,
-    reorderQty: 50,
-    isActive: true,
-    lastTriggered: "2026-05-20",
-    nextCheck: "2026-05-25",
-  },
-  {
-    id: "rule-004",
-    productId: "prod-004",
-    productName: "Крафт-пакет с ручками 30x40",
-    sku: "PKG-KRAFT-001",
-    supplierId: "sup-003",
-    supplierName: "ООО ПластУпак",
-    triggerType: "min_stock",
-    minStock: 1000,
-    reorderQty: 3000,
-    isActive: true,
-    nextCheck: "2026-06-01",
-  },
-  {
-    id: "rule-005",
-    productId: "prod-006",
-    productName: "Кепка с логотипом",
-    sku: "CAP-001",
-    supplierId: "sup-001",
-    supplierName: "ТД Текстиль Юг",
-    triggerType: "reorder_point",
-    minStock: 20,
-    reorderQty: 100,
-    isActive: true,
-    lastTriggered: "2026-05-22",
-    nextCheck: "2026-05-25",
-  },
-  {
-    id: "rule-006",
-    productId: "prod-007",
-    productName: "Ежедневник A5 кожаный",
-    sku: "DRY-A5-001",
-    supplierId: "sup-001",
-    supplierName: "ТД Текстиль Юг",
-    triggerType: "days_of_stock",
-    daysOfStock: 30,
-    reorderQty: 80,
-    isActive: false,
-    nextCheck: "2026-06-10",
-  },
-  {
-    id: "rule-007",
-    productId: "prod-008",
-    productName: "Лосьон для тела «Арктика»",
-    sku: "CSM-LOS-001",
-    triggerType: "min_stock",
-    minStock: 50,
-    reorderQty: 200,
-    isActive: false,
-    nextCheck: "2026-06-15",
-  },
-  {
-    id: "rule-008",
-    productId: "prod-002",
-    productName: "Футболка оверсайз хлопок",
-    sku: "TSH-002-BLK",
-    supplierId: "sup-001",
-    supplierName: "ТД Текстиль Юг",
-    triggerType: "min_stock",
-    minStock: 5,
-    reorderQty: 120,
-    isActive: true,
-    lastTriggered: "2026-05-23",
-    nextCheck: "2026-05-25",
-  },
-];
 
 const TRIGGER_LABELS: Record<TriggerType, string> = {
   min_stock: "Мин. остаток",
@@ -221,8 +95,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 export function ReplenishmentRules() {
-  const { actions } = useInventory();
-  const [rules, setRules] = useState<ReplenishmentRule[]>(MOCK_RULES);
+  const { products, suppliers, replenishmentRules: rules, actions } = useInventory();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | RuleStatus>("all");
@@ -263,17 +136,17 @@ export function ReplenishmentRules() {
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.toLowerCase();
-    return PRODUCTS.filter(
+    return products.filter(
       (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q),
     ).slice(0, 8);
-  }, [productSearch]);
+  }, [productSearch, products]);
 
   function toggleRule(id: string, active: boolean) {
-    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, isActive: active } : r)));
+    actions.updateRule(id, { isActive: active });
   }
 
   function deleteRule(id: string) {
-    setRules((prev) => prev.filter((r) => r.id !== id));
+    actions.deleteRule(id);
     setDeleteConfirm(null);
     setSelected((prev) => { const s = new Set(prev); s.delete(id); return s; });
   }
@@ -288,24 +161,18 @@ export function ReplenishmentRules() {
   }
 
   function enableAll() {
-    if (selected.size > 0) {
-      setRules((prev) => prev.map((r) => (selected.has(r.id) ? { ...r, isActive: true } : r)));
-    } else {
-      setRules((prev) => prev.map((r) => ({ ...r, isActive: true })));
-    }
+    const targets = selected.size > 0 ? rules.filter((r) => selected.has(r.id)) : rules;
+    targets.forEach((r) => actions.updateRule(r.id, { isActive: true }));
   }
 
   function disableAll() {
-    if (selected.size > 0) {
-      setRules((prev) => prev.map((r) => (selected.has(r.id) ? { ...r, isActive: false } : r)));
-    } else {
-      setRules((prev) => prev.map((r) => ({ ...r, isActive: false })));
-    }
+    const targets = selected.size > 0 ? rules.filter((r) => selected.has(r.id)) : rules;
+    targets.forEach((r) => actions.updateRule(r.id, { isActive: false }));
   }
 
   function deleteSelected() {
     if (selected.size === 0) return;
-    setRules((prev) => prev.filter((r) => !selected.has(r.id)));
+    selected.forEach((id) => actions.deleteRule(id));
     setSelected(new Set());
   }
 
@@ -318,7 +185,7 @@ export function ReplenishmentRules() {
 
   function openEdit(rule: ReplenishmentRule) {
     setEditRule(rule);
-    const product = PRODUCTS.find((p) => p.id === rule.productId);
+    const product = products.find((p) => p.id === rule.productId);
     setProductSearch(product?.name ?? rule.productName);
     setFormData({
       productId: rule.productId,
@@ -333,8 +200,8 @@ export function ReplenishmentRules() {
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const product = PRODUCTS.find((p) => p.id === formData.productId);
-    const supplier = SUPPLIERS.find((s) => s.id === formData.supplierId);
+    const product = products.find((p) => p.id === formData.productId);
+    const supplier = suppliers.find((s) => s.id === formData.supplierId);
     const base: ReplenishmentRule = {
       id: editRule?.id ?? `rule-${Date.now()}`,
       productId: formData.productId,
@@ -353,9 +220,9 @@ export function ReplenishmentRules() {
       lastTriggered: editRule?.lastTriggered,
     };
     if (editRule) {
-      setRules((prev) => prev.map((r) => (r.id === editRule.id ? base : r)));
+      actions.updateRule(editRule.id, base);
     } else {
-      setRules((prev) => [base, ...prev]);
+      actions.createRule(base);
     }
     setFormSaved(true);
     setTimeout(() => {
@@ -686,7 +553,7 @@ export function ReplenishmentRules() {
                     className="h-9 w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
                   >
                     <option value="">Без поставщика</option>
-                    {SUPPLIERS.map((s) => (
+                    {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>

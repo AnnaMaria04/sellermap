@@ -22,99 +22,9 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type Product } from "@/mock/inventory";
+import { type Product, type Bundle, type BundleComponent, type SalesChannel } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 
-interface BundleComponent {
-  productId: string;
-  productName: string;
-  sku: string;
-  qty: number;
-  costContribution: number;
-}
-
-interface Bundle {
-  id: string;
-  name: string;
-  sku: string;
-  status: "active" | "draft" | "archived";
-  components: BundleComponent[];
-  sellingPrice: number;
-  totalCost: number;
-  margin: number;
-  virtualStock: number;
-  createdAt: string;
-  channels: string[];
-}
-
-const MOCK_BUNDLES: Bundle[] = [
-  {
-    id: "bnd-001",
-    name: "Дорожный набор Премиум",
-    sku: "BND-TRAVEL-001",
-    status: "active",
-    components: [
-      { productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, costContribution: 820 },
-      { productId: "prod-002", productName: "Несессер водонепроницаемый", sku: "NSS-002", qty: 1, costContribution: 540 },
-      { productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003", qty: 2, costContribution: 290 },
-    ],
-    sellingPrice: 4990,
-    totalCost: 1940,
-    margin: 61.1,
-    virtualStock: 17,
-    createdAt: "2025-03-15",
-    channels: ["wildberries", "ozon", "website"],
-  },
-  {
-    id: "bnd-002",
-    name: "Кофейный стартер",
-    sku: "BND-COFFEE-001",
-    status: "active",
-    components: [
-      { productId: "prod-005", productName: "Кофе зерновой 250г", sku: "COF-005", qty: 2, costContribution: 680 },
-      { productId: "prod-006", productName: "Фильтры для кофе 100 шт", sku: "FLT-006", qty: 1, costContribution: 180 },
-    ],
-    sellingPrice: 2490,
-    totalCost: 1540,
-    margin: 38.2,
-    virtualStock: 18,
-    createdAt: "2025-04-02",
-    channels: ["wildberries", "website"],
-  },
-  {
-    id: "bnd-003",
-    name: "Набор для хранения",
-    sku: "BND-STORE-001",
-    status: "draft",
-    components: [
-      { productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003", qty: 1, costContribution: 290 },
-      { productId: "prod-006", productName: "Фильтры для кофе 100 шт", sku: "FLT-006", qty: 2, costContribution: 180 },
-      { productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, costContribution: 820 },
-    ],
-    sellingPrice: 2190,
-    totalCost: 1470,
-    margin: 32.9,
-    virtualStock: 9,
-    createdAt: "2025-04-20",
-    channels: ["ozon"],
-  },
-  {
-    id: "bnd-004",
-    name: "Подарочный набор Путешественника",
-    sku: "BND-GIFT-001",
-    status: "archived",
-    components: [
-      { productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001", qty: 1, costContribution: 820 },
-      { productId: "prod-004", productName: "Замок для чемодана TSA", sku: "LCK-004", qty: 2, costContribution: 340 },
-    ],
-    sellingPrice: 3290,
-    totalCost: 1500,
-    margin: 54.4,
-    virtualStock: 0,
-    createdAt: "2025-02-10",
-    channels: ["pos", "website"],
-  },
-];
 
 const CHANNEL_LABELS: Record<string, string> = {
   wildberries: "WB",
@@ -152,7 +62,7 @@ function getVirtualStock(bundle: Bundle, stockOf: (productId: string) => number)
 }
 
 export function BundleProductsPanel() {
-  const { products, actions, getAvailableStock: ctxGetAvailableStock } = useInventory();
+  const { products, bundles, actions, getAvailableStock: ctxGetAvailableStock } = useInventory();
   const stockOf = useCallback(
     (productId: string) => {
       const p = products.find((x) => x.id === productId);
@@ -160,7 +70,6 @@ export function BundleProductsPanel() {
     },
     [products, ctxGetAvailableStock]
   );
-  const [bundles, setBundles] = useState<Bundle[]>(MOCK_BUNDLES);
   const [selected, setSelected] = useState<Bundle | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [autoAssembly, setAutoAssembly] = useState(false);
@@ -192,12 +101,12 @@ export function BundleProductsPanel() {
   }, [bundles, stockOf]);
 
   function handleDelete(id: string) {
-    setBundles(prev => prev.filter(b => b.id !== id));
+    actions.deleteBundle(id);
     if (selected?.id === id) setSelected(null);
   }
 
   function handleExplode(bundle: Bundle) {
-    setBundles(prev => prev.map(b => b.id === bundle.id ? { ...b, status: "archived" as const } : b));
+    actions.updateBundle(bundle.id, { status: "archived" });
     setSelected(null);
   }
 
@@ -240,11 +149,10 @@ export function BundleProductsPanel() {
       sellingPrice: price,
       totalCost,
       margin,
-      virtualStock: 0,
       createdAt: new Date().toISOString().split("T")[0],
-      channels: form.channels,
+      channels: form.channels as SalesChannel[],
     };
-    setBundles(prev => [newBundle, ...prev]);
+    actions.createBundle(newBundle);
     setShowCreate(false);
     setForm({ name: "", sku: "", sellingPrice: "", channels: [], components: [] });
   }

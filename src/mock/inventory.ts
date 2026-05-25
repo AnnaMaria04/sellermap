@@ -25,6 +25,7 @@ export interface Product {
   price: number; costPrice: number; packagingCost?: number;
   deliveryCost?: number; channelCommission?: number; margin?: number;
   supplierId?: string; channels: SalesChannel[]; tags: string[];
+  channelAllocation?: Partial<Record<SalesChannel, number>>;
   requiresLabeling: boolean; labelingType?: "chestny_znak" | "egais" | "mercury";
   dataMatrixCode?: string; gtin?: string; batchNumber?: string; expiryDate?: string;
   weight?: number; dimensions?: { length: number; width: number; height: number };

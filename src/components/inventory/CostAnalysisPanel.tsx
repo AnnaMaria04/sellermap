@@ -45,14 +45,6 @@ interface PriceHistoryEntry {
   changedBy: string;
 }
 
-interface FifoBatch {
-  date: string;
-  qtyReceived: number;
-  qtyRemaining: number;
-  unitCost: number;
-  depleted: boolean;
-}
-
 const MOCK_PRICE_HISTORY: PriceHistoryEntry[] = [
   { id: "ph-1", productId: "prod-001", productName: "Органайзер для путешествий", date: "2026-04-10", oldCost: 790, newCost: 820, changedBy: "Мария Иванова" },
   { id: "ph-2", productId: "prod-002", productName: "Футболка оверсайз хлопок", date: "2026-03-15", oldCost: 320, newCost: 350, changedBy: "Пётр Сидоров" },
@@ -62,25 +54,6 @@ const MOCK_PRICE_HISTORY: PriceHistoryEntry[] = [
   { id: "ph-6", productId: "prod-007", productName: "Ежедневник A5 кожаный", date: "2026-04-01", oldCost: 900, newCost: 950, changedBy: "Мария Иванова" },
 ];
 
-const MOCK_FIFO: Record<string, FifoBatch[]> = {
-  "prod-001": [
-    { date: "2026-01-15", qtyReceived: 200, qtyRemaining: 0, unitCost: 790, depleted: true },
-    { date: "2026-03-10", qtyReceived: 150, qtyRemaining: 0, unitCost: 790, depleted: true },
-    { date: "2026-04-28", qtyReceived: 200, qtyRemaining: 138, unitCost: 820, depleted: false },
-  ],
-  "prod-002": [
-    { date: "2026-01-20", qtyReceived: 300, qtyRemaining: 0, unitCost: 320, depleted: true },
-    { date: "2026-04-28", qtyReceived: 300, qtyRemaining: 300, unitCost: 350, depleted: false },
-    { date: "2026-05-15", qtyReceived: 106, qtyRemaining: 106, unitCost: 350, depleted: false },
-  ],
-  "prod-003": [
-    { date: "2026-05-01", qtyReceived: 8, qtyRemaining: 8, unitCost: 620, depleted: false },
-  ],
-  "prod-004": [
-    { date: "2026-01-10", qtyReceived: 3000, qtyRemaining: 0, unitCost: 14, depleted: true },
-    { date: "2026-03-17", qtyReceived: 3000, qtyRemaining: 3200, unitCost: 12, depleted: false },
-  ],
-};
 
 function buildCostRows(products: Product[]): CostRow[] {
   return products.filter((p) => p.status !== "archived").map((p) => {
@@ -162,7 +135,7 @@ function SortTh({
 }
 
 export function CostAnalysisPanel() {
-  const { products } = useInventory();
+  const { products, batches } = useInventory();
   const [tab, setTab] = useState<Tab>("cost");
   const [sortKey, setSortKey] = useState<SortKey>("marginPct");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -225,11 +198,24 @@ export function CostAnalysisPanel() {
 
   const fifoProduct30Days = MOCK_PRICE_HISTORY.filter((h) => {
     const d = new Date(h.date);
-    const now = new Date("2026-05-25");
+    const now = new Date();
     return (now.getTime() - d.getTime()) / 86400000 <= 30;
   }).length;
 
-  const fifoBatches = MOCK_FIFO[fifoProduct] ?? [];
+  const fifoBatches = useMemo(
+    () =>
+      batches
+        .filter((b) => b.productId === fifoProduct)
+        .sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime())
+        .map((b) => ({
+          date: b.receivedAt,
+          qtyReceived: b.qty,
+          qtyRemaining: b.remainingQty,
+          unitCost: b.costPrice,
+          depleted: b.remainingQty === 0,
+        })),
+    [batches, fifoProduct],
+  );
   const fifoProductData = products.find((p) => p.id === fifoProduct);
   const weightedAvg = useMemo(() => {
     const active = fifoBatches.filter((b) => !b.depleted);
@@ -522,7 +508,7 @@ export function CostAnalysisPanel() {
                 onChange={(e) => setFifoProduct(e.target.value)}
                 className="h-9 appearance-none rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] pl-3 pr-8 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
               >
-                {products.filter((p) => MOCK_FIFO[p.id]).map((p) => (
+                {products.filter((p) => batches.some((b) => b.productId === p.id)).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>

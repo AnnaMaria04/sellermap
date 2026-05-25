@@ -21,14 +21,6 @@ import { cn } from "@/lib/utils";
 type AdjustType = "add" | "remove" | "set";
 type AdjustReason = "stocktake" | "defect" | "accounting_error" | "return" | "theft" | "other";
 
-interface RecentAdjust {
-  id: string;
-  date: string;
-  type: AdjustType;
-  qty: number;
-  reason: AdjustReason;
-  userName: string;
-}
 
 const REASON_LABELS: Record<AdjustReason, string> = {
   stocktake: "Инвентаризация",
@@ -39,20 +31,6 @@ const REASON_LABELS: Record<AdjustReason, string> = {
   other: "Другое",
 };
 
-const MOCK_RECENT: Record<string, RecentAdjust[]> = {
-  "prod-001": [
-    { id: "ra-1", date: "2026-05-15T16:00:00Z", type: "remove", qty: 5, reason: "stocktake", userName: "Мария Иванова" },
-    { id: "ra-2", date: "2026-05-08T11:20:00Z", type: "remove", qty: 1, reason: "theft", userName: "Пётр Сидоров" },
-    { id: "ra-3", date: "2026-04-20T09:00:00Z", type: "add", qty: 50, reason: "return", userName: "Мария Иванова" },
-  ],
-  "prod-002": [
-    { id: "ra-4", date: "2026-05-15T16:00:00Z", type: "remove", qty: 4, reason: "accounting_error", userName: "Мария Иванова" },
-    { id: "ra-5", date: "2026-04-28T10:30:00Z", type: "add", qty: 195, reason: "stocktake", userName: "Мария Иванова" },
-  ],
-  "prod-004": [
-    { id: "ra-6", date: "2026-05-15T16:30:00Z", type: "remove", qty: 52, reason: "defect", userName: "Мария Иванова" },
-  ],
-};
 
 function getProductStock(product: Product, locationId: string): number {
   return product.stockByLocation[locationId] ?? 0;
@@ -116,7 +94,7 @@ export function QuickStockAdjust({
   onClose: () => void;
   productId?: string;
 }) {
-  const { products, locations, actions } = useInventory();
+  const { products, locations, movements, actions } = useInventory();
   const [selectedProductId, setSelectedProductId] = useState(productId ?? "");
   const [locationId, setLocationId] = useState(locations.find((l) => l.isDefault)?.id ?? "");
   const [adjustType, setAdjustType] = useState<AdjustType>("add");
@@ -177,9 +155,21 @@ export function QuickStockAdjust({
     return Math.abs(delta) > currentStock * 0.1;
   }, [product, delta, currentStock]);
 
-  const recentAdjustments: RecentAdjust[] = selectedProductId
-    ? (MOCK_RECENT[selectedProductId] ?? []).slice(0, 5)
-    : [];
+  const recentAdjustments = useMemo(() => {
+    if (!selectedProductId) return [];
+    return movements
+      .filter((m) => m.productId === selectedProductId && m.type === "adjustment")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 5)
+      .map((m) => ({
+        id: m.id,
+        date: m.createdAt,
+        type: m.qtyDelta > 0 ? ("add" as const) : ("remove" as const),
+        qty: Math.abs(m.qtyDelta),
+        reason: m.reason ?? "",
+        userName: m.userName,
+      }));
+  }, [movements, selectedProductId]);
 
   function handleSubmit() {
     if (!canSubmit || !product) return;
@@ -445,7 +435,7 @@ export function QuickStockAdjust({
                       <p className="text-xs text-[var(--c-text)]">
                         {a.type === "add" ? "+" : a.type === "remove" ? "−" : "="}{a.qty} шт
                         <span className="mx-1 text-[var(--c-text3)]">·</span>
-                        {REASON_LABELS[a.reason]}
+                        {a.reason}
                       </p>
                       <p className="text-xs text-[var(--c-text3)]">{a.userName}</p>
                     </div>

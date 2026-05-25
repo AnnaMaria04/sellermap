@@ -17,27 +17,8 @@ import {
   Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type Product } from "@/mock/inventory";
+import { type Product, type InventoryBatch, type BatchStatus } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
-
-type BatchStatus = "ok" | "expiring_soon" | "expired" | "quarantine";
-
-interface Batch {
-  id: string;
-  productId: string;
-  productName: string;
-  sku: string;
-  batchNumber: string;
-  qty: number;
-  remainingQty: number;
-  manufactureDate: string;
-  expiryDate: string;
-  locationId: string;
-  status: BatchStatus;
-  receivedAt: string;
-  supplierId?: string;
-  costPrice: number;
-}
 
 function daysUntil(dateStr: string): number {
   const now = new Date();
@@ -47,8 +28,6 @@ function daysUntil(dateStr: string): number {
   return Math.round((exp.getTime() - now.getTime()) / 86400000);
 }
 
-const TODAY = new Date("2026-05-25");
-
 function computeStatus(expiryDate: string): BatchStatus {
   const d = daysUntil(expiryDate);
   if (d < 0) return "expired";
@@ -56,92 +35,6 @@ function computeStatus(expiryDate: string): BatchStatus {
   return "ok";
 }
 
-const MOCK_BATCHES: Batch[] = [
-  {
-    id: "bat-001", productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001",
-    batchNumber: "BTH-2026-001", qty: 100, remainingQty: 45,
-    manufactureDate: "2025-11-01", expiryDate: "2026-05-20",
-    locationId: "loc-warehouse", status: "expired", receivedAt: "2025-11-10",
-    supplierId: "sup-001", costPrice: 820,
-  },
-  {
-    id: "bat-002", productId: "prod-002", productName: "Несессер водонепроницаемый", sku: "NSS-002",
-    batchNumber: "BTH-2026-002", qty: 80, remainingQty: 80,
-    manufactureDate: "2026-01-15", expiryDate: "2026-05-28",
-    locationId: "loc-warehouse", status: "expiring_soon", receivedAt: "2026-01-20",
-    supplierId: "sup-001", costPrice: 540,
-  },
-  {
-    id: "bat-003", productId: "prod-002", productName: "Несессер водонепроницаемый", sku: "NSS-002",
-    batchNumber: "BTH-2026-003", qty: 60, remainingQty: 55,
-    manufactureDate: "2026-02-01", expiryDate: "2026-06-01",
-    locationId: "loc-store", status: "expiring_soon", receivedAt: "2026-02-05",
-    supplierId: "sup-001", costPrice: 540,
-  },
-  {
-    id: "bat-004", productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003",
-    batchNumber: "BTH-2026-004", qty: 200, remainingQty: 120,
-    manufactureDate: "2026-01-01", expiryDate: "2026-06-15",
-    locationId: "loc-warehouse", status: "ok", receivedAt: "2026-01-05",
-    supplierId: "sup-002", costPrice: 290,
-  },
-  {
-    id: "bat-005", productId: "prod-005", productName: "Кофе зерновой 250г", sku: "COF-005",
-    batchNumber: "BTH-2026-005", qty: 50, remainingQty: 30,
-    manufactureDate: "2025-12-01", expiryDate: "2026-05-30",
-    locationId: "loc-warehouse", status: "expiring_soon", receivedAt: "2025-12-10",
-    supplierId: "sup-004", costPrice: 680,
-  },
-  {
-    id: "bat-006", productId: "prod-005", productName: "Кофе зерновой 250г", sku: "COF-005",
-    batchNumber: "BTH-2026-006", qty: 100, remainingQty: 90,
-    manufactureDate: "2026-02-15", expiryDate: "2026-08-15",
-    locationId: "loc-warehouse", status: "ok", receivedAt: "2026-02-20",
-    supplierId: "sup-004", costPrice: 680,
-  },
-  {
-    id: "bat-007", productId: "prod-006", productName: "Фильтры для кофе 100 шт", sku: "FLT-006",
-    batchNumber: "BTH-2026-007", qty: 300, remainingQty: 280,
-    manufactureDate: "2025-09-01", expiryDate: "2026-09-01",
-    locationId: "loc-warehouse", status: "ok", receivedAt: "2025-09-10",
-    supplierId: "sup-004", costPrice: 180,
-  },
-  {
-    id: "bat-008", productId: "prod-003", productName: "Компрессионные мешки 3 шт", sku: "CMP-003",
-    batchNumber: "BTH-2026-008", qty: 150, remainingQty: 14,
-    manufactureDate: "2025-10-01", expiryDate: "2026-05-24",
-    locationId: "loc-store", status: "expired", receivedAt: "2025-10-05",
-    supplierId: "sup-002", costPrice: 290,
-  },
-  {
-    id: "bat-009", productId: "prod-001", productName: "Органайзер для путешествий", sku: "ORG-001",
-    batchNumber: "BTH-2026-009", qty: 120, remainingQty: 57,
-    manufactureDate: "2026-03-01", expiryDate: "2026-09-01",
-    locationId: "loc-warehouse", status: "ok", receivedAt: "2026-03-10",
-    supplierId: "sup-001", costPrice: 820,
-  },
-  {
-    id: "bat-010", productId: "prod-004", productName: "Замок для чемодана TSA", sku: "LCK-004",
-    batchNumber: "BTH-2026-010", qty: 200, remainingQty: 180,
-    manufactureDate: "2026-01-01", expiryDate: "2027-01-01",
-    locationId: "loc-warehouse", status: "ok", receivedAt: "2026-01-15",
-    supplierId: "sup-002", costPrice: 340,
-  },
-  {
-    id: "bat-011", productId: "prod-006", productName: "Фильтры для кофе 100 шт", sku: "FLT-006",
-    batchNumber: "BTH-2026-011", qty: 100, remainingQty: 22,
-    manufactureDate: "2024-11-01", expiryDate: "2026-05-31",
-    locationId: "loc-store", status: "expiring_soon", receivedAt: "2024-11-10",
-    supplierId: "sup-004", costPrice: 180,
-  },
-  {
-    id: "bat-012", productId: "prod-004", productName: "Замок для чемодана TSA", sku: "LCK-004",
-    batchNumber: "BTH-2026-012", qty: 80, remainingQty: 0,
-    manufactureDate: "2025-06-01", expiryDate: "2026-05-22",
-    locationId: "loc-returns", status: "quarantine", receivedAt: "2025-06-10",
-    supplierId: "sup-002", costPrice: 340,
-  },
-];
 
 const STATUS_CONFIG: Record<BatchStatus, { label: string; color: string; bg: string }> = {
   ok:             { label: "В норме",       color: "text-[var(--c-green)]",  bg: "bg-[var(--c-green)]/10" },
@@ -167,9 +60,8 @@ function fmt(n: number) {
 }
 
 export function ExpiryTracker() {
-  const { products, locations, suppliers } = useInventory();
+  const { products, locations, suppliers, batches, actions } = useInventory();
   const getLocationName = (id: string) => locations.find(l => l.id === id)?.name ?? id;
-  const [batches, setBatches] = useState<Batch[]>(MOCK_BATCHES);
   const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [searchQ, setSearchQ] = useState("");
@@ -210,7 +102,7 @@ export function ExpiryTracker() {
   }, [batches, statusFilter, locationFilter, searchQ]);
 
   const fefoByProduct = useMemo(() => {
-    const map: Record<string, Batch[]> = {};
+    const map: Record<string, InventoryBatch[]> = {};
     batches
       .filter(b => b.status !== "expired" && b.status !== "quarantine" && b.remainingQty > 0)
       .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())
@@ -228,15 +120,17 @@ export function ExpiryTracker() {
   }, [fefoByProduct]);
 
   function handleWriteOffExpired() {
-    setBatches(prev => prev.map(b => daysUntil(b.expiryDate) < 0 && b.status !== "quarantine" ? { ...b, remainingQty: 0, status: "expired" as BatchStatus } : b));
+    batches
+      .filter((b) => daysUntil(b.expiryDate) < 0 && b.status !== "quarantine")
+      .forEach((b) => actions.writeOffBatch(b.id));
   }
 
   function handleWriteOff(id: string) {
-    setBatches(prev => prev.map(b => b.id === id ? { ...b, remainingQty: 0 } : b));
+    actions.writeOffBatch(id);
   }
 
   function handleQuarantine(id: string) {
-    setBatches(prev => prev.map(b => b.id === id ? { ...b, status: "quarantine" as BatchStatus } : b));
+    actions.quarantineBatch(id);
   }
 
   function handleProductSearch(q: string) {
@@ -252,7 +146,7 @@ export function ExpiryTracker() {
   function handleRegister() {
     if (!form.productId || !form.batchNumber || !form.expiryDate || !form.qty) return;
     const status = computeStatus(form.expiryDate);
-    setBatches(prev => [{
+    const newBatch: InventoryBatch = {
       id: `bat-${Date.now()}`,
       productId: form.productId,
       productName: form.productName,
@@ -260,14 +154,15 @@ export function ExpiryTracker() {
       batchNumber: form.batchNumber,
       qty: parseInt(form.qty),
       remainingQty: parseInt(form.qty),
-      manufactureDate: form.manufactureDate,
+      manufactureDate: form.manufactureDate || undefined,
       expiryDate: form.expiryDate,
       locationId: form.locationId,
       status,
-      receivedAt: TODAY.toISOString().split("T")[0],
+      receivedAt: new Date().toISOString().split("T")[0],
       supplierId: form.supplierId || undefined,
       costPrice: products.find(p => p.id === form.productId)?.costPrice ?? 0,
-    }, ...prev]);
+    };
+    actions.registerBatch(newBatch);
     setShowRegister(false);
     setForm({ productSearch: "", productId: "", productName: "", sku: "", batchNumber: "", manufactureDate: "", expiryDate: "", locationId: "loc-warehouse", qty: "", supplierId: "" });
   }
