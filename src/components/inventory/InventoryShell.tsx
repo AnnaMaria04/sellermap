@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -18,23 +19,60 @@ import {
   Settings,
   FileText,
   Plug,
+  Bell,
+  Lock,
+  Menu,
+  X,
 } from "lucide-react";
 
-const tabs = [
-  { label: "Обзор",           href: "/inventory",                   icon: Home },
-  { label: "Товары",          href: "/inventory/products",          icon: Package },
-  { label: "Заказы поставщикам", href: "/inventory/purchase-orders", icon: ShoppingCart },
-  { label: "Перемещения",     href: "/inventory/transfers",         icon: ArrowLeftRight },
-  { label: "Возвраты",        href: "/inventory/returns",           icon: RotateCcw },
-  { label: "Инвентаризация",  href: "/inventory/stocktake",         icon: ClipboardList },
-  { label: "История",         href: "/inventory/history",           icon: History },
-  { label: "Поставщики",      href: "/inventory/suppliers",         icon: Truck },
-  { label: "Склады",          href: "/inventory/locations",         icon: MapPin },
-  { label: "Комплекты",       href: "/inventory/bundles",           icon: Layers },
-  { label: "Отчёты",          href: "/inventory/reports",           icon: FileText },
-  { label: "Интеграции",      href: "/inventory/integrations",      icon: Plug },
-  { label: "Аналитика",       href: "/inventory/analytics",         icon: BarChart3 },
-  { label: "Настройки",       href: "/inventory/settings",          icon: Settings },
+type NavItem = { label: string; href: string; icon: React.ElementType };
+type NavGroup = { title: string | null; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: null,
+    items: [{ label: "Обзор", href: "/inventory", icon: Home }],
+  },
+  {
+    title: "Каталог",
+    items: [
+      { label: "Товары", href: "/inventory/products", icon: Package },
+      { label: "Комплекты", href: "/inventory/bundles", icon: Layers },
+    ],
+  },
+  {
+    title: "Склад",
+    items: [
+      { label: "Резервы", href: "/inventory/reservations", icon: Lock },
+      { label: "Перемещения", href: "/inventory/transfers", icon: ArrowLeftRight },
+      { label: "Инвентаризация", href: "/inventory/stocktake", icon: ClipboardList },
+      { label: "Возвраты", href: "/inventory/returns", icon: RotateCcw },
+      { label: "Локации", href: "/inventory/locations", icon: MapPin },
+      { label: "История", href: "/inventory/history", icon: History },
+    ],
+  },
+  {
+    title: "Закупки",
+    items: [
+      { label: "Заказы поставщикам", href: "/inventory/purchase-orders", icon: ShoppingCart },
+      { label: "Поставщики", href: "/inventory/suppliers", icon: Truck },
+    ],
+  },
+  {
+    title: "Аналитика",
+    items: [
+      { label: "Аналитика", href: "/inventory/analytics", icon: BarChart3 },
+      { label: "Отчёты", href: "/inventory/reports", icon: FileText },
+    ],
+  },
+  {
+    title: "Система",
+    items: [
+      { label: "Уведомления", href: "/inventory/notifications", icon: Bell },
+      { label: "Интеграции", href: "/inventory/integrations", icon: Plug },
+      { label: "Настройки", href: "/inventory/settings", icon: Settings },
+    ],
+  },
 ];
 
 interface Props {
@@ -44,62 +82,109 @@ interface Props {
   actions?: React.ReactNode;
 }
 
+function isItemActive(pathname: string, href: string): boolean {
+  if (href === "/inventory") return pathname === "/inventory";
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-5 px-3 py-4">
+      {NAV_GROUPS.map((group, gi) => (
+        <div key={group.title ?? `g-${gi}`} className="flex flex-col gap-0.5">
+          {group.title && (
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--c-text3)]">
+              {group.title}
+            </p>
+          )}
+          {group.items.map(({ label, href, icon: Icon }) => {
+            const active = isItemActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+                  active
+                    ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                    : "text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
+                )}
+              >
+                <Icon size={16} className="shrink-0" />
+                <span className="truncate">{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
 export function InventoryShell({ children, title, subtitle, actions }: Props) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const currentLabel =
+    NAV_GROUPS.flatMap((g) => g.items).find((i) => isItemActive(pathname, i.href))?.label ?? "Склад";
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
-      {/* Sub-navigation */}
-      <div className="border-b border-[var(--c-border)] bg-[var(--c-bg)] sticky top-16 z-30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex gap-0 overflow-x-auto hide-scrollbar">
-            {tabs.map(({ label, href, icon: Icon }) => {
-              const isActive = pathname === href || (href !== "/inventory" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={cn(
-                    "flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3.5 text-sm font-medium transition",
-                    isActive
-                      ? "border-[var(--c-green)] text-[var(--c-text)]"
-                      : "border-transparent text-[var(--c-text2)] hover:border-[var(--c-border2)] hover:text-[var(--c-text)]",
-                  )}
-                >
-                  <Icon size={15} />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
+      <div className="mx-auto flex max-w-7xl">
+        {/* Desktop sidebar */}
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-[var(--c-border)] bg-[var(--c-bg2)] lg:block">
+          <NavList pathname={pathname} />
+        </aside>
+
+        {/* Mobile drawer */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <aside className="absolute left-0 top-0 h-full w-72 overflow-y-auto border-r border-[var(--c-border)] bg-[var(--c-bg2)]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)]">
+                <span className="text-sm font-semibold text-[var(--c-text)]">Меню склада</span>
+                <button onClick={() => setMobileOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
+                  <X size={16} />
+                </button>
+              </div>
+              <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+            </aside>
+          </div>
+        )}
+
+        {/* Main column */}
+        <div className="min-w-0 flex-1">
+          {/* Mobile nav trigger */}
+          <div className="flex items-center gap-3 border-b border-[var(--c-border)] px-4 py-3 lg:hidden">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+            >
+              <Menu size={18} />
+            </button>
+            <span className="text-sm font-medium text-[var(--c-text)]">{currentLabel}</span>
+          </div>
+
+          {/* Page header */}
+          {(title || actions) && (
+            <div className="border-b border-[var(--c-border)] bg-[var(--c-bg2)]">
+              <div className="px-4 py-5 sm:px-6 lg:px-8">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    {title && <h1 className="text-xl font-semibold text-[var(--c-text)]">{title}</h1>}
+                    {subtitle && <p className="mt-0.5 text-sm text-[var(--c-text2)]">{subtitle}</p>}
+                  </div>
+                  {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Body */}
+          <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
         </div>
       </div>
-
-      {/* Page header */}
-      {(title || actions) && (
-        <div className="border-b border-[var(--c-border)] bg-[var(--c-bg2)]">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                {title && (
-                  <h1 className="text-xl font-semibold text-[var(--c-text)]">{title}</h1>
-                )}
-                {subtitle && (
-                  <p className="mt-0.5 text-sm text-[var(--c-text2)]">{subtitle}</p>
-                )}
-              </div>
-              {actions && (
-                <div className="flex shrink-0 items-center gap-2">{actions}</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Page body */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
     </div>
   );
 }
