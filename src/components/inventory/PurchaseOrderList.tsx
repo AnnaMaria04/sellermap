@@ -433,7 +433,7 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
           {receiving && (
             <div className="flex gap-2">
               <button
-                onClick={() => setReceiving(false)}
+                onClick={() => { setReceiving(false); setReceiveQtys({}); }}
                 className="flex-1 h-10 rounded-lg border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
               >
                 Отмена

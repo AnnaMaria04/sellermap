@@ -271,7 +271,9 @@ export function InventoryOverview() {
           href="/inventory/history"
           linkLabel="Вся история"
         >
-          {recentMovements.map((m) => {
+          {recentMovements.length === 0 ? (
+            <p className="py-6 text-center text-sm text-[var(--c-text3)]">Операций пока нет</p>
+          ) : recentMovements.map((m) => {
             const isPositive = m.qtyDelta > 0;
             return (
               <div

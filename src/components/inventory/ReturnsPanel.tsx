@@ -120,6 +120,18 @@ export function ReturnsPanel() {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [formSaved, setFormSaved] = useState(false);
 
+  function resetForm() {
+    setFormChannel("wildberries");
+    setFormOrderRef("");
+    setFormCustomer("");
+    setFormReason("wrong_item");
+    setFormNote("");
+    setFormLines([]);
+    setProductSearch("");
+    setShowProductSearch(false);
+    setFormSaved(false);
+  }
+
   const pendingCount = returns.filter((r) => r.status === "pending").length;
   const inspectedCount = returns.filter((r) => r.status === "inspected").length;
   const restockedCount = returns.filter((r) => r.status === "restocked").length;
@@ -189,14 +201,8 @@ export function ReturnsPanel() {
     actions.createReturn(returnRecord);
     setFormSaved(true);
     setTimeout(() => {
-      setFormSaved(false);
       setShowForm(false);
-      setFormChannel("wildberries");
-      setFormOrderRef("");
-      setFormCustomer("");
-      setFormReason("wrong_item");
-      setFormNote("");
-      setFormLines([]);
+      resetForm();
     }, 700);
   }
 
@@ -327,11 +333,11 @@ export function ReturnsPanel() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowForm(false); resetForm(); }} />
           <div className="relative ml-auto flex h-full w-full max-w-lg flex-col bg-[var(--c-bg)] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[var(--c-border)] px-6 py-4">
               <h2 className="text-lg font-semibold text-[var(--c-text)]">Создать возврат</h2>
-              <button onClick={() => setShowForm(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
+              <button onClick={() => { setShowForm(false); resetForm(); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
                 <X size={16} />
               </button>
             </div>
