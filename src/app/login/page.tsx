@@ -48,6 +48,12 @@ function LoginForm() {
     setMode("signin");
   }
 
+  function enterAsDeveloper() {
+    // Set the bypass cookie the proxy checks (1 year). Demo data lives in the browser.
+    document.cookie = `sm_dev_bypass=1; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    router.push(next);
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--c-bg)] px-4">
       <div className="w-full max-w-sm">
@@ -136,6 +142,16 @@ function LoginForm() {
               className="text-xs text-[var(--c-text3)] transition hover:text-[var(--c-text2)]"
             >
               Тест-вход
+            </button>
+          </div>
+
+          <div className="mt-4 border-t border-[var(--c-border)] pt-4">
+            <button
+              type="button"
+              onClick={enterAsDeveloper}
+              className="w-full rounded-lg border border-dashed border-[var(--c-border2)] py-2 text-xs font-medium text-[var(--c-text3)] transition hover:border-[var(--c-text3)] hover:text-[var(--c-text2)]"
+            >
+              Войти как разработчик (без пароля)
             </button>
           </div>
         </div>
