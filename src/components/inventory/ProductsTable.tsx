@@ -33,6 +33,7 @@ import { StockStatusBadge, ProductStatusBadge } from "./StockStatusBadge";
 import { EmptyState } from "@/components/inventory/ui/EmptyState";
 import { StockStat } from "@/components/inventory/ui/StockTerms";
 import { cn } from "@/lib/utils";
+import { computeProductMetrics, type ABCClass } from "@/lib/inventory/analytics";
 
 type SortKey = "name" | "stock" | "price" | "costPrice" | "margin" | "updatedAt";
 type SortDir = "asc" | "desc";
@@ -51,19 +52,38 @@ function SortButton({
   );
 }
 
-export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () => void; onImport?: () => void }) {
-  const { products, locations } = useInventory();
+function AbcBadge({ cls }: { cls: ABCClass }) {
+  return (
+    <span className={cn(
+      "inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold",
+      cls === "A" ? "bg-[var(--c-green-dim)] text-[var(--c-green)]" :
+      cls === "B" ? "bg-[var(--c-amber-dim)] text-[var(--c-amber)]" :
+      "bg-[var(--c-bg3)] text-[var(--c-text3)]",
+    )}>
+      {cls}
+    </span>
+  );
+}
+
+export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { onAddProduct?: () => void; onImport?: () => void; initialStockFilter?: "all" | "low" | "out" | "in" }) {
+  const { products, locations, movements } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<ProductType | "all">("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out" | "in">("all");
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out" | "in">(initialStockFilter ?? "all");
+  const [abcFilter, setAbcFilter] = useState<ABCClass | "all">("all");
   const [showArchived, setShowArchived] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  const metricsMap = useMemo(() => {
+    const metrics = computeProductMetrics(products, movements);
+    return new Map(metrics.map((m) => [m.product.id, m]));
+  }, [products, movements]);
 
   const filtered = useMemo(() => {
     let list = [...products];
@@ -119,8 +139,12 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
       return 0;
     });
 
+    if (abcFilter !== "all") {
+      list = list.filter((p) => metricsMap.get(p.id)?.abcClass === abcFilter);
+    }
+
     return list;
-  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, showArchived, sortKey, sortDir, products, locations]);
+  }, [search, statusFilter, typeFilter, locationFilter, stockFilter, abcFilter, showArchived, sortKey, sortDir, products, locations, metricsMap]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -156,6 +180,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
     typeFilter !== "all",
     locationFilter !== "all",
     stockFilter !== "all",
+    abcFilter !== "all",
     showArchived,
   ].filter(Boolean).length;
 
@@ -277,6 +302,17 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
               { value: "out", label: "Нет" },
             ]}
           />
+          <FilterSelect
+            label="ABC-класс"
+            value={abcFilter}
+            onChange={(v) => setAbcFilter(v as ABCClass | "all")}
+            options={[
+              { value: "all", label: "Все классы" },
+              { value: "A", label: "A — ключевые (80% ценности)" },
+              { value: "B", label: "B — важные (15%)" },
+              { value: "C", label: "C — остальные (5%)" },
+            ]}
+          />
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -288,7 +324,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
           </label>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setLocationFilter("all"); setStockFilter("all"); setShowArchived(false); }}
+              onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setLocationFilter("all"); setStockFilter("all"); setAbcFilter("all"); setShowArchived(false); }}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--c-text2)] hover:text-[var(--c-red)] transition"
             >
               <X size={12} />
@@ -396,6 +432,9 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                     <th className="px-4 py-3 text-left">
                       <span className="text-xs font-medium text-[var(--c-text2)]">Тип</span>
                     </th>
+                    <th className="px-4 py-3 text-center">
+                      <span className="text-xs font-medium text-[var(--c-text2)]">ABC</span>
+                    </th>
                     <th className="w-12 px-4 py-3" />
                   </tr>
                 </thead>
@@ -404,6 +443,7 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                     const available = getAvailableStock(product);
                     const stockStatus = getStockStatus(product);
                     const isSelected = selected.has(product.id);
+                    const productMetrics = metricsMap.get(product.id);
 
                     return (
                       <tr
@@ -468,6 +508,14 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                             </span>
                             <StockStat term="incoming" value={product.inTransitUnits} className="flex justify-end" />
                             <StockStat term="committed" value={product.reservedUnits} className="flex justify-end" />
+                            {productMetrics && isFinite(productMetrics.daysOfInventory) && (
+                              <p className={cn(
+                                "text-[10px] tabular",
+                                productMetrics.daysOfInventory < 14 ? "text-[var(--c-amber)]" : "text-[var(--c-text3)]",
+                              )}>
+                                {Math.round(productMetrics.daysOfInventory)} дн.
+                              </p>
+                            )}
                           </div>
                         </td>
 
@@ -502,6 +550,11 @@ export function ProductsTable({ onAddProduct, onImport }: { onAddProduct?: () =>
                           <span className="text-xs text-[var(--c-text2)]">
                             {PRODUCT_TYPE_LABELS[product.productType]}
                           </span>
+                        </td>
+
+                        {/* ABC class */}
+                        <td className="px-4 py-3 text-center">
+                          {productMetrics && <AbcBadge cls={productMetrics.abcClass} />}
                         </td>
 
                         {/* Actions */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { ProductsTable } from "@/components/inventory/ProductsTable";
 import { AddProductForm } from "@/components/inventory/AddProductForm";
@@ -15,6 +16,8 @@ import { cn } from "@/lib/utils";
 type SubTab = "products" | "pricelists" | "allocation";
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const stockParam = searchParams.get("stock") as "low" | "out" | "in" | null;
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
@@ -52,6 +55,7 @@ export default function ProductsPage() {
         <ProductsTable
           onAddProduct={() => setShowAddProduct(true)}
           onImport={() => setShowImport(true)}
+          initialStockFilter={stockParam ?? "all"}
         />
       )}
       {subTab === "pricelists" && <PriceListsPanel />}
