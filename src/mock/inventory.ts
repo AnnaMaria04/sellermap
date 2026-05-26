@@ -751,6 +751,7 @@ export interface Order {
   status: OrderStatus;
   items: OrderItem[];
   locationId: string;
+  customerId?: string;
   customerName?: string;
   region?: string;              // delivery region
   revenue: number;              // sum(unitPrice*qty)

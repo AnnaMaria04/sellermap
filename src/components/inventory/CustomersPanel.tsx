@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 import type { Customer, CustomerTier } from "@/mock/inventory";
@@ -431,6 +432,7 @@ function DetailDrawer({ customer, onClose }: DetailDrawerProps) {
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
 export function CustomersPanel() {
+  const router = useRouter();
   const { customers } = useInventory();
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
@@ -579,7 +581,7 @@ export function CustomersPanel() {
                 {filtered.map((customer) => (
                   <tr
                     key={customer.id}
-                    onClick={() => setSelected(customer)}
+                    onClick={() => router.push(`/inventory/customers/${customer.id}`)}
                     className="group cursor-pointer border-b border-[var(--c-border)] last:border-0 hover:bg-[var(--c-bg3)] transition-colors"
                   >
                     <td className="px-4 py-3">
