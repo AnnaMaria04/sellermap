@@ -50,14 +50,15 @@ type NavSection = { title?: string; items: NavItem[] };
 const NAV: NavSection[] = [
   {
     items: [
-      { label: "Обзор",    href: "/inventory",             icon: Home },
-      { label: "Заказы",   href: "/inventory/orders",      icon: ShoppingBag },
+      { label: "Обзор",          href: "/inventory",          icon: Home },
+      { label: "Заказы",         href: "/inventory/orders",   icon: ShoppingBag },
       {
-        label: "Товары",   href: "/inventory/products",    icon: Package,
+        label: "Товары",         href: "/inventory/products", icon: Package,
         children: [{ label: "Комплекты", href: "/inventory/bundles" }],
       },
+      { label: "Инвентаризация", href: "/inventory/stocktake", icon: ClipboardList },
       {
-        label: "Клиенты",  href: "/inventory/customers",   icon: Users,
+        label: "Клиенты",        href: "/inventory/customers", icon: Users,
         children: [{ label: "Акции и промо", href: "/inventory/promotions" }],
       },
     ],
@@ -66,13 +67,12 @@ const NAV: NavSection[] = [
     title: "Операции",
     items: [
       {
-        label: "Закупки",        href: "/inventory/purchase-orders", icon: Truck,
+        label: "Закупки",     href: "/inventory/purchase-orders", icon: Truck,
         children: [{ label: "Поставщики", href: "/inventory/suppliers" }],
       },
-      { label: "Перемещения",    href: "/inventory/transfers",       icon: ArrowLeftRight },
-      { label: "Инвентаризация", href: "/inventory/stocktake",       icon: ClipboardList },
-      { label: "Возвраты",       href: "/inventory/returns",         icon: RotateCcw },
-      { label: "История",        href: "/inventory/history",         icon: History },
+      { label: "Перемещения", href: "/inventory/transfers",       icon: ArrowLeftRight },
+      { label: "Возвраты",    href: "/inventory/returns",         icon: RotateCcw },
+      { label: "История",     href: "/inventory/history",         icon: History },
     ],
   },
   {
