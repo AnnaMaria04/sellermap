@@ -50,6 +50,10 @@ export default function ProductDetailPage({ params }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [receiveQty, setReceiveQty] = useState(1);
+  const [receiveLocId, setReceiveLocId] = useState("");
+  const [receiveNote, setReceiveNote] = useState("");
   const [form, setForm] = useState({
     name: product?.name ?? "",
     category: product?.category ?? "",
@@ -122,10 +126,13 @@ export default function ProductDetailPage({ params }: Props) {
             <Edit3 size={14} />
             Редактировать
           </button>
-          <button className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition">
+          <Link
+            href="/inventory/purchase-orders"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+          >
             <ShoppingCart size={14} />
             Заказать
-          </button>
+          </Link>
         </div>
       }
     >
@@ -495,7 +502,7 @@ export default function ProductDetailPage({ params }: Props) {
                 Дублировать товар
               </button>
               <button
-                onClick={() => router.push("/inventory/purchase-orders")}
+                onClick={() => { setReceiveLocId(locations[0]?.id ?? ""); setReceiveQty(1); setReceiveNote(""); setReceiveOpen(true); }}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
               >
                 <Truck size={14} />
@@ -521,6 +528,69 @@ export default function ProductDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Quick receive modal */}
+      {receiveOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-[var(--c-bg2)] border border-[var(--c-border2)] rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Принять товар</h2>
+              <button onClick={() => setReceiveOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] transition"><X size={16} /></button>
+            </div>
+            <p className="text-sm text-[var(--c-text2)]">«{product.name}»</p>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">Локация</label>
+                <select
+                  value={receiveLocId}
+                  onChange={(e) => setReceiveLocId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                >
+                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">Количество</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={receiveQty}
+                  onChange={(e) => setReceiveQty(Math.max(1, Number(e.target.value)))}
+                  className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] tabular outline-none focus:border-[var(--c-green)]"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">Примечание (необязательно)</label>
+                <input
+                  type="text"
+                  value={receiveNote}
+                  onChange={(e) => setReceiveNote(e.target.value)}
+                  placeholder="Например: поставка от поставщика"
+                  className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setReceiveOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition"
+              >
+                Отмена
+              </button>
+              <button
+                disabled={!receiveLocId || receiveQty < 1}
+                onClick={() => {
+                  actions.adjustStock(product.id, receiveLocId, receiveQty, "receipt", receiveNote || "Быстрая приёмка товара");
+                  setReceiveOpen(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Принять +{receiveQty} шт.
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Archive confirm dialog */}
       {confirmArchive && (
