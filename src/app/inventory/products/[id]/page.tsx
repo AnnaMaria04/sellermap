@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Edit3,
@@ -46,7 +47,9 @@ export default function ProductDetailPage({ params }: Props) {
   const { products, movements: allMovements, suppliers, locations, actions } = useInventory();
   const product = products.find((p) => p.id === id);
 
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [form, setForm] = useState({
     name: product?.name ?? "",
     category: product?.category ?? "",
@@ -353,7 +356,7 @@ export default function ProductDetailPage({ params }: Props) {
             <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-6">
               <div className="flex items-center justify-between mb-4 border-b border-[var(--c-border)] pb-2">
                 <h2 className="text-sm font-semibold text-[var(--c-text)]">История движений</h2>
-                <Link href="/inventory/history" className="text-xs text-[var(--c-text3)] hover:text-[var(--c-text)] transition">
+                <Link href={`/inventory/history?product=${product.id}`} className="text-xs text-[var(--c-text3)] hover:text-[var(--c-text)] transition">
                   Вся история →
                 </Link>
               </div>
@@ -465,20 +468,46 @@ export default function ProductDetailPage({ params }: Props) {
           <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
             <h3 className="mb-3 text-sm font-semibold text-[var(--c-text)]">Действия</h3>
             <div className="space-y-1.5">
-              {[
-                { icon: Barcode, label: "Печать этикетки" },
-                { icon: Copy, label: "Дублировать товар" },
-                { icon: Truck, label: "Принять товар" },
-                { icon: Archive, label: "Архивировать" },
-              ].map((action) => (
-                <button
-                  key={action.label}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
-                >
-                  <action.icon size={14} />
-                  {action.label}
-                </button>
-              ))}
+              <button
+                onClick={() => window.print()}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+              >
+                <Barcode size={14} />
+                Печать этикетки
+              </button>
+              <button
+                onClick={() => {
+                  const newId = `prod-copy-${Date.now()}`;
+                  const copy = {
+                    ...product,
+                    id: newId,
+                    name: `Копия — ${product.name}`,
+                    sku: `${product.sku}-2`,
+                    createdAt: new Date().toISOString().split("T")[0],
+                    updatedAt: new Date().toISOString().split("T")[0],
+                  };
+                  actions.addProduct(copy);
+                  router.push(`/inventory/products/${newId}`);
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+              >
+                <Copy size={14} />
+                Дублировать товар
+              </button>
+              <button
+                onClick={() => router.push("/inventory/purchase-orders")}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+              >
+                <Truck size={14} />
+                Принять товар
+              </button>
+              <button
+                onClick={() => setConfirmArchive(true)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--c-red)] hover:bg-[var(--c-red-dim)] transition"
+              >
+                <Archive size={14} />
+                Архивировать
+              </button>
             </div>
           </div>
 
@@ -492,6 +521,39 @@ export default function ProductDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Archive confirm dialog */}
+      {confirmArchive && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-[var(--c-bg2)] border border-[var(--c-border2)] rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">
+                Архивировать товар?
+              </h2>
+              <p className="text-sm text-[var(--c-text2)]">
+                «{product.name}» будет скрыт из каталога и кассы. Вы сможете восстановить его в любое время.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setConfirmArchive(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  actions.archiveProduct(product.id);
+                  router.push("/inventory/products");
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--c-red)] text-white text-sm font-semibold hover:opacity-90 transition"
+              >
+                Архивировать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit drawer */}
       {editing && (

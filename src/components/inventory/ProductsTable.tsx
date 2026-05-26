@@ -239,6 +239,26 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
             Импорт
           </button>
           <button
+            onClick={() => {
+              const rows = [
+                ["Название", "Артикул", "Категория", "Тип", "Цена", "Себестоимость", "В наличии", "Статус"],
+                ...filtered.map((p) => [
+                  p.name,
+                  p.sku,
+                  p.category,
+                  p.productType,
+                  p.price,
+                  p.costPrice,
+                  p.totalPhysical - p.reservedUnits - p.damagedUnits,
+                  p.status,
+                ]),
+              ];
+              const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+              a.download = `товары_${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+            }}
             className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-3 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
           >
             <Download size={14} />

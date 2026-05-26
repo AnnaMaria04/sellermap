@@ -135,7 +135,28 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
         </select>
 
         <div className="ml-auto flex gap-2">
-          <button className="flex h-11 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+          <button
+            onClick={() => {
+              const rows = [
+                ["Номер", "Поставщик", "Статус", "Дата создания", "Ожидается", "Сумма", "Оплачено"],
+                ...filtered.map((po) => [
+                  po.id.toUpperCase(),
+                  po.supplierName,
+                  po.status,
+                  po.createdAt.slice(0, 10),
+                  po.expectedArrival ?? "",
+                  po.totalAmount,
+                  po.paymentStatus,
+                ]),
+              ];
+              const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+              a.download = `заказы_поставщикам_${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+            }}
+            className="flex h-11 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+          >
             <Download size={14} />
             <span className="hidden sm:inline">Экспорт</span>
           </button>

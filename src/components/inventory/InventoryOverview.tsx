@@ -125,9 +125,9 @@ export function InventoryOverview() {
           { label: "Открыть кассу", icon: ShoppingCart, href: "/pos", color: "green" },
           { label: "Принять товар", icon: Truck, href: "/inventory/purchase-orders", color: "blue" },
           { label: "Заказы клиентов", icon: Package, href: "/inventory/orders", color: "amber" },
-          { label: "Переместить", icon: ArrowLeftRight, href: "/inventory/transfers", color: "default" },
+          { label: "Переместить", icon: ArrowLeftRight, href: "/inventory/transfers?open=create", color: "default" },
           { label: "Клиенты", icon: Bell, href: "/inventory/customers", color: "default" },
-          { label: "Инвентаризация", icon: ClipboardList, href: "/inventory/stocktake", color: "default" },
+          { label: "Инвентаризация", icon: ClipboardList, href: "/inventory/stocktake?open=create", color: "default" },
         ].map((action) => (
           <Link
             key={action.label}
@@ -216,25 +216,48 @@ export function InventoryOverview() {
           {recentOrders.length === 0 ? (
             <EmptyRow message="Нет активных заказов" />
           ) : (
-            recentOrders.map((po) => (
-              <Link
-                key={po.id}
-                href="/inventory/purchase-orders"
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--c-bg3)] border border-[var(--c-border)]">
-                  <ShoppingCart size={14} className="text-[var(--c-text3)]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
-                  <p className="text-xs text-[var(--c-text3)] truncate">{po.supplierName}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <POStatusBadge status={po.status} />
-                  <p className="text-xs text-[var(--c-text3)] mt-1 tabular">{po.totalAmount.toLocaleString("ru-RU")} ₽</p>
-                </div>
-              </Link>
-            ))
+            recentOrders.map((po) => {
+              const isOverdue = po.expectedArrival &&
+                !["closed", "draft"].includes(po.status) &&
+                new Date(po.expectedArrival) < new Date();
+              const daysOver = isOverdue
+                ? Math.floor((Date.now() - new Date(po.expectedArrival!).getTime()) / 86400000)
+                : 0;
+              return (
+                <Link
+                  key={po.id}
+                  href={`/inventory/purchase-orders/${po.id}`}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--c-bg3)]",
+                    isOverdue && "bg-[var(--c-red-dim)]",
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                    isOverdue
+                      ? "bg-[var(--c-red-dim)] border-[var(--c-red)]/30"
+                      : "bg-[var(--c-bg3)] border-[var(--c-border)]",
+                  )}>
+                    {isOverdue
+                      ? <AlertTriangle size={14} className="text-[var(--c-red)]" />
+                      : <ShoppingCart size={14} className="text-[var(--c-text3)]" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
+                    <p className="text-xs text-[var(--c-text3)] truncate">{po.supplierName}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {isOverdue ? (
+                      <span className="text-xs font-medium text-[var(--c-red)]">Просрочен {daysOver} дн.</span>
+                    ) : (
+                      <POStatusBadge status={po.status} />
+                    )}
+                    <p className="text-xs text-[var(--c-text3)] mt-1 tabular">{po.totalAmount.toLocaleString("ru-RU")} ₽</p>
+                  </div>
+                </Link>
+              );
+            })
           )}
         </SectionCard>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -231,6 +231,15 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("open") === "create") {
+      setShowForm(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     let list = [...transfers];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -40,6 +40,15 @@ export function StocktakePanel({ onCreateStocktake }: Props) {
   const { stocktakes, locations, actions } = useInventory();
   const [selectedStocktake, setSelectedStocktake] = useState<Stocktake | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("open") === "create") {
+      setShowCreate(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
 
   const statusConfig: Record<StocktakeStatus, { label: string; icon: React.ReactNode; cls: string }> = {
     draft: {
