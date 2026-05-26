@@ -478,9 +478,27 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
               </button>
             </div>
           )}
-          <button className="flex w-full h-9 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+          <button
+            onClick={() => {
+              const rows = [
+                ["Заказ", po.id],
+                ["Поставщик", po.supplierName ?? po.supplierId],
+                ["Статус", po.status],
+                ["Сумма", String(po.totalAmount)],
+                [],
+                ["Товар", "SKU", "Заказано", "Получено", "Цена", "Сумма"],
+                ...po.items.map((it) => [it.productName, it.sku, String(it.qty), String(it.receivedQty ?? 0), String(it.unitCost), String(it.qty * it.unitCost)]),
+              ];
+              const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+              a.download = `${po.id}.csv`;
+              a.click();
+            }}
+            className="flex w-full h-9 items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+          >
             <FileText size={14} />
-            Скачать PDF
+            Скачать CSV
           </button>
           <Link
             href={`/inventory/purchase-orders/${po.id}`}

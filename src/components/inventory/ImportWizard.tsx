@@ -157,7 +157,16 @@ export function ImportWizard({ onClose }: Props) {
                   <p className="text-xs font-medium text-[var(--c-text2)]">Скачать шаблон</p>
                   <p className="text-xs text-[var(--c-text3)]">Готовый Excel-шаблон для заполнения</p>
                 </div>
-                <button className="ml-auto text-xs text-[var(--c-green)] hover:opacity-80 transition">
+                <button
+                  onClick={() => {
+                    const csv = "Название,Артикул,Штрихкод,Категория,Цена,Себестоимость,Остаток\nФутболка оверсайз,TSH-001,4600000000001,Одежда,1490,560,100\n";
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+                    a.download = "шаблон_импорта_товаров.csv";
+                    a.click();
+                  }}
+                  className="ml-auto text-xs text-[var(--c-green)] hover:opacity-80 transition"
+                >
                   Скачать
                 </button>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   X,
@@ -400,12 +401,13 @@ export function ExpiryTracker() {
                       >
                         <ShieldAlert size={13} />
                       </button>
-                      <button
+                      <Link
+                        href="/inventory/transfers"
                         title="Переместить"
                         className="rounded p-1.5 text-[var(--c-text3)] hover:text-[var(--c-blue)] hover:bg-[var(--c-blue)]/10 transition"
                       >
                         <ArrowLeftRight size={13} />
-                      </button>
+                      </Link>
                     </div>
                   </td>
                 </tr>

@@ -429,7 +429,10 @@ export default function ProductDetailPage({ params }: Props) {
                 <InfoRow label="Мин. заказ" value={supplier.minOrderQty ? `${supplier.minOrderQty} шт` : "—"} />
                 <InfoRow label="Условия" value={supplier.paymentTerms ?? "—"} />
               </div>
-              <button className="mt-3 flex w-full h-9 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition">
+              <button
+                onClick={() => router.push("/inventory/purchase-orders")}
+                className="mt-3 flex w-full h-9 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              >
                 <ShoppingCart size={14} />
                 Создать заказ
               </button>

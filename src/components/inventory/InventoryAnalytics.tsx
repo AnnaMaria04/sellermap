@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   TrendingDown,
   TrendingUp,
@@ -47,6 +48,7 @@ type Recommendation = {
 
 export function InventoryAnalytics() {
   const { products: PRODUCTS, locations } = useInventory();
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
   const stats = useMemo(() => getInventoryStats(PRODUCTS), [PRODUCTS]);
 
   const alerts: Alert[] = useMemo(() => {
@@ -200,13 +202,16 @@ export function InventoryAnalytics() {
             <EmptyState message="Нет уведомлений — всё в порядке!" icon={<Bell size={24} />} />
           ) : (
             <div className="space-y-2">
-              {alerts.slice(0, 6).map((alert) => (
+              {(showAllAlerts ? alerts : alerts.slice(0, 6)).map((alert) => (
                 <AlertCard key={alert.id} alert={alert} />
               ))}
               {alerts.length > 6 && (
-                <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] py-2.5 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
-                  Показать ещё {alerts.length - 6}
-                  <ArrowRight size={14} />
+                <button
+                  onClick={() => setShowAllAlerts((v) => !v)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--c-border2)] py-2.5 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                >
+                  {showAllAlerts ? "Свернуть" : `Показать ещё ${alerts.length - 6}`}
+                  <ArrowRight size={14} className={showAllAlerts ? "rotate-90" : ""} />
                 </button>
               )}
             </div>
@@ -380,9 +385,12 @@ function AlertCard({ alert }: { alert: Alert }) {
         <p className="text-xs opacity-80 truncate">{alert.message}</p>
       </div>
       {alert.action && (
-        <button className="shrink-0 rounded-lg border border-current px-2.5 py-1 text-xs font-medium opacity-80 hover:opacity-100 transition whitespace-nowrap">
+        <Link
+          href={alert.productId ? `/inventory/products/${alert.productId}` : "/inventory/products"}
+          className="shrink-0 rounded-lg border border-current px-2.5 py-1 text-xs font-medium opacity-80 hover:opacity-100 transition whitespace-nowrap"
+        >
           {alert.action}
-        </button>
+        </Link>
       )}
     </div>
   );
@@ -409,9 +417,12 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
         <p className="text-sm font-medium text-[var(--c-text)]">{rec.title}</p>
         <p className="text-xs text-[var(--c-text2)] mt-0.5 leading-relaxed">{rec.message}</p>
       </div>
-      <button className="shrink-0 rounded-lg border border-[var(--c-border2)] px-2.5 py-1 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+      <Link
+        href={rec.productId ? `/inventory/products/${rec.productId}` : "/inventory/products"}
+        className="shrink-0 rounded-lg border border-[var(--c-border2)] px-2.5 py-1 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+      >
         →
-      </button>
+      </Link>
     </div>
   );
 }
