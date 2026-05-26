@@ -12,7 +12,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts";
 import { TrendingUp, ShoppingCart, BarChart2, Percent } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
@@ -339,13 +338,9 @@ export function SalesChartPanel() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={85}
-                  innerRadius={48}
+                  outerRadius={90}
+                  innerRadius={52}
                   paddingAngle={2}
-                  label={({ name, percent }: { name?: string; percent?: number }) =>
-                    name && percent != null ? `${name} ${(percent * 100).toFixed(0)}%` : ""
-                  }
-                  labelLine={false}
                 >
                   {channelPieData.map((entry) => (
                     <Cell
@@ -366,11 +361,6 @@ export function SalesChartPanel() {
                     color: "var(--c-text)",
                   }}
                 />
-                <Legend
-                  formatter={(value) => (
-                    <span style={{ color: "var(--c-text2)", fontSize: 11 }}>{value}</span>
-                  )}
-                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -386,56 +376,37 @@ export function SalesChartPanel() {
           subtitle="Выручка и чистая прибыль по товарам (реализованные заказы)"
         >
           {top10Products.length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(220, top10Products.length * 36)}>
-              <BarChart
-                data={top10Products}
-                layout="vertical"
-                margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid horizontal={false} stroke="var(--c-border)" />
-                <XAxis
-                  type="number"
-                  stroke="var(--c-border)"
-                  tick={{ fill: "var(--c-text3)", fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={fmtShort}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={130}
-                  stroke="var(--c-border)"
-                  tick={{ fill: "var(--c-text2)", fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: "var(--c-bg3)" }}
-                />
-                <Bar
-                  dataKey="revenue"
-                  name="Выручка"
-                  fill="var(--c-blue)"
-                  radius={[0, 3, 3, 0]}
-                  maxBarSize={14}
-                />
-                <Bar
-                  dataKey="profit"
-                  name="Прибыль"
-                  fill="var(--c-green)"
-                  radius={[0, 3, 3, 0]}
-                  maxBarSize={14}
-                />
-                <Legend
-                  verticalAlign="top"
-                  formatter={(value) => (
-                    <span style={{ color: "var(--c-text2)", fontSize: 11 }}>{value}</span>
-                  )}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-0">
+              {/* header */}
+              <div className="grid grid-cols-[1fr_80px_80px] gap-2 px-1 pb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--c-text3)]">
+                <span>Товар</span>
+                <span className="text-right">Выручка</span>
+                <span className="text-right">Прибыль</span>
+              </div>
+              {(() => {
+                const maxRev = Math.max(...top10Products.map((p) => p.revenue), 1);
+                return top10Products.map((p, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[1fr_80px_80px] items-center gap-2 rounded-md px-1 py-2 hover:bg-[var(--c-bg3)] transition"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-[var(--c-text)]">{p.name}</p>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[var(--c-bg3)]">
+                        <div
+                          className="h-full rounded-full bg-[var(--c-blue)]"
+                          style={{ width: `${(p.revenue / maxRev) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-right text-sm tabular text-[var(--c-text)]">{fmt(p.revenue)} ₽</span>
+                    <span className={`text-right text-sm tabular ${p.profit >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>
+                      {p.profit >= 0 ? "" : "−"}{fmt(Math.abs(p.profit))} ₽
+                    </span>
+                  </div>
+                ));
+              })()}
+            </div>
           ) : (
             <div className="flex h-[220px] items-center justify-center text-sm text-[var(--c-text3)]">
               Нет данных

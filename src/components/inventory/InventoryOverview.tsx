@@ -11,21 +11,22 @@ import {
   ChevronRight,
   Truck,
   History,
-  Users,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import {
   getAvailableStock,
   getStockStatus,
-  getInventoryStats,
   getLowStockProducts,
-  getTotalInventoryValue,
-  PO_STATUS_LABELS,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
@@ -33,91 +34,130 @@ import { cn } from "@/lib/utils";
 import { computePnL } from "@/lib/inventory/finance";
 import { computeAlerts } from "@/lib/inventory/alerts";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-function fmtRub(n: number) {
-  return Math.abs(n).toLocaleString("ru-RU");
+function fmt(n: number) {
+  return Math.round(n).toLocaleString("ru-RU");
 }
 
 function formatDate(d: string) {
   return new Date(d).toLocaleString("ru-RU", { day: "numeric", month: "short" });
 }
 
-// ─── sub-components ─────────────────────────────────────────────────────────
+// ─── Shopify-style stat strip ─────────────────────────────────────────────────
 
-function SectionCard({
-  title,
-  icon,
-  href,
-  linkLabel,
-  count,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  href: string;
-  linkLabel?: string;
-  count?: number;
-  children: React.ReactNode;
+function StatStrip({ stats }: {
+  stats: { label: string; value: string; trend?: number }[];
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
-      <div className="flex items-center justify-between border-b border-[var(--c-border)] px-5 py-4">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h3 className="text-sm font-semibold text-[var(--c-text)]">{title}</h3>
-          {count !== undefined && count > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--c-red)] px-1.5 text-xs font-bold text-white">
-              {count}
-            </span>
-          )}
+      <div className="grid divide-x divide-[var(--c-border)]" style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+        {stats.map((s) => (
+          <div key={s.label} className="px-5 py-4">
+            <p className="text-xs text-[var(--c-text3)]">{s.label}</p>
+            <p className="mt-1 text-[1.35rem] font-bold tabular text-[var(--c-text)]">{s.value}</p>
+            {s.trend !== undefined && (
+              <p className={cn(
+                "mt-0.5 flex items-center gap-1 text-xs",
+                s.trend >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]",
+              )}>
+                {s.trend >= 0
+                  ? <TrendingUp size={11} />
+                  : <TrendingDown size={11} />}
+                {Math.abs(s.trend).toFixed(1)}% vs прошлый период
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Section block (Shopify card style) ──────────────────────────────────────
+
+function Block({
+  title,
+  subtitle,
+  href,
+  linkLabel,
+  badge,
+  children,
+  className,
+}: {
+  title: string;
+  subtitle?: string;
+  href?: string;
+  linkLabel?: string;
+  badge?: number;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]", className)}>
+      <div className="flex items-start justify-between border-b border-[var(--c-border)] px-5 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">{title}</h3>
+            {badge !== undefined && badge > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--c-red)] px-1.5 text-xs font-bold text-white">
+                {badge}
+              </span>
+            )}
+          </div>
+          {subtitle && <p className="mt-0.5 text-xs text-[var(--c-text3)]">{subtitle}</p>}
         </div>
-        {linkLabel && (
+        {href && linkLabel && (
           <Link
             href={href}
-            className="flex items-center gap-1 text-xs text-[var(--c-text3)] hover:text-[var(--c-text)] transition"
+            className="flex shrink-0 items-center gap-1 text-xs text-[var(--c-text3)] hover:text-[var(--c-text)] transition"
           >
             {linkLabel}
             <ChevronRight size={12} />
           </Link>
         )}
       </div>
-      <div className="p-3">{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
 
-function EmptyRow({ message }: { message: string }) {
+function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center py-6 text-sm text-[var(--c-text3)]">
+    <div className="flex items-center justify-center py-8 text-sm text-[var(--c-text3)]">
       {message}
     </div>
   );
 }
 
-// ─── main component ──────────────────────────────────────────────────────────
+// ─── Quick actions ────────────────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  { label: "Добавить товар",    href: "/inventory/products/new",            icon: Package },
+  { label: "Принять товар",     href: "/inventory/purchase-orders",         icon: Truck },
+  { label: "Переместить",       href: "/inventory/transfers?open=create",   icon: ArrowLeftRight },
+  { label: "Инвентаризация",    href: "/inventory/stocktake?open=create",   icon: ClipboardList },
+  { label: "Открыть кассу",     href: "/pos",                               icon: ShoppingCart },
+];
+
+// ─── Main component ────────────────────────────────────────────────────────────
 
 export function InventoryOverview() {
   const { products, purchaseOrders, transfers, movements, orders, customers, batches } = useInventory();
 
-  const stats = useMemo(() => getInventoryStats(products), [products]);
-  const totalValue = useMemo(() => getTotalInventoryValue(products.filter((p) => p.status === "active")), [products]);
-  const allLowStockProducts = useMemo(() => getLowStockProducts(products), [products]);
-  const lowStockProducts = useMemo(() => allLowStockProducts.slice(0, 5), [allLowStockProducts]);
-  const recentOrders = useMemo(() => purchaseOrders.filter((po) => po.status !== "closed").slice(0, 4), [purchaseOrders]);
-  const recentMovements = useMemo(() => movements.slice(0, 5), [movements]);
-  const activeTransfers = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
-  const pnl = useMemo(() => computePnL(orders), [orders]);
-  const pendingSalesOrders = useMemo(() => orders.filter((o) => o.status === "new" || o.status === "confirmed" || o.status === "packed").length, [orders]);
-  const vipCustomers = useMemo(() => (customers ?? []).filter((c) => c.tier === "vip").length, [customers]);
-  const alerts = useMemo(() => computeAlerts(products, batches ?? []), [products, batches]);
+  const allLowStock       = useMemo(() => getLowStockProducts(products), [products]);
+  const lowStock          = useMemo(() => allLowStock.slice(0, 6), [allLowStock]);
+  const activePOs         = useMemo(() => purchaseOrders.filter((po) => !["closed", "draft"].includes(po.status)).slice(0, 6), [purchaseOrders]);
+  const recentMovements   = useMemo(() => movements.slice(0, 6), [movements]);
+  const activeTransfers   = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
+  const pnl               = useMemo(() => computePnL(orders), [orders]);
+  const alerts            = useMemo(() => computeAlerts(products, batches ?? []), [products, batches]);
+  const pendingOrders     = useMemo(() => orders.filter((o) => ["new", "confirmed", "packed"].includes(o.status)).length, [orders]);
 
-  // Last 14 days revenue sparkline data
-  const revenueSparkline = useMemo(() => {
+  // 30-day revenue for the area chart
+  const revenueChart = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 14 }, (_, i) => {
+    return Array.from({ length: 30 }, (_, i) => {
       const d = new Date(today);
-      d.setDate(d.getDate() - (13 - i));
+      d.setDate(d.getDate() - (29 - i));
       const date = d.toISOString().split("T")[0];
       const rev = orders
         .filter((o) => o.createdAt === date && (o.status === "shipped" || o.status === "delivered"))
@@ -126,496 +166,299 @@ export function InventoryOverview() {
     });
   }, [orders]);
 
-  // Month label
-  const monthLabel = useMemo(() => {
-    return new Date().toLocaleString("ru-RU", { month: "long", year: "numeric" });
-  }, []);
-
-  // KPI statuses
-  const marginStatus = pnl.netMarginPct >= 25 ? "green" : pnl.netMarginPct >= 10 ? "amber" : "red";
-  const stockStatus = allLowStockProducts.length === 0 ? "green" : allLowStockProducts.length <= 3 ? "amber" : "red";
-  const alertStatus = alerts.length === 0 ? "green" : alerts.length <= 2 ? "amber" : "red";
-
-  const statusColor: Record<string, string> = {
-    green: "var(--c-green)",
-    amber: "var(--c-amber)",
-    red: "var(--c-red)",
-  };
+  const monthLabel = useMemo(
+    () => new Date().toLocaleString("ru-RU", { month: "long", year: "numeric" }),
+    [],
+  );
 
   return (
     <div className="space-y-4">
 
-      {/* ── A. P&L HERO CARD ─────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-6">
-        {/* Header row */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-widest text-[var(--c-text3)]">Обзор</span>
-          <span className="text-xs text-[var(--c-text3)] capitalize">{monthLabel}</span>
-        </div>
-
-        {/* Hero number + sparkline */}
-        <div className="mt-3 flex items-end justify-between gap-6">
-          <div>
-            <p
-              className={cn(
-                "text-[2.75rem] font-bold leading-none tabular",
-                pnl.netProfit > 0
-                  ? "text-[var(--c-green)]"
-                  : pnl.netProfit < 0
-                  ? "text-[var(--c-red)]"
-                  : "text-[var(--c-text)]",
-              )}
-            >
-              {pnl.netProfit < 0 ? "−" : ""}{fmtRub(pnl.netProfit)} ₽
-            </p>
-            <p className="mt-1 text-sm text-[var(--c-text2)]">Чистая прибыль</p>
-
-            {/* P&L formula row */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-              <span className="text-[var(--c-text2)]">
-                Выручка&nbsp;<span className="font-medium tabular text-[var(--c-text)]">{fmtRub(pnl.revenue)} ₽</span>
-              </span>
-              <span className="text-[var(--c-text3)]">−</span>
-              <span className="text-[var(--c-text3)]">
-                Себест.&nbsp;<span className="tabular">{fmtRub(pnl.cogs)} ₽</span>
-              </span>
-              <span className="text-[var(--c-text3)]">−</span>
-              <span className="text-[var(--c-text3)]">
-                Комиссии&nbsp;<span className="tabular">{fmtRub(pnl.commission)} ₽</span>
-              </span>
-              <span className="text-[var(--c-text3)]">−</span>
-              <span className="text-[var(--c-text3)]">
-                Логистика&nbsp;<span className="tabular">{fmtRub(pnl.logistics)} ₽</span>
-              </span>
-              <span className="text-[var(--c-text3)]">=</span>
-              <span
-                className={cn(
-                  "font-bold tabular",
-                  pnl.netProfit > 0
-                    ? "text-[var(--c-green)]"
-                    : pnl.netProfit < 0
-                    ? "text-[var(--c-red)]"
-                    : "text-[var(--c-text)]",
-                )}
-              >
-                {pnl.netProfit < 0 ? "−" : ""}{fmtRub(pnl.netProfit)} ₽
-              </span>
-            </div>
-          </div>
-
-          {/* Sparkline — desktop only */}
-          <div className="hidden lg:block w-48 shrink-0">
-            <p className="mb-1 text-[10px] font-medium text-[var(--c-text3)] uppercase tracking-wide">Выручка 14 дней</p>
-            <ResponsiveContainer width="100%" height={48}>
-              <BarChart data={revenueSparkline} barSize={6}>
-                <Bar dataKey="rev" fill="var(--c-green)" radius={[2, 2, 0, 0]} opacity={0.85} />
-                <Tooltip
-                  cursor={false}
-                  content={({ active, payload }) =>
-                    active && payload?.[0] ? (
-                      <div className="rounded border border-[var(--c-border)] bg-[var(--c-bg3)] px-2 py-1 text-[10px] text-[var(--c-text)]">
-                        {Math.round(payload[0].value as number).toLocaleString("ru-RU")} ₽
-                      </div>
-                    ) : null
-                  }
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* ── B. THREE QUESTION KPI CARDS ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-        {/* Card 1 — Заработал ли я? */}
-        <div
-          className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-5"
-          style={{ borderLeftWidth: "3px", borderLeftColor: statusColor[marginStatus] }}
-        >
-          <p className="text-xs font-semibold text-[var(--c-text3)]">Заработал ли я?</p>
-          <p
-            className={cn(
-              "mt-2 text-3xl font-bold tabular",
-              marginStatus === "green"
-                ? "text-[var(--c-green)]"
-                : marginStatus === "amber"
-                ? "text-[var(--c-amber)]"
-                : "text-[var(--c-red)]",
-            )}
-          >
-            {pnl.netMarginPct.toFixed(1)}%
-          </p>
-          <p className="mt-0.5 text-xs text-[var(--c-text3)]">маржа чистая</p>
-          <p className="mt-2 text-xs text-[var(--c-text2)]">
-            {pnl.revenue > 0
-              ? `Выручка ${fmtRub(pnl.revenue)} ₽`
-              : "Нет реализованных заказов"}
-          </p>
-        </div>
-
-        {/* Card 2 — Что нужно заказать? */}
-        <Link
-          href="/inventory/products?stock=low"
-          className="block rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-5 hover:bg-[var(--c-bg3)] transition"
-          style={{ borderLeftWidth: "3px", borderLeftColor: statusColor[stockStatus] }}
-        >
-          <p className="text-xs font-semibold text-[var(--c-text3)]">Что нужно заказать?</p>
-          {allLowStockProducts.length === 0 ? (
-            <>
-              <p className="mt-2 text-3xl font-bold tabular text-[var(--c-green)]">0</p>
-              <p className="mt-0.5 text-xs text-[var(--c-text3)]">товаров</p>
-              <p className="mt-2 text-xs text-[var(--c-green)]">Все товары в норме</p>
-            </>
-          ) : (
-            <>
-              <p
-                className={cn(
-                  "mt-2 text-3xl font-bold tabular",
-                  stockStatus === "amber" ? "text-[var(--c-amber)]" : "text-[var(--c-red)]",
-                )}
-              >
-                {allLowStockProducts.length}
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--c-text3)]">
-                {allLowStockProducts.length === 1 ? "товар" : "товаров"}
-              </p>
-              <p className="mt-2 text-xs text-[var(--c-text2)]">мало или нет в наличии</p>
-            </>
-          )}
-        </Link>
-
-        {/* Card 3 — Есть ли проблемы? */}
-        <Link
-          href="/inventory/notifications"
-          className="block rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-5 hover:bg-[var(--c-bg3)] transition"
-          style={{ borderLeftWidth: "3px", borderLeftColor: statusColor[alertStatus] }}
-        >
-          <p className="text-xs font-semibold text-[var(--c-text3)]">Есть ли проблемы?</p>
-          {alerts.length === 0 ? (
-            <>
-              <p className="mt-2 text-3xl font-bold tabular text-[var(--c-green)]">0</p>
-              <p className="mt-0.5 text-xs text-[var(--c-text3)]">уведомлений</p>
-              <p className="mt-2 text-xs text-[var(--c-green)]">Всё в порядке</p>
-            </>
-          ) : (
-            <>
-              <p
-                className={cn(
-                  "mt-2 text-3xl font-bold tabular",
-                  alertStatus === "amber" ? "text-[var(--c-amber)]" : "text-[var(--c-red)]",
-                )}
-              >
-                {alerts.length}
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--c-text3)]">уведомлений</p>
-              <p className="mt-2 text-xs text-[var(--c-text2)]">требуют внимания</p>
-            </>
-          )}
-        </Link>
-      </div>
-
-      {/* ── C. QUICK ACTIONS ─────────────────────────────────────────────── */}
+      {/* ── Quick actions ─────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2">
-        {[
-          { icon: ShoppingCart, label: "Касса", href: "/pos" },
-          { icon: Truck, label: "Принять товар", href: "/inventory/purchase-orders" },
-          { icon: Package, label: "Добавить товар", href: "/inventory/products/new" },
-          { icon: ArrowLeftRight, label: "Переместить", href: "/inventory/transfers?open=create" },
-          { icon: ClipboardList, label: "Инвентаризация", href: "/inventory/stocktake?open=create" },
-          { icon: Users, label: "Клиенты", href: "/inventory/customers" },
-        ].map(({ icon: Icon, label, href }) => (
+        {QUICK_ACTIONS.map((a) => (
           <Link
-            key={label}
-            href={href}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+            key={a.label}
+            href={a.href}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
-            <Icon size={14} />
-            {label}
+            <a.icon size={14} className="shrink-0" />
+            {a.label}
           </Link>
         ))}
       </div>
 
-      {/* ── D. TWO-COLUMN DATA GRID ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* ── 4-stat strip (Shopify style) ──────────────────────────────────── */}
+      <StatStrip
+        stats={[
+          { label: "Выручка за месяц",        value: `${fmt(pnl.revenue)} ₽` },
+          { label: "Чистая прибыль",           value: `${fmt(pnl.netProfit)} ₽` },
+          { label: "Маржа",                    value: `${pnl.netMarginPct.toFixed(1)}%` },
+          { label: "Заказов в работе",         value: String(pendingOrders) },
+        ]}
+      />
 
-        {/* Low stock */}
-        <SectionCard
-          title="Требует внимания"
-          icon={<AlertTriangle size={16} className="text-[var(--c-amber)]" />}
+      {/* ── Main: Area chart + P&L breakdown ──────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+        {/* Area chart — 2/3 width */}
+        <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] lg:col-span-2">
+          <div className="border-b border-[var(--c-border)] px-5 py-4">
+            <p className="text-sm font-semibold text-[var(--c-text)]">Выручка за 30 дней</p>
+            <p className="mt-0.5 text-xs text-[var(--c-text3)]">{monthLabel} · реализованные заказы</p>
+          </div>
+          <div className="p-4">
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={revenueChart} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="var(--c-green)" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="var(--c-green)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--c-border)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "var(--c-text3)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(d) => new Date(d).toLocaleString("ru-RU", { day: "numeric", month: "short" })}
+                  interval={6}
+                />
+                <YAxis
+                  tick={{ fill: "var(--c-text3)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}К` : String(v)}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) =>
+                    active && payload?.[0] ? (
+                      <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-xs shadow-lg">
+                        <p className="mb-1 text-[var(--c-text2)]">
+                          {new Date(label as string).toLocaleString("ru-RU", { day: "numeric", month: "long" })}
+                        </p>
+                        <p className="font-semibold tabular text-[var(--c-text)]">
+                          {fmt(payload[0].value as number)} ₽
+                        </p>
+                      </div>
+                    ) : null
+                  }
+                />
+                <Area
+                  type="monotone"
+                  dataKey="rev"
+                  stroke="var(--c-green)"
+                  strokeWidth={2}
+                  fill="url(#revGrad)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* P&L breakdown — 1/3 width */}
+        <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
+          <div className="border-b border-[var(--c-border)] px-5 py-4">
+            <p className="text-sm font-semibold text-[var(--c-text)]">Разбивка прибыли</p>
+            <p className="mt-0.5 text-xs text-[var(--c-text3)]">За текущий месяц</p>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            {[
+              { label: "Выручка",        value: pnl.revenue,     sign: "+" as const, color: "text-[var(--c-blue)]" },
+              { label: "Себестоимость",  value: -pnl.cogs,       sign: "−" as const, color: "text-[var(--c-text2)]" },
+              { label: "Комиссии МП",    value: -pnl.commission, sign: "−" as const, color: "text-[var(--c-text2)]" },
+              { label: "Логистика",      value: -pnl.logistics,  sign: "−" as const, color: "text-[var(--c-text2)]" },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-2">
+                <span className="text-sm text-[var(--c-text2)]">{row.label}</span>
+                <span className={cn("text-sm tabular font-medium", row.color)}>
+                  {row.sign} {fmt(Math.abs(row.value))} ₽
+                </span>
+              </div>
+            ))}
+            <div className="border-t border-[var(--c-border)] pt-3 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-[var(--c-text)]">Чистая прибыль</span>
+              <span className={cn(
+                "text-sm font-bold tabular",
+                pnl.netProfit >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]",
+              )}>
+                = {pnl.netProfit >= 0 ? "" : "−"}{fmt(Math.abs(pnl.netProfit))} ₽
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--c-text3)] leading-relaxed">
+              Расчёт приблизительный.{" "}
+              <Link href="/inventory/finance" className="underline hover:text-[var(--c-text2)] transition">
+                Точный отчёт →
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Three content blocks ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+        {/* Block 1: Low stock */}
+        <Block
+          title="Мало товара"
+          subtitle={allLowStock.length > 0 ? `${allLowStock.length} позиций требуют пополнения` : "Все товары в норме"}
           href="/inventory/products?stock=low"
           linkLabel="Все товары"
-          count={allLowStockProducts.length}
+          badge={allLowStock.length}
         >
-          {lowStockProducts.length === 0 ? (
-            <EmptyRow message="Все товары в норме" />
+          {lowStock.length === 0 ? (
+            <EmptyState message="Все запасы в норме" />
           ) : (
-            <>
-              {lowStockProducts.map((product) => {
-                const available = getAvailableStock(product);
-                const status = getStockStatus(product);
+            <div className="space-y-1">
+              {lowStock.map((p) => {
+                const available = getAvailableStock(p);
+                const status = getStockStatus(p);
                 return (
                   <Link
-                    key={product.id}
-                    href={`/inventory/products/${product.id}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
+                    key={p.id}
+                    href={`/inventory/products/${p.id}`}
+                    className="flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-[var(--c-bg3)]"
                   >
-                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
-                      {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-sm">📦</div>
-                      )}
+                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-md border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                      {p.imageUrl
+                        ? <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                        : <div className="flex h-full w-full items-center justify-center text-xs">📦</div>
+                      }
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
-                      <p className="text-xs text-[var(--c-text3)]">{product.sku}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-[var(--c-text)]">{p.name}</p>
+                      <p className="text-xs text-[var(--c-text3)]">{p.sku}</p>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="shrink-0 text-right">
                       <p className={cn(
                         "text-sm font-bold tabular",
                         status === "out_of_stock" ? "text-[var(--c-red)]" : "text-[var(--c-amber)]",
                       )}>
-                        {available}
+                        {available} шт
                       </p>
-                      <StockStatusBadge status={status} size="sm" />
                     </div>
                   </Link>
                 );
               })}
-              {allLowStockProducts.length > 5 && (
-                <Link
-                  href="/inventory/products?stock=low"
-                  className="flex items-center justify-center rounded-lg px-3 py-2 text-xs text-[var(--c-text3)] hover:text-[var(--c-text2)] transition"
-                >
-                  Ещё {allLowStockProducts.length - 5} товаров →
-                </Link>
-              )}
-            </>
+            </div>
           )}
-        </SectionCard>
+        </Block>
 
-        {/* Purchase orders */}
-        <SectionCard
+        {/* Block 2: Active purchase orders */}
+        <Block
           title="Заказы поставщикам"
-          icon={<ShoppingCart size={16} className="text-[var(--c-blue)]" />}
+          subtitle={`${activePOs.length} активных заказов`}
           href="/inventory/purchase-orders"
           linkLabel="Все заказы"
-          count={purchaseOrders.filter((po) => !["closed", "draft"].includes(po.status)).length}
+          badge={activePOs.filter((po) => po.expectedArrival && new Date(po.expectedArrival) < new Date()).length}
         >
-          {recentOrders.length === 0 ? (
-            <EmptyRow message="Нет активных заказов" />
+          {activePOs.length === 0 ? (
+            <EmptyState message="Нет активных заказов" />
           ) : (
-            recentOrders.map((po) => {
-              const isOverdue = po.expectedArrival &&
-                !["closed", "draft"].includes(po.status) &&
-                new Date(po.expectedArrival) < new Date();
-              const daysOver = isOverdue
-                ? Math.floor((Date.now() - new Date(po.expectedArrival!).getTime()) / 86400000)
-                : 0;
-              return (
-                <Link
-                  key={po.id}
-                  href={`/inventory/purchase-orders/${po.id}`}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-[var(--c-bg3)]",
-                    isOverdue && "bg-[var(--c-red-dim)]",
-                  )}
-                >
-                  <div className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
-                    isOverdue
-                      ? "bg-[var(--c-red-dim)] border-[var(--c-red)]/30"
-                      : "bg-[var(--c-bg3)] border-[var(--c-border)]",
-                  )}>
-                    {isOverdue
-                      ? <AlertTriangle size={14} className="text-[var(--c-red)]" />
-                      : <ShoppingCart size={14} className="text-[var(--c-text3)]" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
-                    <p className="text-xs text-[var(--c-text3)] truncate">{po.supplierName}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {isOverdue ? (
-                      <span className="text-xs font-medium text-[var(--c-red)]">Просрочен {daysOver} дн.</span>
-                    ) : (
-                      <POStatusBadge status={po.status} />
+            <div className="space-y-1">
+              {activePOs.map((po) => {
+                const isOverdue = po.expectedArrival
+                  && !["closed", "draft"].includes(po.status)
+                  && new Date(po.expectedArrival) < new Date();
+                return (
+                  <Link
+                    key={po.id}
+                    href={`/inventory/purchase-orders/${po.id}`}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-[var(--c-bg3)]",
+                      isOverdue && "bg-[var(--c-red-dim)]",
                     )}
-                    <p className="text-xs text-[var(--c-text3)] mt-1 tabular">{po.totalAmount.toLocaleString("ru-RU")} ₽</p>
-                  </div>
-                </Link>
-              );
-            })
+                  >
+                    {isOverdue && (
+                      <AlertTriangle size={14} className="shrink-0 text-[var(--c-red)]" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
+                      <p className="truncate text-xs text-[var(--c-text3)]">{po.supplierName}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {isOverdue
+                        ? <p className="text-xs font-medium text-[var(--c-red)]">Просрочен</p>
+                        : <POStatusBadge status={po.status} />
+                      }
+                      <p className="mt-0.5 text-xs tabular text-[var(--c-text3)]">{fmt(po.totalAmount)} ₽</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           )}
-        </SectionCard>
+        </Block>
 
-        {/* Active transfers — only if there are any */}
-        {activeTransfers.length > 0 && (
-          <SectionCard
-            title="Перемещения"
-            icon={<ArrowLeftRight size={16} className="text-[var(--c-text2)]" />}
-            href="/inventory/transfers"
-            linkLabel="Все перемещения"
-            count={activeTransfers.length}
-          >
-            {activeTransfers.map((t) => {
-              const totalQty = t.items.reduce((s, i) => s + i.qty, 0);
-              return (
-                <Link
-                  key={t.id}
-                  href="/inventory/transfers"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--c-amber-dim)] border border-[rgba(245,166,35,0.2)]">
-                    <Truck size={14} className="text-[var(--c-amber)]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--c-text)]">{t.id.toUpperCase()}</p>
-                    <p className="text-xs text-[var(--c-text3)] truncate">{totalQty} ед. · {t.items.length} позиций</p>
-                  </div>
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center rounded-full border border-[rgba(245,166,35,0.2)] bg-[var(--c-amber-dim)] px-2.5 py-1 text-xs font-medium text-[var(--c-amber)]">
-                      В пути
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </SectionCard>
-        )}
-
-        {/* Recent movements */}
-        <SectionCard
+        {/* Block 3: Recent movements */}
+        <Block
           title="Последние операции"
-          icon={<History size={16} className="text-[var(--c-text2)]" />}
           href="/inventory/history"
           linkLabel="Вся история"
         >
           {recentMovements.length === 0 ? (
-            <p className="py-6 text-center text-sm text-[var(--c-text3)]">Операций пока нет</p>
-          ) : recentMovements.map((m) => {
-            const isPositive = m.qtyDelta > 0;
-            return (
-              <div
-                key={m.id}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
+            <EmptyState message="Операций пока нет" />
+          ) : (
+            <div className="space-y-1">
+              {recentMovements.map((m) => {
+                const pos = m.qtyDelta > 0;
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-[var(--c-bg3)]"
+                  >
+                    <div className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                      pos ? "bg-[var(--c-green-dim)] text-[var(--c-green)]" : "bg-[var(--c-red-dim)] text-[var(--c-red)]",
+                    )}>
+                      {pos ? "+" : "−"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-[var(--c-text)]">{m.productName}</p>
+                      <p className="text-xs text-[var(--c-text3)]">{m.reason ?? m.type} · {formatDate(m.createdAt)}</p>
+                    </div>
+                    <p className={cn("shrink-0 text-sm font-bold tabular", pos ? "text-[var(--c-green)]" : "text-[var(--c-red)]")}>
+                      {pos ? "+" : "−"}{Math.abs(m.qtyDelta)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Block>
+
+      </div>
+
+      {/* ── Active transfers (only if any) ────────────────────────────────── */}
+      {activeTransfers.length > 0 && (
+        <Block
+          title="В пути"
+          subtitle={`${activeTransfers.length} активных перемещений`}
+          href="/inventory/transfers"
+          linkLabel="Все перемещения"
+        >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {activeTransfers.slice(0, 4).map((t) => (
+              <Link
+                key={t.id}
+                href="/inventory/transfers"
+                className="rounded-md border border-[var(--c-border)] px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
               >
-                <div className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  isPositive ? "bg-[var(--c-green-dim)] text-[var(--c-green)]" : "bg-[var(--c-red-dim)] text-[var(--c-red)]",
-                )}>
-                  {isPositive ? "+" : "−"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--c-text)] truncate">{m.productName}</p>
-                  <p className="text-xs text-[var(--c-text3)]">{m.reason ?? m.type}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className={cn("text-sm font-bold tabular", isPositive ? "text-[var(--c-green)]" : "text-[var(--c-red)]")}>
-                    {isPositive ? "+" : ""}{m.qtyDelta}
-                  </p>
-                  <p className="text-xs text-[var(--c-text3)]">{formatDate(m.createdAt)}</p>
-                </div>
-              </div>
-            );
-          })}
-        </SectionCard>
-      </div>
+                <p className="text-sm font-medium text-[var(--c-text)]">{t.id.toUpperCase()}</p>
+                <p className="mt-0.5 text-xs text-[var(--c-text3)]">
+                  {t.items.reduce((s, i) => s + i.qty, 0)} ед.
+                </p>
+                <span className="mt-1 inline-flex items-center rounded-full bg-[var(--c-amber-dim)] px-2 py-0.5 text-[11px] font-medium text-[var(--c-amber)]">
+                  В пути
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Block>
+      )}
+
     </div>
   );
 }
-
-/* OLD:
-"use client";
-
-import Link from "next/link";
-import { useMemo } from "react";
-import {
-  Package,
-  ShoppingCart,
-  ArrowLeftRight,
-  ClipboardList,
-  TrendingDown,
-  AlertTriangle,
-  DollarSign,
-  TrendingUp,
-  ChevronRight,
-  Bell,
-  Zap,
-  Truck,
-  History,
-  Users,
-} from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-import {
-  getAvailableStock,
-  getStockStatus,
-  getInventoryStats,
-  getLowStockProducts,
-  getTotalInventoryValue,
-  PO_STATUS_LABELS,
-} from "@/mock/inventory";
-import { useInventory } from "@/contexts/InventoryContext";
-import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
-import { cn } from "@/lib/utils";
-import { computePnL } from "@/lib/inventory/finance";
-
-export function InventoryOverview() {
-  const { products, purchaseOrders, transfers, movements, orders, customers } = useInventory();
-
-  const stats = useMemo(() => getInventoryStats(products), [products]);
-  const totalValue = useMemo(() => getTotalInventoryValue(products.filter((p) => p.status === "active")), [products]);
-  const allLowStockProducts = useMemo(() => getLowStockProducts(products), [products]);
-  const lowStockProducts = useMemo(() => allLowStockProducts.slice(0, 5), [allLowStockProducts]);
-  const recentOrders = useMemo(() => purchaseOrders.filter((po) => po.status !== "closed").slice(0, 4), [purchaseOrders]);
-  const recentMovements = useMemo(() => movements.slice(0, 5), [movements]);
-  const activeTransfers = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
-  const pnl = useMemo(() => computePnL(orders), [orders]);
-  const pendingSalesOrders = useMemo(() => orders.filter((o) => o.status === "new" || o.status === "confirmed" || o.status === "packed").length, [orders]);
-  const vipCustomers = useMemo(() => (customers ?? []).filter((c) => c.tier === "vip").length, [customers]);
-
-  const revenueSparkline = useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - (13 - i));
-      const date = d.toISOString().split("T")[0];
-      const rev = orders
-        .filter((o) => o.createdAt === date && (o.status === "shipped" || o.status === "delivered"))
-        .reduce((s, o) => s + o.revenue, 0);
-      return { date, rev };
-    });
-  }, [orders]);
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-[var(--c-border)] bg-gradient-to-r from-[var(--c-bg2)] to-[var(--c-bg3)] p-6">
-        ...
-      </div>
-    </div>
-  );
-}
-
-function QuickStat({ label, value, color }: { label: string; value: string | number; color: string }) {
-  const colorMap: Record<string, string> = {
-    green: "text-[var(--c-green)]",
-    blue: "text-[var(--c-blue)]",
-    amber: "text-[var(--c-amber)]",
-    red: "text-[var(--c-red)]",
-    default: "text-[var(--c-text)]",
-  };
-  return (
-    <div className="rounded-xl bg-black/20 px-4 py-3">
-      <p className="text-xs text-[var(--c-text3)]">{label}</p>
-      <p className={cn("mt-0.5 text-xl font-bold tabular", colorMap[color])}>{value}</p>
-    </div>
-  );
-}
-*/
