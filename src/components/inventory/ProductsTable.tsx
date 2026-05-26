@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Plus,
@@ -228,7 +229,11 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
           {someSelected && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--c-text2)]">{selected.size} выбрано</span>
-              <BulkActionsMenu count={selected.size} onClear={() => setSelected(new Set())} />
+              <BulkActionsMenu
+                selectedIds={Array.from(selected)}
+                products={filtered}
+                onClear={() => setSelected(new Set())}
+              />
             </div>
           )}
           <button
@@ -637,8 +642,25 @@ function FilterSelect({
   );
 }
 
-function BulkActionsMenu({ count, onClear }: { count: number; onClear: () => void }) {
+function BulkActionsMenu({ selectedIds, products, onClear }: { selectedIds: string[]; products: Product[]; onClear: () => void }) {
   const [open, setOpen] = useState(false);
+  const { actions } = useInventory();
+  const router = useRouter();
+  const selectedProducts = products.filter((p) => selectedIds.includes(p.id));
+
+  function exportSelected() {
+    const rows = [
+      ["Название", "Артикул", "Категория", "Цена", "Себестоимость", "В наличии", "Статус"],
+      ...selectedProducts.map((p) => [p.name, p.sku, p.category, p.price, p.costPrice, p.totalPhysical, p.status]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `товары_выбрано_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setOpen(false);
+  }
+
   return (
     <div className="relative">
       <button
@@ -649,15 +671,18 @@ function BulkActionsMenu({ count, onClear }: { count: number; onClear: () => voi
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-48 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-xl">
-          <div className="p-1">
-            <MenuItem icon={Archive} label="Архивировать" />
-            <MenuItem icon={Download} label="Экспортировать" />
-            <MenuItem icon={Barcode} label="Печать этикеток" />
-            <MenuItem icon={ShoppingCart} label="Создать заказ" />
-            <MenuItem icon={X} label="Снять выделение" onClick={onClear} danger />
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-50 w-48 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-xl">
+            <div className="p-1">
+              <MenuItem icon={Archive} label="Архивировать" onClick={() => { selectedIds.forEach((id) => actions.archiveProduct(id)); onClear(); setOpen(false); }} />
+              <MenuItem icon={Download} label="Экспортировать" onClick={exportSelected} />
+              <MenuItem icon={Barcode} label="Печать этикеток" onClick={() => { setOpen(false); window.print(); }} />
+              <MenuItem icon={ShoppingCart} label="Создать заказ" onClick={() => router.push("/inventory/purchase-orders")} />
+              <MenuItem icon={X} label="Снять выделение" onClick={onClear} danger />
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -665,6 +690,28 @@ function BulkActionsMenu({ count, onClear }: { count: number; onClear: () => voi
 
 function ProductActionMenu({ product, onClose }: { product: Product; onClose: () => void }) {
   const { actions } = useInventory();
+  const router = useRouter();
+
+  function duplicate() {
+    const newId = `prod-copy-${Date.now()}`;
+    actions.addProduct({
+      ...product,
+      id: newId,
+      name: `Копия — ${product.name}`,
+      sku: `${product.sku}-2`,
+      status: "draft",
+      stockByLocation: {},
+      totalPhysical: 0,
+      reservedUnits: 0,
+      damagedUnits: 0,
+      inTransitUnits: 0,
+      createdAt: new Date().toISOString().split("T")[0],
+      updatedAt: new Date().toISOString().split("T")[0],
+    });
+    onClose();
+    router.push(`/inventory/products/${newId}`);
+  }
+
   return (
     <div
       className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-xl"
@@ -674,9 +721,9 @@ function ProductActionMenu({ product, onClose }: { product: Product; onClose: ()
         <Link href={`/inventory/products/${product.id}`}>
           <MenuItem icon={Eye} label="Открыть" />
         </Link>
-        <MenuItem icon={Barcode} label="Штрихкод" />
-        <MenuItem icon={Copy} label="Дублировать" />
-        <MenuItem icon={ShoppingCart} label="Создать заказ" />
+        <MenuItem icon={Barcode} label="Штрихкод" onClick={() => { onClose(); window.print(); }} />
+        <MenuItem icon={Copy} label="Дублировать" onClick={duplicate} />
+        <MenuItem icon={ShoppingCart} label="Создать заказ" onClick={() => { onClose(); router.push("/inventory/purchase-orders"); }} />
         <div className="my-1 border-t border-[var(--c-border)]" />
         <MenuItem icon={Archive} label="Архивировать" onClick={() => { actions.archiveProduct(product.id); onClose(); }} />
         <MenuItem icon={Trash2} label="Удалить" danger onClick={() => { actions.deleteProduct(product.id); onClose(); }} />
