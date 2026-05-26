@@ -31,6 +31,7 @@ import {
   ClipboardList,
   RotateCcw,
   FileText,
+  Map,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -252,8 +253,20 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
 
-      {/* ── Desktop sidebar (fixed to left edge) ── */}
-      <aside className="fixed left-0 top-16 z-30 hidden h-[calc(100vh-4rem)] w-56 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)] lg:flex">
+      {/* ── Desktop sidebar (fixed, full height — owns the logo row) ── */}
+      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-56 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)] lg:flex">
+        {/* Brand / logo row */}
+        <Link
+          href="/"
+          className="flex h-16 shrink-0 items-center gap-2 border-b border-[var(--c-border)] px-4 transition hover:bg-[var(--c-bg3)]"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
+            <Map size={18} />
+          </span>
+          <span className="font-display text-sm font-semibold text-[var(--c-text)]">
+            Seller<span className="text-[var(--c-green)]">Map</span>
+          </span>
+        </Link>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <NavList pathname={pathname} />
         </div>
@@ -266,7 +279,14 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
           <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg2)]">
             <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-3">
-              <span className="text-sm font-semibold text-[var(--c-text)]">Меню</span>
+              <Link href="/" className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
+                  <Map size={15} />
+                </span>
+                <span className="font-display text-sm font-semibold text-[var(--c-text)]">
+                  Seller<span className="text-[var(--c-green)]">Map</span>
+                </span>
+              </Link>
               <button onClick={() => setDrawerOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)] transition">
                 <X size={18} />
               </button>
@@ -282,14 +302,24 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
       {/* ── Main content ── */}
       <div className="lg:pl-56">
         {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-[var(--c-border)] px-4 py-2 lg:hidden">
+        <div className="flex h-14 items-center gap-3 border-b border-[var(--c-border)] bg-[var(--c-bg2)] px-4 lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
-          <span className="truncate text-sm font-semibold text-[var(--c-text)]">{currentLabel}</span>
+          {/* Logo in centre */}
+          <Link href="/" className="flex flex-1 items-center justify-center gap-1.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
+              <Map size={14} />
+            </span>
+            <span className="font-display text-sm font-semibold text-[var(--c-text)]">
+              Seller<span className="text-[var(--c-green)]">Map</span>
+            </span>
+          </Link>
+          {/* Spacer to keep logo centred */}
+          <div className="h-9 w-9 shrink-0" />
         </div>
 
         {/* Page header */}

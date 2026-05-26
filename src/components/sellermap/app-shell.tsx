@@ -17,10 +17,12 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPOS = pathname.startsWith("/pos");
+  const isPOS       = pathname.startsWith("/pos");
+  const isInventory = pathname.startsWith("/inventory");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  if (isPOS) {
+  // POS and Inventory manage their own full-screen shells with a built-in logo.
+  if (isPOS || isInventory) {
     return <>{children}</>;
   }
 
