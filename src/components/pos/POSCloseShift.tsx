@@ -83,7 +83,7 @@ export function POSCloseShift({ onClose, onConfirm }: POSCloseShiftProps) {
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg bg-[var(--c-bg2)] border border-[var(--c-border2)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--c-border)] flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 sm:px-6 border-b border-[var(--c-border)] flex-shrink-0">
           <h2 className="text-base font-semibold text-[var(--c-text)]">Закрытие смены</h2>
           <button
             type="button"
@@ -95,7 +95,7 @@ export function POSCloseShift({ onClose, onConfirm }: POSCloseShiftProps) {
         </div>
 
         <div className="overflow-y-auto flex-1">
-          <div className="px-6 py-5 space-y-5">
+          <div className="px-4 py-5 sm:px-6 space-y-5">
             {/* Session summary */}
             <div className="rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] px-4 py-3 space-y-2 text-sm">
               <div className="flex justify-between text-[var(--c-text2)]">
@@ -264,18 +264,18 @@ export function POSCloseShift({ onClose, onConfirm }: POSCloseShiftProps) {
         </div>
 
         {/* Actions */}
-        <div className="px-6 pb-6 pt-3 flex gap-3 flex-shrink-0 border-t border-[var(--c-border)]">
+        <div className="px-4 pb-5 pt-3 sm:px-6 sm:pb-6 flex gap-3 flex-shrink-0 border-t border-[var(--c-border)]">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition-colors"
+            className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-[var(--c-border2)] text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition-colors"
           >
             Отмена
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-[var(--c-red)] text-white text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
+            className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-[var(--c-red)] text-white text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
           >
             Закрыть смену
           </button>

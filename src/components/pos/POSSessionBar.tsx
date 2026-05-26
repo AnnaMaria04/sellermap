@@ -36,28 +36,28 @@ export function POSSessionBar({ onCloseShift }: POSSessionBarProps) {
   if (!session) return null;
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2.5 bg-[var(--c-bg2)] border-b border-[var(--c-border)] flex-shrink-0 flex-wrap">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 sm:gap-4 sm:px-4 sm:py-2.5 bg-[var(--c-bg2)] border-b border-[var(--c-border)] flex-shrink-0">
       {/* Location */}
-      <div className="flex items-center gap-1.5 text-sm text-[var(--c-text2)]">
+      <div className="flex items-center gap-1.5 text-sm text-[var(--c-text2)] min-w-0">
         <MapPin className="w-3.5 h-3.5 text-[var(--c-green)] flex-shrink-0" />
-        <span className="font-medium text-[var(--c-text)]">{session.locationName}</span>
+        <span className="font-medium text-[var(--c-text)] truncate">{session.locationName}</span>
       </div>
 
       {/* Shift start time + elapsed */}
       <div className="flex items-center gap-1.5 text-sm text-[var(--c-text3)]">
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>
+        <span className="whitespace-nowrap">
           Смена с {formatHHMM(session.openedAt)} · {formatElapsed(session.openedAt)}
         </span>
       </div>
 
       {/* Cashier */}
-      <span className="text-sm text-[var(--c-text3)]">{session.cashierName}</span>
+      <span className="hidden text-sm text-[var(--c-text3)] sm:inline truncate">{session.cashierName}</span>
 
-      <div className="flex-1" />
+      <div className="hidden flex-1 sm:block" />
 
       {/* Sales stats */}
-      <div className="text-sm text-[var(--c-text2)]">
+      <div className="text-sm text-[var(--c-text2)] whitespace-nowrap">
         Продаж:{" "}
         <span className="font-semibold text-[var(--c-text)]">{session.transactionCount}</span>
         {" · "}
@@ -70,10 +70,11 @@ export function POSSessionBar({ onCloseShift }: POSSessionBarProps) {
       <button
         type="button"
         onClick={onCloseShift}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--c-text3)] hover:text-[var(--c-red)] hover:bg-[var(--c-red-dim)] border border-[var(--c-border)] transition-colors"
+        className="ml-auto sm:ml-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--c-text3)] hover:text-[var(--c-red)] hover:bg-[var(--c-red-dim)] border border-[var(--c-border)] transition-colors"
       >
         <LogOut className="w-3.5 h-3.5" />
-        Закрыть смену
+        <span className="hidden sm:inline">Закрыть смену</span>
+        <span className="sm:hidden">Закрыть</span>
       </button>
     </div>
   );
