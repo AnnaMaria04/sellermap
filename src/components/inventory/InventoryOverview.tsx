@@ -182,8 +182,8 @@ export function InventoryOverview() {
   return (
     <div className="space-y-4">
 
-      {/* ── Quick actions ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2">
+      {/* ── Quick actions (mobile only — desktop uses shell top bar) ────────── */}
+      <div className="flex flex-wrap gap-2 lg:hidden">
         {QUICK_ACTIONS.map((a) => (
           <Link
             key={a.label}
