@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { ProductsTable } from "@/components/inventory/ProductsTable";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type SubTab = "products" | "pricelists" | "allocation";
 
-export default function ProductsPage() {
+function ProductsPageInner() {
   const searchParams = useSearchParams();
   const stockParam = searchParams.get("stock") as "low" | "out" | "in" | null;
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -84,5 +84,13 @@ export default function ProductsPage() {
       )}
       {showAdjust && <QuickStockAdjust onClose={() => setShowAdjust(false)} />}
     </InventoryShell>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense>
+      <ProductsPageInner />
+    </Suspense>
   );
 }
