@@ -19,16 +19,13 @@ import {
   Truck,
   Home,
   RotateCcw,
-  MapPin,
   Layers,
   Settings,
   FileText,
   Plug,
   Bell,
-  Lock,
   Menu,
   X,
-  ScanLine,
   Sun,
   Moon,
   ShoppingBag,
@@ -36,12 +33,14 @@ import {
   Users,
   Users2,
   Tag,
+  Building2,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
 type NavGroup = { title: string | null; items: NavItem[] };
 
-const NAV_GROUPS: NavGroup[] = [
+/* OLD NAV_GROUPS:
+const NAV_GROUPS_OLD: NavGroup[] = [
   {
     title: null,
     items: [{ label: "Обзор", href: "/inventory", icon: Home }],
@@ -59,17 +58,14 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Товары", href: "/inventory/products", icon: Package },
       { label: "Комплекты", href: "/inventory/bundles", icon: Layers },
-      { label: "Маркировка", href: "/inventory/labeling", icon: ScanLine },
     ],
   },
   {
     title: "Склад",
     items: [
-      { label: "Резервы", href: "/inventory/reservations", icon: Lock },
       { label: "Перемещения", href: "/inventory/transfers", icon: ArrowLeftRight },
       { label: "Инвентаризация", href: "/inventory/stocktake", icon: ClipboardList },
       { label: "Возвраты", href: "/inventory/returns", icon: RotateCcw },
-      { label: "Локации", href: "/inventory/locations", icon: MapPin },
       { label: "История", href: "/inventory/history", icon: History },
     ],
   },
@@ -96,12 +92,47 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Настройки", href: "/inventory/settings", icon: Settings },
     ],
   },
+];
+*/
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Анализ WB",
+    title: null, // daily use — no label
     items: [
-      { label: "Проверить товар", href: "/check", icon: BarChart3 },
-      { label: "Отчёты", href: "/reports", icon: FileText },
-      { label: "Обновления", href: "/updates", icon: Bell },
+      { label: "Обзор", href: "/inventory", icon: Home },
+      { label: "Касса", href: "/pos", icon: ShoppingCart },
+      { label: "Заказы", href: "/inventory/orders", icon: ShoppingBag },
+      { label: "Товары", href: "/inventory/products", icon: Package },
+      { label: "Клиенты", href: "/inventory/customers", icon: Users },
+    ],
+  },
+  {
+    title: "Склад",
+    items: [
+      { label: "Закупки", href: "/inventory/purchase-orders", icon: Truck },
+      { label: "Поставщики", href: "/inventory/suppliers", icon: Building2 },
+      { label: "Перемещения", href: "/inventory/transfers", icon: ArrowLeftRight },
+      { label: "Инвентаризация", href: "/inventory/stocktake", icon: ClipboardList },
+      { label: "Возвраты", href: "/inventory/returns", icon: RotateCcw },
+      { label: "История", href: "/inventory/history", icon: History },
+    ],
+  },
+  {
+    title: "Финансы",
+    items: [
+      { label: "Финансы", href: "/inventory/finance", icon: Wallet },
+      { label: "Аналитика", href: "/inventory/analytics", icon: BarChart3 },
+      { label: "Отчёты", href: "/inventory/reports", icon: FileText },
+    ],
+  },
+  {
+    title: "Система",
+    items: [
+      { label: "Акции", href: "/inventory/promotions", icon: Tag },
+      { label: "Комплекты", href: "/inventory/bundles", icon: Layers },
+      { label: "Интеграции", href: "/inventory/integrations", icon: Plug },
+      { label: "Персонал", href: "/inventory/staff", icon: Users2 },
+      { label: "Настройки", href: "/inventory/settings", icon: Settings },
     ],
   },
 ];
@@ -113,6 +144,7 @@ const BOTTOM_TABS = [
   { icon: Truck, label: "Закупки", href: "/inventory/purchase-orders" as string | null },
   { icon: Menu, label: "Ещё", href: null as string | null },
 ] as const;
+
 
 interface Props {
   children: React.ReactNode;
@@ -128,13 +160,15 @@ function isItemActive(pathname: string, href: string): boolean {
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-col gap-5 px-3 py-4">
+    <nav className="flex flex-col gap-0 px-3 py-2">
       {NAV_GROUPS.map((group, gi) => (
         <div key={group.title ?? `g-${gi}`} className="flex flex-col gap-0.5">
           {group.title && (
-            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--c-text3)]">
-              {group.title}
-            </p>
+            <div className="mt-1 mb-0.5 px-3 pt-3 first:pt-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--c-text3)]">
+                {group.title}
+              </p>
+            </div>
           )}
           {group.items.map(({ label, href, icon: Icon }) => {
             const active = isItemActive(pathname, href);
