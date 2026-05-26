@@ -71,7 +71,7 @@ interface SettingsState {
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
-  defaultLocationId: "loc-warehouse",
+  defaultLocationId: "",
   currency: "RUB",
   timezone: "Europe/Moscow",
   fiscalYearMonth: 0,
@@ -238,7 +238,11 @@ const COST_METHODS: { value: SettingsState["costMethod"]; label: string; descrip
 export function InventorySettings() {
   const { actions, products, movements, suppliers, locations } = useInventory();
   const { profile, saveProfile } = useSellerProfile();
-  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+  const defaultLocId = locations.find(l => l.isDefault)?.id ?? locations[0]?.id ?? "";
+  const [settings, setSettings] = useState<SettingsState>(() => ({
+    ...DEFAULT_SETTINGS,
+    defaultLocationId: defaultLocId,
+  }));
   const [saved, setSaved] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);

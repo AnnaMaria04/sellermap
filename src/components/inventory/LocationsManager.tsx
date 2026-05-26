@@ -22,6 +22,7 @@ import {
 import { type Product, type Location } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type LocationType = Location["type"];
 
@@ -547,20 +548,22 @@ function LocationDetailPanel({ location, onClose }: { location: Location; onClos
         </div>
 
         <div className="grid grid-cols-2 gap-2 border-t border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-          <button
-            onClick={() => {}}
+          <Link
+            href="/inventory/transfers"
+            onClick={onClose}
             className="flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--c-border)] text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
           >
             <ArrowRightLeft size={14} />
             Переместить
-          </button>
-          <button
-            onClick={() => {}}
+          </Link>
+          <Link
+            href="/inventory/stocktake"
+            onClick={onClose}
             className="flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
           >
             <ClipboardList size={14} />
             Инвентаризация
-          </button>
+          </Link>
         </div>
       </div>
     </div>

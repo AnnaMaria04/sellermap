@@ -106,34 +106,34 @@ type InventoryAction =
   | { type: "ARCHIVE_PRODUCT"; id: string }
   | { type: "ADD_PURCHASE_ORDER"; po: PurchaseOrder }
   | { type: "UPDATE_PO_STATUS"; id: string; status: PurchaseOrderStatus }
-  | { type: "RECEIVE_PO_ITEMS"; poId: string; received: Record<string, number>; locationId: string }
+  | { type: "RECEIVE_PO_ITEMS"; poId: string; received: Record<string, number>; locationId: string; userId?: string; userName?: string }
   | { type: "CREATE_TRANSFER"; transfer: Transfer }
   | { type: "UPDATE_TRANSFER_STATUS"; id: string; status: TransferStatus }
-  | { type: "RECEIVE_TRANSFER"; id: string; partialQtys?: Record<string, number> }
+  | { type: "RECEIVE_TRANSFER"; id: string; partialQtys?: Record<string, number>; userId?: string; userName?: string }
   | { type: "CREATE_STOCKTAKE"; stocktake: Stocktake }
   | { type: "UPDATE_STOCKTAKE_COUNT"; stocktakeId: string; productId: string; qty: number }
-  | { type: "COMPLETE_STOCKTAKE"; stocktakeId: string }
+  | { type: "COMPLETE_STOCKTAKE"; stocktakeId: string; userId?: string; userName?: string }
   | { type: "ADJUST_STOCK"; productId: string; locationId: string; delta: number; movementType: MovementType; reason?: string; userId?: string; userName?: string; referenceId?: string }
-  | { type: "UPDATE_PRICES"; updates: Record<string, { price?: number; costPrice?: number }> }
+  | { type: "UPDATE_PRICES"; updates: Record<string, { price?: number; costPrice?: number }>; userId?: string; userName?: string }
   | { type: "ADD_SUPPLIER"; supplier: Supplier }
   | { type: "UPDATE_SUPPLIER"; id: string; patch: Partial<Supplier> }
   | { type: "ADD_LOCATION"; location: Location }
   | { type: "ADD_MOVEMENT"; movement: StockMovement }
-  | { type: "CREATE_RESERVATION"; reservation: Reservation }
+  | { type: "CREATE_RESERVATION"; reservation: Reservation; userId?: string; userName?: string }
   | { type: "RELEASE_RESERVATION"; id: string }
-  | { type: "FULFILL_RESERVATION"; id: string }
+  | { type: "FULFILL_RESERVATION"; id: string; userId?: string; userName?: string }
   | { type: "EXTEND_RESERVATION"; id: string; expiresAt: string }
   | { type: "HYDRATE"; state: Partial<InventoryState> }
   | { type: "RESET_STATE" }
   // Returns
   | { type: "CREATE_RETURN"; returnRecord: ProductReturn }
-  | { type: "PROCESS_RETURN"; id: string }
+  | { type: "PROCESS_RETURN"; id: string; userId?: string; userName?: string }
   | { type: "UPDATE_RETURN_STATUS"; id: string; status: ReturnStatus }
   // Bundles
   | { type: "CREATE_BUNDLE"; bundle: Bundle }
   | { type: "UPDATE_BUNDLE"; id: string; patch: Partial<Bundle> }
   | { type: "DELETE_BUNDLE"; id: string }
-  | { type: "ASSEMBLE_BUNDLE"; bundleId: string; qty: number; locationId: string }
+  | { type: "ASSEMBLE_BUNDLE"; bundleId: string; qty: number; locationId: string; userId?: string; userName?: string }
   // Replenishment rules
   | { type: "CREATE_RULE"; rule: ReplenishmentRule }
   | { type: "UPDATE_RULE"; id: string; patch: Partial<ReplenishmentRule> }
@@ -147,7 +147,7 @@ type InventoryAction =
   // Orders
   | { type: "CREATE_ORDER"; order: Order }
   | { type: "UPDATE_ORDER_STATUS"; id: string; status: OrderStatus }
-  | { type: "FULFILL_ORDER"; id: string }
+  | { type: "FULFILL_ORDER"; id: string; userId?: string; userName?: string }
   | { type: "CANCEL_ORDER"; id: string }
   | { type: "IMPORT_ORDERS"; orders: Order[] }
   // Customers
@@ -222,7 +222,7 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     }
 
     case "RECEIVE_PO_ITEMS": {
-      const { poId, received, locationId } = action;
+      const { poId, received, locationId, userId, userName } = action;
       const now = new Date().toISOString();
       const po = state.purchaseOrders.find((o) => o.id === poId);
       if (!po) return state;
@@ -268,8 +268,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: after,
           qtyDelta: qty,
           locationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: userId ?? "u-current",
+          userName: userName ?? "Текущий пользователь",
           createdAt: now,
           reason: `Приёмка по заказу ${poId}`,
           referenceId: poId,
@@ -329,8 +329,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: updated?.stockByLocation[transfer.fromLocationId] ?? 0,
           qtyDelta: -qty,
           locationId: transfer.fromLocationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: action.userId ?? "u-current",
+          userName: action.userName ?? "Текущий пользователь",
           createdAt: now,
           reason: `Перемещение на ${transfer.toLocationId}`,
           referenceId: action.id,
@@ -399,8 +399,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: before + variance,
           qtyDelta: variance,
           locationId: stocktake.locationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: action.userId ?? "u-current",
+          userName: action.userName ?? "Текущий пользователь",
           createdAt: now,
           reason: "Инвентаризация",
           referenceId: action.stocktakeId,
@@ -527,8 +527,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
             qtyAfter: product.reservedUnits + r.qty,
             qtyDelta: r.qty,
             locationId: r.locationId,
-            userId: "u-current",
-            userName: "Текущий пользователь",
+            userId: action.userId ?? "u-current",
+            userName: action.userName ?? "Текущий пользователь",
             createdAt: now,
             reason: `Резерв ${r.source}${r.orderRef ? ` · ${r.orderRef}` : ""}`,
             referenceId: r.id,
@@ -581,8 +581,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
             qtyAfter: Math.max(0, (product.stockByLocation[res.locationId] ?? 0) - res.qty),
             qtyDelta: -res.qty,
             locationId: res.locationId,
-            userId: "u-current",
-            userName: "Текущий пользователь",
+            userId: action.userId ?? "u-current",
+            userName: action.userName ?? "Текущий пользователь",
             createdAt: now,
             reason: `Отгрузка по резерву${res.orderRef ? ` · ${res.orderRef}` : ""}`,
             referenceId: res.id,
@@ -656,8 +656,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: item.action === "restock" ? before + item.qty : before,
           qtyDelta: item.action === "restock" ? item.qty : 0,
           locationId: ret.locationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: action.userId ?? "u-current",
+          userName: action.userName ?? "Текущий пользователь",
           createdAt: now,
           reason: `Возврат: ${item.condition}`,
           referenceId: ret.id,
@@ -713,8 +713,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: Math.max(0, before - needed),
           qtyDelta: -needed,
           locationId: action.locationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: action.userId ?? "u-current",
+          userName: action.userName ?? "Текущий пользователь",
           createdAt: now,
           reason: `Сборка комплекта «${bundle.name}» ×${action.qty}`,
         });
@@ -834,8 +834,8 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           qtyAfter: after,
           qtyDelta: -item.qty,
           locationId: order.locationId,
-          userId: "u-current",
-          userName: "Текущий пользователь",
+          userId: action.userId ?? "u-current",
+          userName: action.userName ?? "Текущий пользователь",
           createdAt: now,
           reason: `Отгрузка заказа ${order.orderNumber}`,
           referenceId: order.id,
@@ -946,6 +946,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
   const ownerId = useRef<string | null>(null);
+  const currentUser = useRef<{ id: string; name: string }>({ id: "u-current", name: "Текущий пользователь" });
   // createClient() returns null when env vars are absent (SSR prerender).
   // Initialised lazily inside the effect so it only runs client-side.
   const supabase = useRef<ReturnType<typeof createClient>>(null);
@@ -974,6 +975,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         return;
       }
       ownerId.current = user.id;
+      currentUser.current = {
+        id: user.id,
+        name: (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "Пользователь",
+      };
       try {
         const remote = await loadWorkspace(supabase.current, user.id);
         if (cancelled) return;
@@ -1044,7 +1049,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     ),
     receivePOItems: useCallback(
       (poId, received, locationId) =>
-        dispatch({ type: "RECEIVE_PO_ITEMS", poId, received, locationId }),
+        dispatch({ type: "RECEIVE_PO_ITEMS", poId, received, locationId, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     createTransfer: useCallback((data) => {
@@ -1060,7 +1065,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       [],
     ),
     receiveTransfer: useCallback(
-      (id, partialQtys) => dispatch({ type: "RECEIVE_TRANSFER", id, partialQtys }),
+      (id, partialQtys) => dispatch({ type: "RECEIVE_TRANSFER", id, partialQtys, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     createStocktake: useCallback((locationId, items, note) => {
@@ -1081,16 +1086,16 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       [],
     ),
     completeStocktake: useCallback(
-      (stocktakeId) => dispatch({ type: "COMPLETE_STOCKTAKE", stocktakeId }),
+      (stocktakeId) => dispatch({ type: "COMPLETE_STOCKTAKE", stocktakeId, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     adjustStock: useCallback(
       (productId, locationId, delta, movementType, reason) =>
-        dispatch({ type: "ADJUST_STOCK", productId, locationId, delta, movementType, reason }),
+        dispatch({ type: "ADJUST_STOCK", productId, locationId, delta, movementType, reason, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     updatePrices: useCallback(
-      (updates) => dispatch({ type: "UPDATE_PRICES", updates }),
+      (updates) => dispatch({ type: "UPDATE_PRICES", updates, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     addSupplier: useCallback((data) => {
@@ -1126,14 +1131,14 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         expiresAt: data.expiresAt,
         note: data.note,
       };
-      dispatch({ type: "CREATE_RESERVATION", reservation });
+      dispatch({ type: "CREATE_RESERVATION", reservation, userId: currentUser.current.id, userName: currentUser.current.name });
     }, []),
     releaseReservation: useCallback(
       (id) => dispatch({ type: "RELEASE_RESERVATION", id }),
       [],
     ),
     fulfillReservation: useCallback(
-      (id) => dispatch({ type: "FULFILL_RESERVATION", id }),
+      (id) => dispatch({ type: "FULFILL_RESERVATION", id, userId: currentUser.current.id, userName: currentUser.current.name }),
       [],
     ),
     extendReservation: useCallback(
@@ -1149,12 +1154,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       }
     }, []),
     createReturn: useCallback((returnRecord) => dispatch({ type: "CREATE_RETURN", returnRecord }), []),
-    processReturn: useCallback((id) => dispatch({ type: "PROCESS_RETURN", id }), []),
+    processReturn: useCallback((id) => dispatch({ type: "PROCESS_RETURN", id, userId: currentUser.current.id, userName: currentUser.current.name }), []),
     updateReturnStatus: useCallback((id, status) => dispatch({ type: "UPDATE_RETURN_STATUS", id, status }), []),
     createBundle: useCallback((bundle) => dispatch({ type: "CREATE_BUNDLE", bundle }), []),
     updateBundle: useCallback((id, patch) => dispatch({ type: "UPDATE_BUNDLE", id, patch }), []),
     deleteBundle: useCallback((id) => dispatch({ type: "DELETE_BUNDLE", id }), []),
-    assembleBundle: useCallback((bundleId, qty, locationId) => dispatch({ type: "ASSEMBLE_BUNDLE", bundleId, qty, locationId }), []),
+    assembleBundle: useCallback((bundleId, qty, locationId) => dispatch({ type: "ASSEMBLE_BUNDLE", bundleId, qty, locationId, userId: currentUser.current.id, userName: currentUser.current.name }), []),
     createRule: useCallback((rule) => dispatch({ type: "CREATE_RULE", rule }), []),
     updateRule: useCallback((id, patch) => dispatch({ type: "UPDATE_RULE", id, patch }), []),
     deleteRule: useCallback((id) => dispatch({ type: "DELETE_RULE", id }), []),
@@ -1165,7 +1170,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     writeOffAllExpired: useCallback(() => dispatch({ type: "WRITE_OFF_ALL_EXPIRED" }), []),
     createOrder: useCallback((order) => dispatch({ type: "CREATE_ORDER", order }), []),
     updateOrderStatus: useCallback((id, status) => dispatch({ type: "UPDATE_ORDER_STATUS", id, status }), []),
-    fulfillOrder: useCallback((id) => dispatch({ type: "FULFILL_ORDER", id }), []),
+    fulfillOrder: useCallback((id) => dispatch({ type: "FULFILL_ORDER", id, userId: currentUser.current.id, userName: currentUser.current.name }), []),
     cancelOrder: useCallback((id) => dispatch({ type: "CANCEL_ORDER", id }), []),
     importOrders: useCallback((orders) => dispatch({ type: "IMPORT_ORDERS", orders }), []),
     createCustomer: useCallback((data) => {
