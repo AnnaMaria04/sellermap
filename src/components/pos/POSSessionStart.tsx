@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useInventory } from "@/contexts/InventoryContext";
 import { usePOSSession } from "@/store/pos-session";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 function formatCurrentDate(d: Date): string {
@@ -24,8 +26,18 @@ function formatCurrentTime(d: Date): string {
 }
 
 export function POSSessionStart() {
+  const router = useRouter();
   const { locations } = useInventory();
   const { startSession } = usePOSSession();
+
+  async function exit() {
+    // Clear the developer-bypass cookies so a stale cashier role can't keep
+    // redirecting the user back to POS, then return to the login screen.
+    document.cookie = "sm_dev_bypass=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "sm_dev_role=; path=/; max-age=0; SameSite=Lax";
+    await createClient()?.auth.signOut();
+    router.push("/login");
+  }
 
   const storeLocations = locations.filter((l) => l.type !== "online_reserve");
 
@@ -146,6 +158,15 @@ export function POSSessionStart() {
             className="h-14 w-full rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-lg font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
           >
             Начать смену
+          </button>
+
+          <button
+            type="button"
+            onClick={exit}
+            className="flex w-full items-center justify-center gap-1.5 py-2 text-sm font-medium text-[var(--c-text3)] hover:text-[var(--c-text)] transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Сменить роль / выйти
           </button>
         </div>
       </div>

@@ -73,6 +73,7 @@ const NAV: NavSection[] = [
         children: [{ label: "Поставщики", href: "/inventory/suppliers" }],
       },
       { label: "Перемещения", href: "/inventory/transfers",       icon: ArrowLeftRight },
+      { label: "Склады",      href: "/inventory/locations",       icon: Building2 },
       { label: "Возвраты",    href: "/inventory/returns",         icon: RotateCcw },
       { label: "История",     href: "/inventory/history",         icon: History },
     ],
