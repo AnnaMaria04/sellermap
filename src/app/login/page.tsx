@@ -48,14 +48,11 @@ function LoginForm() {
     setMode("signin");
   }
 
-  function enterAsDeveloper(role: "owner" | "manager" | "cashier" | "warehouse" = "owner") {
-    // Set the bypass cookie the proxy checks (1 year). Demo data lives in the browser.
-    const opts = `path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    document.cookie = `sm_dev_bypass=1; ${opts}`;
-    document.cookie = `sm_dev_role=${role}; ${opts}`;
-    // Send each role to its landing page so route guards are obvious.
-    const landing = role === "cashier" ? "/pos" : role === "warehouse" ? "/inventory" : next;
-    router.push(landing);
+  function enterAsDeveloper() {
+    // Set the bypass cookie the proxy checks (1 year). Demo data lives in the
+    // browser. The developer override is the only access mode — full access.
+    document.cookie = `sm_dev_bypass=1; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    router.push(next);
   }
 
   return (
@@ -150,24 +147,13 @@ function LoginForm() {
           </div>
 
           <div className="mt-4 border-t border-[var(--c-border)] pt-4">
-            <p className="mb-2 text-center text-[10px] uppercase tracking-wide text-[var(--c-text3)]">Войти как разработчик (без пароля)</p>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                ["owner", "Владелец"],
-                ["manager", "Менеджер"],
-                ["cashier", "Кассир"],
-                ["warehouse", "Склад"],
-              ] as const).map(([role, label]) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => enterAsDeveloper(role)}
-                  className="rounded-lg border border-dashed border-[var(--c-border2)] py-2 text-xs font-medium text-[var(--c-text3)] transition hover:border-[var(--c-text3)] hover:text-[var(--c-text2)]"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={enterAsDeveloper}
+              className="w-full rounded-lg border border-dashed border-[var(--c-border2)] py-2.5 text-sm font-medium text-[var(--c-text2)] transition hover:border-[var(--c-text3)] hover:text-[var(--c-text)]"
+            >
+              Войти как разработчик (без пароля)
+            </button>
           </div>
         </div>
       </div>

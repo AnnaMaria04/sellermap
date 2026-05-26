@@ -31,10 +31,8 @@ export function POSSessionStart() {
   const { startSession } = usePOSSession();
 
   async function exit() {
-    // Clear the developer-bypass cookies so a stale cashier role can't keep
-    // redirecting the user back to POS, then return to the login screen.
+    // Clear the developer-bypass cookie and return to the login screen.
     document.cookie = "sm_dev_bypass=; path=/; max-age=0; SameSite=Lax";
-    document.cookie = "sm_dev_role=; path=/; max-age=0; SameSite=Lax";
     await createClient()?.auth.signOut();
     router.push("/login");
   }
@@ -166,7 +164,7 @@ export function POSSessionStart() {
             className="flex w-full items-center justify-center gap-1.5 py-2 text-sm font-medium text-[var(--c-text3)] hover:text-[var(--c-text)] transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
-            Сменить роль / выйти
+            Выйти
           </button>
         </div>
       </div>

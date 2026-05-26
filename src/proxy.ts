@@ -5,54 +5,13 @@ import { NextResponse, type NextRequest } from "next/server";
 // the auth gate is bypassed and the app runs on the local demo/seed account.
 // TEMPORARY developer convenience — remove when full auth rollout is done.
 const DEV_BYPASS_COOKIE = "sm_dev_bypass";
-const DEV_ROLE_COOKIE = "sm_dev_role";
-
-type Role = "owner" | "manager" | "cashier" | "warehouse";
-
-// Which roles may access each route prefix (longest prefix wins).
-const ROLE_ROUTES: { prefix: string; roles: Role[] }[] = [
-  { prefix: "/settings/staff", roles: ["owner"] },
-  { prefix: "/settings/billing", roles: ["owner"] },
-  { prefix: "/settings", roles: ["owner", "manager"] },
-  { prefix: "/inventory/settings/staff", roles: ["owner"] },
-  { prefix: "/inventory/settings/billing", roles: ["owner"] },
-  { prefix: "/inventory/settings", roles: ["owner", "manager"] },
-  { prefix: "/inventory/staff", roles: ["owner"] },
-  { prefix: "/pos", roles: ["owner", "manager", "cashier"] },
-  { prefix: "/inventory", roles: ["owner", "manager", "warehouse"] },
-  { prefix: "/finance", roles: ["owner", "manager"] },
-  { prefix: "/analytics", roles: ["owner", "manager"] },
-  { prefix: "/customers", roles: ["owner", "manager"] },
-];
-
-// Where to send a user who lacks access to the route they requested.
-function landingFor(role: Role): string {
-  if (role === "cashier") return "/pos";
-  if (role === "warehouse") return "/inventory";
-  return "/inventory";
-}
-
-function enforceRole(request: NextRequest, role: Role): NextResponse | null {
-  const pathname = request.nextUrl.pathname;
-  // Longest matching prefix wins (so /settings/staff beats /settings).
-  const match = ROLE_ROUTES
-    .filter((r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/"))
-    .sort((a, b) => b.prefix.length - a.prefix.length)[0];
-  if (match && !match.roles.includes(role)) {
-    const url = request.nextUrl.clone();
-    url.pathname = landingFor(role);
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-  return null;
-}
 
 export async function proxy(request: NextRequest) {
-  // Developer bypass — skip the Supabase auth check, but still enforce roles
-  // using the role chosen on the dev login screen.
+  // Developer bypass — full access to the whole app. There are no other roles:
+  // the developer override is the only access mode, so we never restrict or
+  // redirect based on a role.
   if (request.cookies.get(DEV_BYPASS_COOKIE)?.value === "1") {
-    const devRole = (request.cookies.get(DEV_ROLE_COOKIE)?.value as Role) || "owner";
-    return enforceRole(request, devRole) ?? NextResponse.next({ request });
+    return NextResponse.next({ request });
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -95,9 +54,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Role from JWT custom claim (set server-side); default to owner if absent.
-  const role = ((user.app_metadata?.role ?? user.user_metadata?.role) as Role) || "owner";
-  return enforceRole(request, role) ?? response;
+  // Authenticated — no role restrictions, full access.
+  return response;
 }
 
 export const config = {
