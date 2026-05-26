@@ -272,8 +272,8 @@ export function ReturnsPanel() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
               {["ID", "Клиент", "Канал", "Заказ", "Позиции", "Сумма", "Причина", "Статус", "Дата", ""].map((h) => (

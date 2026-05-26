@@ -57,15 +57,15 @@ function StatStrip({ stats }: {
   };
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
-      <div
-        className="grid divide-x divide-[var(--c-border)]"
-        style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}
-      >
+      {/* 2 columns on phones, 4 across on ≥sm. The 1px gap over a border-coloured
+          background draws clean separators in both layouts (divide-* would
+          misplace borders once the row wraps). */}
+      <div className="grid grid-cols-2 gap-px bg-[var(--c-border)] sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="px-5 py-4">
+          <div key={s.label} className="bg-[var(--c-bg2)] px-4 py-3 sm:px-5 sm:py-4">
             <p className="text-[11px] uppercase tracking-wide text-[var(--c-text3)]">{s.label}</p>
             <div className="mt-2 flex items-end justify-between gap-2">
-              <p className="text-[1.4rem] font-bold tabular leading-none text-[var(--c-text)]">{s.value}</p>
+              <p className="text-xl font-bold tabular leading-none text-[var(--c-text)] sm:text-[1.4rem]">{s.value}</p>
               {s.status && (
                 <span className={cn("mb-0.5 h-2 w-2 shrink-0 rounded-full", dot[s.status])} />
               )}
