@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useManagerPin } from "@/store/manager-pin";
 import { cn } from "@/lib/utils";
 import {
@@ -238,7 +237,11 @@ function PINSetup() {
 
 export default function SettingsPOSPage() {
   return (
-    <InventoryShell title="Настройки кассы" subtitle="ПИН менеджера, лимиты скидок и параметры смены">
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-[var(--c-text)]">Касса (POS)</h1>
+        <p className="mt-0.5 text-sm text-[var(--c-text2)]">ПИН менеджера, лимиты скидок и параметры смены</p>
+      </div>
       <div className="space-y-5">
         <SectionCard icon={<MonitorSmartphone size={15} />} title="Параметры кассы">
           <div className="flex items-center justify-between gap-6">
@@ -257,6 +260,6 @@ export default function SettingsPOSPage() {
           <PINSetup />
         </SectionCard>
       </div>
-    </InventoryShell>
+    </div>
   );
 }

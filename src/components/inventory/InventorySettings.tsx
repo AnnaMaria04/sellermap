@@ -54,7 +54,7 @@ interface SettingsState {
   barcodeFormat: string;
   autoGenerateBarcodes: boolean;
   internalBarcodePrefix: string;
-  costMethod: "fifo" | "lifo" | "weighted" | "standard";
+  costMethod: "fifo" | "weighted" | "standard";
   lowStockAlert: boolean;
   outOfStockAlert: boolean;
   overstockAlert: boolean;
@@ -229,10 +229,9 @@ function TextInput({
 }
 
 const COST_METHODS: { value: SettingsState["costMethod"]; label: string; description: string }[] = [
-  { value: "fifo", label: "FIFO", description: "First In First Out — первым пришёл, первым ушёл. Рекомендован для скоропортящихся товаров." },
-  { value: "lifo", label: "LIFO", description: "Last In First Out — последним пришёл, первым ушёл. Используется в отдельных учётных системах." },
-  { value: "weighted", label: "Средневзвешенная стоимость", description: "Себестоимость рассчитывается как среднее взвешенное по всем партиям. Подходит для однородных товаров." },
-  { value: "standard", label: "Стандартная стоимость", description: "Фиксированная плановая себестоимость с отклонениями. Удобна при стабильных ценах поставщика." },
+  { value: "fifo",     label: "FIFO",                       description: "First In First Out — первым пришёл, первым ушёл. Единственный метод, разрешённый ПБУ 5/01 для большинства компаний в РФ." },
+  { value: "weighted", label: "Средневзвешенная стоимость", description: "Себестоимость рассчитывается как среднее взвешенное по всем партиям. Допустима по ПБУ 5/01 и МСФО." },
+  { value: "standard", label: "Стандартная стоимость",      description: "Фиксированная плановая себестоимость с отклонениями. Удобна при стабильных ценах поставщика." },
 ];
 
 export function InventorySettings() {
