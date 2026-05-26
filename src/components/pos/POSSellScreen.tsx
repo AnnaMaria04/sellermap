@@ -26,7 +26,7 @@ import { cn, formatRub } from "@/lib/utils";
 import { getAvailableStock } from "@/mock/inventory";
 import type { Product, Order, OrderItem } from "@/mock/inventory";
 import { BarcodeInput } from "@/components/ui/BarcodeInput";
-import { usePOSSession } from "@/store/pos-session";
+import { usePOSSession, type POSReceipt } from "@/store/pos-session";
 import { toast } from "sonner";
 
 // ── Local types ──────────────────────────────────────────────────────────────
@@ -720,7 +720,21 @@ export function POSSellScreen() {
       };
 
       setReceipt(receiptData);
-      addSale(total);
+
+      const posReceipt: POSReceipt = {
+        orderId,
+        orderNumber,
+        total,
+        paymentMethod,
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+        })),
+        createdAt: now.toISOString(),
+      };
+      addSale(total, posReceipt);
     } finally {
       setIsProcessing(false);
     }
