@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, PlusCircle, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSellerProfile } from "@/hooks/useSellerProfile";
 
 const BUSINESS_TYPES = [
   { id: "ip", label: "ИП" },
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function OnboardingWizard({ onComplete }: Props) {
+  const { saveProfile } = useSellerProfile();
   const [step, setStep] = useState(1);
 
   // Step 1 state
@@ -194,7 +196,7 @@ export function OnboardingWizard({ onComplete }: Props) {
 
             <div className="flex justify-end pt-1">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => { saveProfile({ company: company.trim(), businessType, channels }); setStep(2); }}
                 disabled={!company.trim()}
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition",
