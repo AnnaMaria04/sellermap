@@ -28,6 +28,9 @@ import {
   Users,
   Users2,
   Building2,
+  ClipboardList,
+  RotateCcw,
+  FileText,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -48,33 +51,36 @@ const NAV: NavSection[] = [
   {
     items: [
       { label: "Обзор",    href: "/inventory",             icon: Home },
-      {
-        label: "Заказы",   href: "/inventory/orders",      icon: ShoppingBag,
-        children: [{ label: "Акции и промо", href: "/inventory/promotions" }],
-      },
+      { label: "Заказы",   href: "/inventory/orders",      icon: ShoppingBag },
       {
         label: "Товары",   href: "/inventory/products",    icon: Package,
-        children: [{ label: "Комплекты",     href: "/inventory/bundles" }],
+        children: [{ label: "Комплекты", href: "/inventory/bundles" }],
       },
-      { label: "Клиенты", href: "/inventory/customers",   icon: Users },
+      {
+        label: "Клиенты",  href: "/inventory/customers",   icon: Users,
+        children: [{ label: "Акции и промо", href: "/inventory/promotions" }],
+      },
     ],
   },
   {
     title: "Операции",
     items: [
       {
-        label: "Закупки",      href: "/inventory/purchase-orders", icon: Truck,
+        label: "Закупки",        href: "/inventory/purchase-orders", icon: Truck,
         children: [{ label: "Поставщики", href: "/inventory/suppliers" }],
       },
-      { label: "Перемещения",  href: "/inventory/transfers",       icon: ArrowLeftRight },
-      { label: "История",      href: "/inventory/history",         icon: History },
+      { label: "Перемещения",    href: "/inventory/transfers",       icon: ArrowLeftRight },
+      { label: "Инвентаризация", href: "/inventory/stocktake",       icon: ClipboardList },
+      { label: "Возвраты",       href: "/inventory/returns",         icon: RotateCcw },
+      { label: "История",        href: "/inventory/history",         icon: History },
     ],
   },
   {
     title: "Финансы",
     items: [
-      { label: "Финансы",    href: "/inventory/finance",    icon: Wallet },
-      { label: "Аналитика",  href: "/inventory/analytics",  icon: BarChart3 },
+      { label: "Финансы",   href: "/inventory/finance",    icon: Wallet },
+      { label: "Аналитика", href: "/inventory/analytics",  icon: BarChart3 },
+      { label: "Отчёты",    href: "/inventory/reports",    icon: FileText },
     ],
   },
 ];
