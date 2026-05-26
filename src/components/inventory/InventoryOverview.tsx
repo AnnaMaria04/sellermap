@@ -42,7 +42,8 @@ export function InventoryOverview() {
 
   const stats = useMemo(() => getInventoryStats(products), [products]);
   const totalValue = useMemo(() => getTotalInventoryValue(products.filter((p) => p.status === "active")), [products]);
-  const lowStockProducts = useMemo(() => getLowStockProducts(products).slice(0, 5), [products]);
+  const allLowStockProducts = useMemo(() => getLowStockProducts(products), [products]);
+  const lowStockProducts = useMemo(() => allLowStockProducts.slice(0, 5), [allLowStockProducts]);
   const recentOrders = useMemo(() => purchaseOrders.filter((po) => po.status !== "closed").slice(0, 4), [purchaseOrders]);
   const recentMovements = useMemo(() => movements.slice(0, 5), [movements]);
   const activeTransfers = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
@@ -154,43 +155,53 @@ export function InventoryOverview() {
           icon={<AlertTriangle size={16} className="text-[var(--c-amber)]" />}
           href="/inventory/products?stock=low"
           linkLabel="Все товары"
-          count={stats.lowStockCount + stats.outOfStockCount}
+          count={allLowStockProducts.length}
         >
           {lowStockProducts.length === 0 ? (
             <EmptyRow message="Все товары в норме" />
           ) : (
-            lowStockProducts.map((product) => {
-              const available = getAvailableStock(product);
-              const status = getStockStatus(product);
-              return (
+            <>
+              {lowStockProducts.map((product) => {
+                const available = getAvailableStock(product);
+                const status = getStockStatus(product);
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/inventory/products/${product.id}`}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
+                  >
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                      {product.imageUrl ? (
+                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm">📦</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
+                      <p className="text-xs text-[var(--c-text3)]">{product.sku}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={cn(
+                        "text-sm font-bold tabular",
+                        status === "out_of_stock" ? "text-[var(--c-red)]" : "text-[var(--c-amber)]",
+                      )}>
+                        {available}
+                      </p>
+                      <StockStatusBadge status={status} size="sm" />
+                    </div>
+                  </Link>
+                );
+              })}
+              {allLowStockProducts.length > 5 && (
                 <Link
-                  key={product.id}
-                  href={`/inventory/products/${product.id}`}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--c-bg3)]"
+                  href="/inventory/products?stock=low"
+                  className="flex items-center justify-center rounded-xl px-3 py-2 text-xs text-[var(--c-text3)] hover:text-[var(--c-text2)] transition"
                 >
-                  <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm">📦</div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
-                    <p className="text-xs text-[var(--c-text3)]">{product.sku}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className={cn(
-                      "text-sm font-bold tabular",
-                      status === "out_of_stock" ? "text-[var(--c-red)]" : "text-[var(--c-amber)]",
-                    )}>
-                      {available}
-                    </p>
-                    <StockStatusBadge status={status} size="sm" />
-                  </div>
+                  Ещё {allLowStockProducts.length - 5} товаров →
                 </Link>
-              );
-            })
+              )}
+            </>
           )}
         </SectionCard>
 

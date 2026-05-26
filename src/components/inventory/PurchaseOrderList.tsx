@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
   Download,
-  MoreHorizontal,
-  Eye,
   Package,
   ChevronRight,
   X,
@@ -53,7 +52,8 @@ interface Props {
 }
 
 export function PurchaseOrderList({ onCreatePO }: Props) {
-  const { purchaseOrders, suppliers, locations, actions } = useInventory();
+  const router = useRouter();
+  const { purchaseOrders, suppliers } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | "all">("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
@@ -172,9 +172,9 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
           {/* Mobile cards */}
           <div className="space-y-2 md:hidden">
             {filtered.map((po) => (
-              <button
+              <Link
                 key={po.id}
-                onClick={() => setSelectedPO(po)}
+                href={`/inventory/purchase-orders/${po.id}`}
                 className="w-full text-left flex flex-col gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4 active:bg-[var(--c-bg3)] transition"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -202,7 +202,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
                 {po.status === "partially_received" && (
                   <ReceiveProgress items={po.items} />
                 )}
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -226,7 +226,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
                     <tr
                       key={po.id}
                       className="group border-b border-[var(--c-border)] transition last:border-0 hover:bg-[var(--c-bg3)] cursor-pointer"
-                      onClick={() => setSelectedPO(po)}
+                      onClick={() => router.push(`/inventory/purchase-orders/${po.id}`)}
                     >
                       <td className="px-5 py-4">
                         <p className="text-sm font-medium text-[var(--c-text)]">{po.id.toUpperCase()}</p>
