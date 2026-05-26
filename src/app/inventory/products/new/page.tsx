@@ -1,20 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
-import type { Product, ProductType, ProductStatus } from "@/mock/inventory";
+import type { Product, ProductType, ProductStatus, ProductVariant } from "@/mock/inventory";
 
 const schema = z.object({
   name: z.string().min(1, "Название обязательно"),
   sku: z.string().min(1, "Артикул обязателен"),
   barcode: z.string().optional(),
+  imageUrl: z.string().optional(),
   category: z.string().min(1, "Выберите категорию"),
   productType: z.enum(["product", "ingredient", "bundle", "packaging"]),
   price: z.number({ error: "Укажите цену" }).min(0),
@@ -24,6 +25,11 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+interface OptionRow {
+  name: string;
+  values: string;
+}
 
 function generateSku(name: string): string {
   const base = name.toUpperCase().replace(/[^A-ZА-Я0-9]/g, "").slice(0, 4) || "SKU";
@@ -37,6 +43,32 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   bundle: "Комплект",
   packaging: "Упаковка",
 };
+
+function parseValues(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function buildCombinations(options: OptionRow[]): string[] {
+  const validOptions = options.filter(
+    (o) => o.name.trim() && o.values.trim()
+  );
+  if (validOptions.length === 0) return [];
+
+  const parsed = validOptions.map((o) => parseValues(o.values));
+  if (parsed.length === 1) return parsed[0].map((v) => v);
+
+  // Cross-product of first two option value arrays
+  const combos: string[] = [];
+  for (const v1 of parsed[0]) {
+    for (const v2 of parsed[1]) {
+      combos.push(`${v1} / ${v2}`);
+    }
+  }
+  return combos;
+}
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -59,6 +91,7 @@ export default function NewProductPage() {
       name: "",
       sku: "",
       barcode: "",
+      imageUrl: "",
       category: "",
       productType: "product",
       price: 0,
@@ -69,6 +102,14 @@ export default function NewProductPage() {
   });
 
   const nameValue = watch("name");
+  const imageUrlValue = watch("imageUrl");
+  const skuValue = watch("sku");
+
+  // Variant builder state
+  const [variantEnabled, setVariantEnabled] = useState(false);
+  const [options, setOptions] = useState<OptionRow[]>([
+    { name: "", values: "" },
+  ]);
 
   // Prefill from sessionStorage if navigated from /result "Добавить в склад"
   useEffect(() => {
@@ -98,6 +139,10 @@ export default function NewProductPage() {
     }
   };
 
+  const combinations = buildCombinations(options);
+  const tooManyCombos = combinations.length > 20;
+  const displayedCombos = combinations.slice(0, 20);
+
   const onSubmit = async (data: FormValues) => {
     const now = new Date().toISOString().split("T")[0];
     const id = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -106,11 +151,27 @@ export default function NewProductPage() {
         ? Math.round(((data.price - data.costPrice) / data.price) * 1000) / 10
         : 0;
 
+    let hasVariants = false;
+    let variants: ProductVariant[] = [];
+
+    if (variantEnabled && combinations.length > 0 && !tooManyCombos) {
+      hasVariants = true;
+      variants = displayedCombos.map((combo, i) => ({
+        id: `${id}-var-${i}`,
+        name: combo,
+        sku: `${data.sku}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`,
+        price: data.price,
+        costPrice: data.costPrice,
+        stock: {} as Record<string, number>,
+      }));
+    }
+
     const newProduct: Product = {
       id,
       name: data.name,
       sku: data.sku,
       barcode: data.barcode || undefined,
+      imageUrl: data.imageUrl || undefined,
       category: data.category,
       productType: data.productType as ProductType,
       status: data.status as ProductStatus,
@@ -118,8 +179,8 @@ export default function NewProductPage() {
       price: data.price,
       costPrice: data.costPrice,
       margin,
-      hasVariants: false,
-      variants: [],
+      hasVariants,
+      variants,
       channels: [],
       tags: [],
       requiresLabeling: false,
@@ -194,6 +255,29 @@ export default function NewProductPage() {
               placeholder="EAN-13 или другой"
               className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
             />
+          </div>
+
+          {/* Image URL */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+              Изображение (URL)
+            </label>
+            <input
+              type="text"
+              {...register("imageUrl")}
+              placeholder="https://example.com/image.jpg"
+              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+            />
+            {imageUrlValue && (
+              <div className="mt-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrlValue}
+                  alt="Превью"
+                  className="max-h-20 w-20 rounded-lg border border-[var(--c-border)] object-cover"
+                />
+              </div>
+            )}
           </div>
 
           {/* Category */}
@@ -291,6 +375,124 @@ export default function NewProductPage() {
               placeholder="Опишите товар..."
               className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
             />
+          </div>
+
+          {/* Variant Builder */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <button
+              type="button"
+              onClick={() => setVariantEnabled((v) => !v)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <span className="text-sm font-medium text-[var(--c-text)]">
+                Добавить варианты (размер, цвет, и т.д.)
+              </span>
+              {variantEnabled ? (
+                <ChevronUp size={16} className="text-[var(--c-text2)]" />
+              ) : (
+                <ChevronDown size={16} className="text-[var(--c-text2)]" />
+              )}
+            </button>
+
+            {variantEnabled && (
+              <div className="mt-4 space-y-4">
+                <p className="text-xs font-medium text-[var(--c-text2)]">Опции товара</p>
+
+                {options.map((opt, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={opt.name}
+                      onChange={(e) => {
+                        const next = [...options];
+                        next[idx] = { ...next[idx], name: e.target.value };
+                        setOptions(next);
+                      }}
+                      placeholder={idx === 0 ? "Размер" : "Цвет"}
+                      className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+                    />
+                    <input
+                      type="text"
+                      value={opt.values}
+                      onChange={(e) => {
+                        const next = [...options];
+                        next[idx] = { ...next[idx], values: e.target.value };
+                        setOptions(next);
+                      }}
+                      placeholder={idx === 0 ? "S, M, L, XL" : "Красный, Синий"}
+                      className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+                    />
+                  </div>
+                ))}
+
+                {options.length < 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setOptions([...options, { name: "", values: "" }])}
+                    className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--c-border2)] px-3 text-xs font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
+                  >
+                    <Plus size={12} />
+                    Добавить опцию
+                  </button>
+                )}
+
+                {/* Combination preview */}
+                {combinations.length > 0 && (
+                  <div className="mt-2">
+                    <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">
+                      Варианты товара ({combinations.length})
+                    </p>
+
+                    {tooManyCombos && (
+                      <p className="mb-2 text-xs text-[var(--c-red)]">
+                        Слишком много комбинаций. Максимум 20.
+                      </p>
+                    )}
+
+                    {!tooManyCombos && (
+                      <div className="overflow-hidden rounded-lg border border-[var(--c-border)]">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg)]">
+                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
+                                Название
+                              </th>
+                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
+                                SKU
+                              </th>
+                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
+                                Примечание
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {displayedCombos.map((combo, i) => {
+                              const varSku = skuValue
+                                ? `${skuValue}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`
+                                : "—";
+                              return (
+                                <tr
+                                  key={i}
+                                  className="border-b border-[var(--c-border)] last:border-0"
+                                >
+                                  <td className="px-3 py-2 text-[var(--c-text)]">{combo}</td>
+                                  <td className="px-3 py-2 font-mono text-[var(--c-text2)]">
+                                    {varSku}
+                                  </td>
+                                  <td className="px-3 py-2 text-[var(--c-text3)]">
+                                    SKU и цену можно отредактировать после сохранения
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Status */}
