@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Minus,
   ExternalLink,
+  EyeOff,
 } from "lucide-react";
 import {
   type Stocktake,
@@ -207,6 +208,7 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
   const [scanSuccess, setScanSuccess] = useState<string | null>(null);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [antiAnchor, setAntiAnchor] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
 
   const locationName = locations.find(l => l.id === stocktake.locationId)?.name ?? stocktake.locationId;
@@ -336,6 +338,21 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
           <div className="flex items-center gap-2">
             {isCompleted && (
               <div className="relative">
+                {isInProgress && (
+                  <button
+                    onClick={() => setAntiAnchor((v) => !v)}
+                    title="Режим без якоря: скрывает количество по системе, чтобы не влиять на подсчёт"
+                    className={cn(
+                      "flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition",
+                      antiAnchor
+                        ? "border-[var(--c-amber)] bg-[var(--c-amber-dim)] text-[var(--c-amber)]"
+                        : "border-[var(--c-border2)] bg-[var(--c-bg2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)]",
+                    )}
+                  >
+                    <EyeOff size={12} />
+                    Без якоря
+                  </button>
+                )}
                 <button
                   onClick={() => setShowExportMenu((v) => !v)}
                   className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg3)] transition"
@@ -471,10 +488,12 @@ function StocktakeDetailPanel({ stocktake, onClose }: { stocktake: Stocktake; on
                     </div>
 
                     <div className="flex items-start gap-3 shrink-0">
-                      <div className="text-right">
-                        <p className="text-xs text-[var(--c-text3)]">в системе</p>
-                        <p className="text-sm font-medium text-[var(--c-text)] tabular">{item.systemQty}</p>
-                      </div>
+                      {!antiAnchor && (
+                        <div className="text-right">
+                          <p className="text-xs text-[var(--c-text3)]">в системе</p>
+                          <p className="text-sm font-medium text-[var(--c-text)] tabular">{item.systemQty}</p>
+                        </div>
+                      )}
 
                       {/* Variance badge */}
                       {hasVariance && item.variance !== null && (

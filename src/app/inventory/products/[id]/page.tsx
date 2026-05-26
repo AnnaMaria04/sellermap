@@ -35,6 +35,7 @@ import {
 import { useInventory } from "@/contexts/InventoryContext";
 import { STOCK_TERMS } from "@/components/inventory/ui/StockTerms";
 import { cn } from "@/lib/utils";
+import { computeProductMetrics, type ABCClass } from "@/lib/inventory/analytics";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -96,6 +97,7 @@ export default function ProductDetailPage({ params }: Props) {
   const supplier = suppliers.find((s) => s.id === product.supplierId);
   const movements = allMovements.filter((m) => m.productId === product.id);
   const margin = product.margin ?? 0;
+  const productMetrics = computeProductMetrics([product], allMovements)[0];
 
   return (
     <InventoryShell
@@ -199,6 +201,48 @@ export default function ProductDetailPage({ params }: Props) {
                 </div>
               </div>
             </div>
+
+            {/* Analytics row */}
+            {productMetrics && (
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-2">
+                  <span className="text-xs text-[var(--c-text3)]">ABC-класс</span>
+                  <span className={cn(
+                    "inline-flex h-6 w-6 items-center justify-center rounded text-xs font-bold",
+                    productMetrics.abcClass === "A" ? "bg-[var(--c-green-dim)] text-[var(--c-green)]" :
+                    productMetrics.abcClass === "B" ? "bg-[var(--c-amber-dim)] text-[var(--c-amber)]" :
+                    "bg-[var(--c-bg2)] text-[var(--c-text3)]",
+                  )}>
+                    {productMetrics.abcClass}
+                  </span>
+                </div>
+                {isFinite(productMetrics.daysOfInventory) && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-2">
+                    <span className="text-xs text-[var(--c-text3)]">Запас на</span>
+                    <span className={cn(
+                      "text-sm font-semibold tabular",
+                      productMetrics.daysOfInventory < 14 ? "text-[var(--c-amber)]" : "text-[var(--c-green)]",
+                    )}>
+                      {Math.round(productMetrics.daysOfInventory)} дн.
+                    </span>
+                  </div>
+                )}
+                {productMetrics.salesVelocity > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-2">
+                    <span className="text-xs text-[var(--c-text3)]">Продаж/день</span>
+                    <span className="text-sm font-semibold tabular text-[var(--c-text)]">
+                      {productMetrics.salesVelocity.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+                {productMetrics.isDeadStock && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[rgba(240,80,80,0.3)] bg-[var(--c-red-dim)] px-3 py-2">
+                    <AlertTriangle size={13} className="text-[var(--c-red)]" />
+                    <span className="text-xs font-medium text-[var(--c-red)]">Неликвид</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Stock by location */}
