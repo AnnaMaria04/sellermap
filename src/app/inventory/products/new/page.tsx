@@ -6,10 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, X } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
-import type { Product, ProductType, ProductStatus, ProductVariant } from "@/mock/inventory";
+import { CHANNEL_LABELS } from "@/mock/inventory";
+import type { Product, ProductType, ProductStatus, ProductVariant, SalesChannel } from "@/mock/inventory";
 
 const schema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -72,7 +73,7 @@ function buildCombinations(options: OptionRow[]): string[] {
 
 export default function NewProductPage() {
   const router = useRouter();
-  const { products, actions } = useInventory();
+  const { products, suppliers, locations, actions } = useInventory();
 
   // Derive unique categories from existing products
   const categories = Array.from(new Set(products.map((p) => p.category))).sort();
@@ -110,6 +111,44 @@ export default function NewProductPage() {
   const [options, setOptions] = useState<OptionRow[]>([
     { name: "", values: "" },
   ]);
+
+  // Priority-3 field state
+  const [stockByLocation, setStockByLocation] = useState<Record<string, number>>({});
+  const [supplierId, setSupplierId] = useState("");
+  const [channels, setChannels] = useState<SalesChannel[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [requiresLabeling, setRequiresLabeling] = useState(false);
+  const [gtin, setGtin] = useState("");
+
+  const toggleChannel = (ch: SalesChannel) => {
+    setChannels((prev) =>
+      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]
+    );
+  };
+
+  const addTag = () => {
+    const t = tagInput.trim().replace(/,$/, "").trim();
+    if (t && !tags.includes(t)) {
+      setTags((prev) => [...prev, t]);
+    }
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  const removeTag = (t: string) => {
+    setTags((prev) => prev.filter((x) => x !== t));
+  };
+
+  const setLocationStock = (locationId: string, value: number) => {
+    setStockByLocation((prev) => ({ ...prev, [locationId]: value }));
+  };
 
   // Prefill from sessionStorage if navigated from /result "Добавить в склад"
   useEffect(() => {
@@ -166,6 +205,17 @@ export default function NewProductPage() {
       }));
     }
 
+    // Initial stock by location — keep only positive quantities
+    const initialStock: Record<string, number> = {};
+    let totalPhysical = 0;
+    for (const loc of locations) {
+      const qty = stockByLocation[loc.id] ?? 0;
+      if (qty > 0) {
+        initialStock[loc.id] = qty;
+        totalPhysical += qty;
+      }
+    }
+
     const newProduct: Product = {
       id,
       name: data.name,
@@ -181,19 +231,32 @@ export default function NewProductPage() {
       margin,
       hasVariants,
       variants,
-      channels: [],
-      tags: [],
-      requiresLabeling: false,
-      stockByLocation: {},
+      supplierId: supplierId || undefined,
+      channels,
+      tags,
+      requiresLabeling,
+      ...(requiresLabeling
+        ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined }
+        : {}),
+      stockByLocation: initialStock,
       reservedUnits: 0,
       damagedUnits: 0,
       inTransitUnits: 0,
-      totalPhysical: 0,
+      totalPhysical,
       createdAt: now,
       updatedAt: now,
     };
 
     actions.addProduct(newProduct);
+
+    // Record initial stock as adjustment movements per location
+    for (const loc of locations) {
+      const qty = stockByLocation[loc.id] ?? 0;
+      if (qty > 0) {
+        actions.adjustStock(newProduct.id, loc.id, qty, "adjustment", "Начальный остаток");
+      }
+    }
+
     toast.success("Товар создан");
     router.push("/inventory/products/" + newProduct.id);
   };
@@ -491,6 +554,148 @@ export default function NewProductPage() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Initial stock by location */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <p className="mb-4 text-sm font-medium text-[var(--c-text)]">
+              Начальный остаток по локациям
+            </p>
+            <div className="space-y-3">
+              {locations.map((loc) => (
+                <div key={loc.id} className="flex items-center gap-3">
+                  <span className="flex-1 text-sm text-[var(--c-text)]">{loc.name}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={stockByLocation[loc.id] ?? 0}
+                    onChange={(e) =>
+                      setLocationStock(loc.id, Math.max(0, Number(e.target.value) || 0))
+                    }
+                    className="h-10 w-28 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] tabular outline-none transition focus:border-[var(--c-green)]"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Supplier */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+              Поставщик
+            </label>
+            <select
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)]"
+            >
+              <option value="">Нет поставщика</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Channels */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <p className="mb-3 text-xs font-medium text-[var(--c-text2)]">
+              Каналы продаж
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
+                const active = channels.includes(ch);
+                return (
+                  <button
+                    key={ch}
+                    type="button"
+                    onClick={() => toggleChannel(ch)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                        : "border border-[var(--c-border2)] text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]"
+                    }`}
+                  >
+                    {CHANNEL_LABELS[ch]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+              Теги
+            </label>
+            {tags.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="flex items-center gap-1 rounded-full bg-[var(--c-green-dim)] px-3 py-1 text-xs font-medium text-[var(--c-green)]"
+                  >
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(t)}
+                      className="transition hover:opacity-70"
+                      aria-label={`Удалить тег ${t}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={addTag}
+              placeholder="Введите тег и нажмите Enter"
+              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+            />
+          </div>
+
+          {/* Честный Знак */}
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+            <button
+              type="button"
+              onClick={() => setRequiresLabeling((v) => !v)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <span className="text-sm font-medium text-[var(--c-text)]">
+                Требует маркировки (Честный Знак)
+              </span>
+              <span
+                className={`flex h-5 w-9 items-center rounded-full px-0.5 transition ${
+                  requiresLabeling ? "bg-[var(--c-green)]" : "bg-[var(--c-border2)]"
+                }`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full bg-white transition ${
+                    requiresLabeling ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </span>
+            </button>
+            {requiresLabeling && (
+              <div className="mt-4">
+                <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+                  GTIN
+                </label>
+                <input
+                  type="text"
+                  value={gtin}
+                  onChange={(e) => setGtin(e.target.value)}
+                  placeholder="Например: 04606007384825"
+                  className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+                />
               </div>
             )}
           </div>
