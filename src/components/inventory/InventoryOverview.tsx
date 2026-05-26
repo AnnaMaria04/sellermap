@@ -44,26 +44,34 @@ function formatDate(d: string) {
 
 // ─── Shopify-style stat strip ─────────────────────────────────────────────────
 
+type StatStatus = "good" | "warn" | "bad" | "neutral";
+
 function StatStrip({ stats }: {
-  stats: { label: string; value: string; trend?: number }[];
+  stats: { label: string; value: string; sub?: string; status?: StatStatus }[];
 }) {
+  const dot: Record<StatStatus, string> = {
+    good:    "bg-[var(--c-green)]",
+    warn:    "bg-[var(--c-amber)]",
+    bad:     "bg-[var(--c-red)]",
+    neutral: "bg-[var(--c-border2)]",
+  };
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
-      <div className="grid divide-x divide-[var(--c-border)]" style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+      <div
+        className="grid divide-x divide-[var(--c-border)]"
+        style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}
+      >
         {stats.map((s) => (
           <div key={s.label} className="px-5 py-4">
-            <p className="text-xs text-[var(--c-text3)]">{s.label}</p>
-            <p className="mt-1 text-[1.35rem] font-bold tabular text-[var(--c-text)]">{s.value}</p>
-            {s.trend !== undefined && (
-              <p className={cn(
-                "mt-0.5 flex items-center gap-1 text-xs",
-                s.trend >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]",
-              )}>
-                {s.trend >= 0
-                  ? <TrendingUp size={11} />
-                  : <TrendingDown size={11} />}
-                {Math.abs(s.trend).toFixed(1)}% vs прошлый период
-              </p>
+            <p className="text-[11px] uppercase tracking-wide text-[var(--c-text3)]">{s.label}</p>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <p className="text-[1.4rem] font-bold tabular leading-none text-[var(--c-text)]">{s.value}</p>
+              {s.status && (
+                <span className={cn("mb-0.5 h-2 w-2 shrink-0 rounded-full", dot[s.status])} />
+              )}
+            </div>
+            {s.sub && (
+              <p className="mt-1 text-[11px] text-[var(--c-text3)]">{s.sub}</p>
             )}
           </div>
         ))}
@@ -191,10 +199,30 @@ export function InventoryOverview() {
       {/* ── 4-stat strip (Shopify style) ──────────────────────────────────── */}
       <StatStrip
         stats={[
-          { label: "Выручка за месяц",        value: `${fmt(pnl.revenue)} ₽` },
-          { label: "Чистая прибыль",           value: `${fmt(pnl.netProfit)} ₽` },
-          { label: "Маржа",                    value: `${pnl.netMarginPct.toFixed(1)}%` },
-          { label: "Заказов в работе",         value: String(pendingOrders) },
+          {
+            label: "Выручка за месяц",
+            value: `${fmt(pnl.revenue)} ₽`,
+            sub: "реализованные заказы",
+            status: "neutral",
+          },
+          {
+            label: "Чистая прибыль",
+            value: `${fmt(pnl.netProfit)} ₽`,
+            sub: pnl.revenue > 0 ? `${pnl.netMarginPct.toFixed(1)}% маржа` : "нет данных",
+            status: pnl.netProfit > 0 ? "good" : pnl.netProfit === 0 ? "neutral" : "bad",
+          },
+          {
+            label: "Мало товара",
+            value: String(allLowStock.length),
+            sub: allLowStock.length === 0 ? "всё в норме" : "требуют пополнения",
+            status: allLowStock.length === 0 ? "good" : allLowStock.length <= 3 ? "warn" : "bad",
+          },
+          {
+            label: "Заказов в работе",
+            value: String(pendingOrders),
+            sub: pendingOrders === 0 ? "нет активных" : "обрабатываются",
+            status: pendingOrders > 0 ? "warn" : "neutral",
+          },
         ]}
       />
 

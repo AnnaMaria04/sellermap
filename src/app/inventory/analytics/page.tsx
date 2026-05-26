@@ -12,52 +12,60 @@ import { TurnoverAnalysis } from "@/components/inventory/TurnoverAnalysis";
 import { SalesChartPanel } from "@/components/inventory/SalesChartPanel";
 import { cn } from "@/lib/utils";
 
-type Tab = "charts" | "overview" | "turnover" | "forecast" | "cost" | "replenishment" | "expiry" | "writeoffs";
+type Tab = "sales" | "inventory" | "planning" | "quality";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "charts", label: "Графики продаж" },
-  { id: "overview", label: "Обзор и KPI" },
-  { id: "turnover", label: "Оборачиваемость" },
-  { id: "forecast", label: "Прогноз спроса" },
-  { id: "cost", label: "Себестоимость" },
-  { id: "replenishment", label: "Пополнение" },
-  { id: "expiry", label: "Сроки годности" },
-  { id: "writeoffs", label: "Списания" },
+const TABS: { id: Tab; label: string; description: string }[] = [
+  { id: "sales",     label: "Продажи",    description: "Графики выручки, топ товаров, каналы" },
+  { id: "inventory", label: "Запасы",     description: "KPI, оборачиваемость, маржа" },
+  { id: "planning",  label: "Планирование", description: "Прогноз спроса, правила пополнения" },
+  { id: "quality",   label: "Операции",   description: "Себестоимость, сроки годности, списания" },
 ];
 
 export default function InventoryAnalyticsPage() {
-  const [tab, setTab] = useState<Tab>("charts");
+  const [tab, setTab] = useState<Tab>("sales");
 
   return (
-    <InventoryShell
-      title="Аналитика"
-      subtitle="Анализ запасов, оборачиваемости и рекомендации"
-    >
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1 hide-scrollbar">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "flex-shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition whitespace-nowrap",
-              tab === t.id
-                ? "bg-[var(--c-bg3)] text-[var(--c-text)]"
-                : "text-[var(--c-text2)] hover:text-[var(--c-text)]",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+    <InventoryShell title="Аналитика">
+      {/* Tab bar — 4 tabs, Shopify-style underline */}
+      <div className="mb-6 border-b border-[var(--c-border)]">
+        <div className="flex gap-0 overflow-x-auto hide-scrollbar">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "flex-shrink-0 border-b-2 px-5 py-3 text-sm font-medium transition whitespace-nowrap",
+                tab === t.id
+                  ? "border-[var(--c-text)] text-[var(--c-text)]"
+                  : "border-transparent text-[var(--c-text2)] hover:text-[var(--c-text)]",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {tab === "charts" && <SalesChartPanel />}
-      {tab === "overview" && <InventoryAnalytics />}
-      {tab === "turnover" && <TurnoverAnalysis />}
-      {tab === "forecast" && <DemandForecast />}
-      {tab === "cost" && <CostAnalysisPanel />}
-      {tab === "replenishment" && <ReplenishmentRules />}
-      {tab === "expiry" && <ExpiryTracker />}
-      {tab === "writeoffs" && <WriteOffPanel />}
+      {tab === "sales" && <SalesChartPanel />}
+      {tab === "inventory" && (
+        <div className="space-y-8">
+          <InventoryAnalytics />
+          <TurnoverAnalysis />
+        </div>
+      )}
+      {tab === "planning" && (
+        <div className="space-y-8">
+          <DemandForecast />
+          <ReplenishmentRules />
+        </div>
+      )}
+      {tab === "quality" && (
+        <div className="space-y-8">
+          <CostAnalysisPanel />
+          <ExpiryTracker />
+          <WriteOffPanel />
+        </div>
+      )}
     </InventoryShell>
   );
 }
