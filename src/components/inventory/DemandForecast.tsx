@@ -284,7 +284,7 @@ export function DemandForecast() {
       {activeTab === "forecast" && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[rgba(240,80,80,0.2)] bg-[var(--c-red-dim)] p-4">
               <div className="mb-2 flex items-center gap-2">
                 <AlertTriangle size={14} className="text-[var(--c-red)]" />
@@ -340,7 +340,7 @@ export function DemandForecast() {
               </p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[680px]">
                 <thead>
                   <tr className="border-b border-[var(--c-border)]">
                     <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">
@@ -495,7 +495,7 @@ export function DemandForecast() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[760px]">
                 <thead>
                   <tr className="border-b border-[var(--c-border)]">
                     <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">
@@ -736,7 +736,7 @@ export function DemandForecast() {
       {activeTab === "abc" && (
         <>
           {/* Summary row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <AbcCard
               cls="A"
               count={abcCounts.A}
@@ -842,7 +842,7 @@ export function DemandForecast() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[560px]">
                     <thead>
                       <tr className="border-b border-[var(--c-border)]">
                         <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">

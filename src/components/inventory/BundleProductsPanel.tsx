@@ -239,8 +239,8 @@ export function BundleProductsPanel() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-[var(--c-border)]">
               <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Комплект</th>
@@ -369,8 +369,8 @@ export function BundleProductsPanel() {
 
               <div>
                 <h4 className="text-sm font-medium text-[var(--c-text)] mb-3">Компоненты</h4>
-                <div className="rounded-xl border border-[var(--c-border)] overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-xl border border-[var(--c-border)] overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-sm">
                     <thead>
                       <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                         <th className="px-3 py-2 text-left text-xs font-medium text-[var(--c-text3)]">Товар</th>
@@ -486,7 +486,7 @@ export function BundleProductsPanel() {
               </button>
             </div>
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-[var(--c-text2)] mb-1.5">Название</label>
                   <input

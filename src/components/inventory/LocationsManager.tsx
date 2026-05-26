@@ -517,8 +517,8 @@ function LocationDetailPanel({ location, onClose }: { location: Location; onClos
                 Нет товаров на этой локации
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+                <table className="w-full min-w-[480px] text-sm">
                   <thead>
                     <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                       <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text2)]">Товар</th>

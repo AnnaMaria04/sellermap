@@ -187,7 +187,7 @@ export function SuppliersPanel() {
   return (
     <div className="space-y-6">
       {/* ── Header stats ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           icon={<Users size={15} />}
           label="Всего поставщиков"
@@ -208,8 +208,8 @@ export function SuppliersPanel() {
       </div>
 
       {/* ── Search + filter ────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full flex-1 sm:w-auto">
           <Search
             size={15}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text3)]"

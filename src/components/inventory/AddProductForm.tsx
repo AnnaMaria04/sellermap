@@ -259,7 +259,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
       {/* Drawer */}
       <div className="relative ml-auto flex h-full w-full max-w-3xl flex-col bg-[var(--c-bg)] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-[var(--c-text)]">Добавить товар</h2>
             <p className="text-xs text-[var(--c-text2)]">Заполните основные данные о товаре</p>
@@ -274,7 +274,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
 
         {/* Tabs */}
         <div className="border-b border-[var(--c-border)] bg-[var(--c-bg2)]">
-          <nav className="flex overflow-x-auto px-6">
+          <nav className="flex overflow-x-auto px-4 sm:px-6">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -294,7 +294,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-6 sm:p-6">
             {/* ── BASIC ─────────────────────────────────────── */}
             {tab === "basic" && (
               <>
@@ -422,7 +422,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
                 </FormSection>
 
                 <FormSection title="Категоризация">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField label="Категория">
                       <input
                         type="text"
@@ -529,7 +529,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
             {tab === "pricing" && (
               <>
                 <FormSection title="Цены">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField label="Цена продажи (₽)" required>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--c-text3)]">₽</span>
@@ -633,7 +633,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
             {tab === "inventory" && (
               <>
                 <FormSection title="Артикул и штрихкод">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField label="SKU / Артикул">
                       <input
                         type="text"
@@ -819,8 +819,8 @@ export function AddProductForm({ onClose, onSave }: Props) {
                         <p className="text-xs text-[var(--c-text2)] mb-3">
                           Система создаст {options.reduce((acc, o) => acc * o.values.length, 1)} вариантов
                         </p>
-                        <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-                          <table className="w-full text-sm">
+                        <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+                          <table className="w-full min-w-[520px] text-sm">
                             <thead>
                               <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                                 <th className="px-4 py-2 text-left text-xs font-medium text-[var(--c-text2)]">Вариант</th>
@@ -856,7 +856,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
             {tab === "shipping" && (
               <FormSection title="Габариты и вес">
                 <p className="text-sm text-[var(--c-text2)] mb-4">Используется для расчёта стоимости логистики и маркировки упаковки</p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField label="Вес (кг)">
                     <input
                       type="number"
@@ -941,7 +941,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
                     </FormSection>
 
                     <FormSection title="Данные маркировки">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <FormField label="GTIN / EAN-13">
                           <input
                             type="text"
@@ -994,7 +994,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"

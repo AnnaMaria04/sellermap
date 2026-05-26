@@ -77,12 +77,12 @@ function PINSetup() {
       </div>
 
       {/* Threshold */}
-      <div className="flex items-center justify-between gap-6">
-        <div>
+      <div className="flex items-center justify-between gap-3 sm:gap-6">
+        <div className="min-w-0">
           <p className="text-sm text-[var(--c-text)]">Порог скидки</p>
           <p className="text-xs text-[var(--c-text3)] mt-0.5">Скидка выше этого % запрашивает ПИН менеджера</p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <input
             type="number"
             min={1}
@@ -244,12 +244,12 @@ export default function SettingsPOSPage() {
       </div>
       <div className="space-y-5">
         <SectionCard icon={<MonitorSmartphone size={15} />} title="Параметры кассы">
-          <div className="flex items-center justify-between gap-6">
-            <div>
+          <div className="flex items-center justify-between gap-3 sm:gap-6">
+            <div className="min-w-0">
               <p className="text-sm text-[var(--c-text)]">Печать чека по умолчанию</p>
               <p className="text-xs text-[var(--c-text3)] mt-0.5">Открывать диалог печати после каждой продажи</p>
             </div>
-            <span className="text-xs text-[var(--c-text3)]">Настраивается на кассе</span>
+            <span className="shrink-0 text-right text-xs text-[var(--c-text3)]">Настраивается на кассе</span>
           </div>
         </SectionCard>
 

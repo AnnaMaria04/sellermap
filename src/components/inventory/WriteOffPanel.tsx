@@ -331,7 +331,7 @@ export function WriteOffPanel() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <p className="text-xs text-[var(--c-text2)] mb-1.5">Актов списания</p>
           <p className="text-2xl font-bold text-[var(--c-text)]">{history.length}</p>

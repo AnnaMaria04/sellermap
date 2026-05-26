@@ -426,8 +426,8 @@ export function ChestnyZnakPanel() {
               title="Нет товаров в этой категории"
             />
           ) : (
-            <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-[var(--c-border)] text-left">
                     <th className="px-4 py-3 text-xs font-medium text-[var(--c-text2)]">

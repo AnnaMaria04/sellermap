@@ -62,7 +62,7 @@ export function OnboardingWizard({ onComplete }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] shadow-2xl overflow-hidden">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] shadow-2xl">
         {/* Progress indicator */}
         <div className="border-b border-[var(--c-border)] px-6 py-5">
           <div className="flex items-center gap-2.5 mb-4">

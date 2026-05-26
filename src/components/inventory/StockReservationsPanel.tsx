@@ -308,7 +308,7 @@ export function StockReservationsPanel() {
     <div className="space-y-6">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-[var(--c-text)]">Резервирование остатков</h2>
           <p className="text-sm text-[var(--c-text3)] mt-0.5">Управление резервами под заказы и клиентов</p>
@@ -514,7 +514,7 @@ export function StockReservationsPanel() {
       {/* ── Reservations table ── */}
       <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]/50">
                 <th className="px-4 py-3 w-8">
@@ -672,8 +672,8 @@ export function StockReservationsPanel() {
           <ChevronDown size={15} className={cn("text-[var(--c-text3)] transition-transform", showImpact && "rotate-180")} />
         </button>
         {showImpact && (
-          <div className="border-t border-[var(--c-border)]">
-            <table className="w-full text-sm">
+          <div className="border-t border-[var(--c-border)] overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                   <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text3)]">Товар</th>
@@ -771,7 +771,7 @@ export function StockReservationsPanel() {
               </div>
 
               {/* location + qty */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-[var(--c-text2)] mb-1.5">
                     Склад <span className="text-[var(--c-red)]">*</span>
@@ -829,7 +829,7 @@ export function StockReservationsPanel() {
               </div>
 
               {/* order ref + customer */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-[var(--c-text2)] mb-1.5">Номер заказа</label>
                   <input

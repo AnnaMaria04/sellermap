@@ -220,7 +220,7 @@ export function NotificationsCenter() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 border-b border-[var(--c-border)]">
+      <div className="flex items-center gap-1 border-b border-[var(--c-border)] overflow-x-auto">
         {TABS.map((tab) => {
           const count =
             tab.id === "all"
@@ -231,7 +231,7 @@ export function NotificationsCenter() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition -mb-px",
+                "flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition -mb-px whitespace-nowrap",
                 activeTab === tab.id
                   ? "border-[var(--c-green)] text-[var(--c-text)]"
                   : "border-transparent text-[var(--c-text3)] hover:text-[var(--c-text2)]",

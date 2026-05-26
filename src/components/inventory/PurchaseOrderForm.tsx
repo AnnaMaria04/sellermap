@@ -168,7 +168,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
 
       <div className="relative ml-auto flex h-full w-full max-w-2xl flex-col bg-[var(--c-bg)] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-[var(--c-text)]">
               Новый заказ поставщику
@@ -186,7 +186,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-6 sm:p-6">
             {/* ── Supplier ──────────────────────────────────────────────── */}
             <Section title="Поставщик">
               <FormField label="Поставщик" required>
@@ -206,7 +206,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
 
               {supplier && (
                 <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <InfoRow
                       label="Контакт"
                       value={supplier.contactName ?? "—"}
@@ -252,7 +252,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
 
             {/* ── Delivery & payment ────────────────────────────────────── */}
             <Section title="Доставка и оплата">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Ожидаемая дата поставки">
                   <input
                     type="date"
@@ -427,8 +427,8 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
 
               {/* Lines table */}
               {lines.length > 0 && (
-                <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-                  <table className="w-full">
+                <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+                  <table className="w-full min-w-[560px]">
                     <thead>
                       <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                         <th className="px-4 py-2 text-left text-xs font-medium text-[var(--c-text2)]">
@@ -564,7 +564,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"

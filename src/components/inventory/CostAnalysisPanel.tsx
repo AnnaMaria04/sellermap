@@ -265,7 +265,7 @@ export function CostAnalysisPanel() {
           <h1 className="text-xl font-bold text-[var(--c-text)]">Анализ себестоимости</h1>
           <p className="text-sm text-[var(--c-text2)] mt-0.5">Маржа, структура затрат и ценовая динамика</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-2 text-right">
             <p className="text-xs text-[var(--c-text3)]">По себестоимости</p>
             <p className="text-base font-bold text-[var(--c-text)] tabular">{formatRub(totals.totalInventoryAtCost)}</p>
@@ -281,13 +281,13 @@ export function CostAnalysisPanel() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1 w-fit">
+      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1 w-full sm:w-fit">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition",
+              "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition",
               tab === t.key
                 ? "bg-[var(--c-bg3)] text-[var(--c-text)] shadow-sm"
                 : "text-[var(--c-text2)] hover:text-[var(--c-text)]",
@@ -312,7 +312,7 @@ export function CostAnalysisPanel() {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <thead className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text2)]">Товар</th>
@@ -464,7 +464,7 @@ export function CostAnalysisPanel() {
             />
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text2)]">Товар</th>
@@ -532,7 +532,7 @@ export function CostAnalysisPanel() {
           </div>
 
           {fifoProductData && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
                 <p className="text-xs text-[var(--c-text3)]">Средневзвешенная себестоимость</p>
                 <p className="text-xl font-bold text-[var(--c-text)] mt-1 tabular">{weightedAvg.toFixed(2)} ₽</p>

@@ -194,8 +194,8 @@ export function InventoryReportsPanel() {
   const IconComp = configReport ? ICON_MAP[configReport.icon] : null;
 
   return (
-    <div style={{ background: "var(--c-bg)", color: "var(--c-text)", minHeight: "100%" }} className="p-6 space-y-8">
-      <div className="flex items-center justify-between">
+    <div style={{ background: "var(--c-bg)", color: "var(--c-text)", minHeight: "100%" }} className="p-4 space-y-8 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">Отчёты и аналитика</h2>
           <p style={{ color: "var(--c-text2)" }} className="text-sm mt-0.5">Формирование и выгрузка отчётов по складу</p>
@@ -219,7 +219,7 @@ export function InventoryReportsPanel() {
           <Star size={15} style={{ color: "var(--c-amber)" }} />
           <span className="text-sm font-medium" style={{ color: "var(--c-text2)" }}>Популярные отчёты</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {REPORT_TEMPLATES.filter(t => POPULAR_TYPES.includes(t.id)).map(t => {
             const Ic = ICON_MAP[t.icon];
             return (
@@ -240,7 +240,7 @@ export function InventoryReportsPanel() {
 
       <div>
         <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--c-text2)" }}>ВСЕ ШАБЛОНЫ ОТЧЁТОВ</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {filteredTemplates.map(t => {
             const Ic = ICON_MAP[t.icon];
             const isPopular = POPULAR_TYPES.includes(t.id);
@@ -303,7 +303,7 @@ export function InventoryReportsPanel() {
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-medium mb-1 block" style={{ color: "var(--c-text2)" }}>Дата от</label>
                   <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
@@ -435,6 +435,8 @@ export function InventoryReportsPanel() {
           </button>
         </div>
         <div style={{ border: "1px solid var(--c-border)" }} className="rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+          <div className="min-w-[760px]">
           <div style={{ background: "var(--c-bg3)", borderBottom: "1px solid var(--c-border)", color: "var(--c-text3)" }} className="grid grid-cols-7 px-4 py-2 text-xs font-medium">
             {["Название", "Тип", "Частота", "Формат", "Получатели", "Следующий запуск", ""].map((h, i) => (
               <div key={i} style={{ color: "var(--c-text3)" }}>{h}</div>
@@ -471,6 +473,8 @@ export function InventoryReportsPanel() {
               </div>
             </div>
           ))}
+          </div>
+          </div>
         </div>
       </div>
 

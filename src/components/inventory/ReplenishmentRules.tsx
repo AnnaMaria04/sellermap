@@ -238,7 +238,7 @@ export function ReplenishmentRules() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: "Активных правил", value: activeCount, color: "text-[var(--c-green)]", dot: "bg-[var(--c-green)]" },
           { label: "Требуют внимания", value: triggeredCount, color: "text-[var(--c-amber)]", dot: "bg-[var(--c-amber)]" },
@@ -324,8 +324,8 @@ export function ReplenishmentRules() {
           </button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                 <th className="w-8 px-3 py-3">

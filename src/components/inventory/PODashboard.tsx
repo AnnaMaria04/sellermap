@@ -564,7 +564,7 @@ export function PODashboard() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full min-w-[480px] text-xs">
                 <thead>
                   <tr className="border-b border-[var(--c-border)] text-[var(--c-text3)]">
                     <th className="pb-2 text-left font-medium">Поставщик</th>

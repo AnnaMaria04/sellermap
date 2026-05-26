@@ -126,7 +126,7 @@ export function ImportWizard({ onClose }: Props) {
           {step === "source" && (
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-[var(--c-text2)]">Выберите источник данных</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SOURCES.map((src) => (
                   <button
                     key={src.id}
@@ -234,8 +234,8 @@ export function ImportWizard({ onClose }: Props) {
           {step === "map" && (
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-[var(--c-text2)]">Сопоставьте колонки файла с полями системы</h3>
-              <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+                <table className="w-full min-w-[420px] text-sm">
                   <thead>
                     <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                       <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text2)]">Колонка в файле</th>
@@ -284,7 +284,7 @@ export function ImportWizard({ onClose }: Props) {
 
               <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[520px] text-sm">
                     <thead>
                       <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg3)]">
                         <th className="px-4 py-2 text-left text-xs font-medium text-[var(--c-text2)]">Статус</th>

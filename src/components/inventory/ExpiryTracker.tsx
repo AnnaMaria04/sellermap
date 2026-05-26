@@ -331,8 +331,8 @@ export function ExpiryTracker() {
       </div>
 
       {/* Batch table */}
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] overflow-x-auto">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-[var(--c-border)]">
               <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Товар / Партия</th>

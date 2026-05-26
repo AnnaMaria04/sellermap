@@ -239,8 +239,8 @@ export function InventoryAnalytics() {
       {/* ABC Analysis */}
       <div>
         <h2 className="mb-4 text-base font-semibold text-[var(--c-text)]">ABC-анализ: деньги в товаре</h2>
-        <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-[var(--c-border)]">
                 <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">Товар</th>
@@ -330,7 +330,7 @@ export function InventoryAnalytics() {
       {/* Margin distribution */}
       <div>
         <h2 className="mb-4 text-base font-semibold text-[var(--c-text)]">Распределение маржи</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             { label: "Высокая (≥30%)", min: 30, color: "text-[var(--c-green)]", bar: "bg-[var(--c-green)]", range: "≥30%" },
             { label: "Рабочая (15–30%)", min: 15, max: 30, color: "text-[var(--c-amber)]", bar: "bg-[var(--c-amber)]", range: "15–30%" },

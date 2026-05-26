@@ -344,7 +344,7 @@ export function TurnoverAnalysis() {
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[680px]">
             <thead>
               <tr className="border-b border-[var(--c-border)]">
                 <th className="px-5 py-3 text-left text-xs font-medium text-[var(--c-text2)]">

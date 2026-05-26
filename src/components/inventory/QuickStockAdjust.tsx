@@ -286,7 +286,7 @@ export function QuickStockAdjust({
           {product && (
             <div>
               <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Текущие остатки в локации</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <StockChip label="Физически" value={currentStock} color="default" />
                 <StockChip label="Зарезерв." value={product.reservedUnits} color="amber" />
                 <StockChip label="Брак" value={product.damagedUnits} color="red" />
