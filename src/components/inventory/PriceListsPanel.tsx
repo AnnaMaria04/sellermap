@@ -18,7 +18,7 @@ import {
   Table2,
   List,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 import { type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { exportData } from "@/lib/export";
@@ -165,10 +165,6 @@ const DISCOUNT_LABELS: Record<DiscountType, string> = {
   fixed: "Фиксированная скидка",
   override: "Новая цена",
 };
-
-function formatRub(n: number) {
-  return n.toLocaleString("ru-RU") + " ₽";
-}
 
 function calcMarginPct(price: number, costPrice: number): number {
   if (price <= 0) return 0;

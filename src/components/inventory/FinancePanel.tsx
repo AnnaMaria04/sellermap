@@ -37,17 +37,17 @@ import {
 import { type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { exportData, type ExportColumn } from "@/lib/export";
-import { cn } from "@/lib/utils";
+import { cn, formatRub, formatPct } from "@/lib/utils";
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 function money(n: number): string {
   if (!Number.isFinite(n)) return "—";
-  return `${Math.round(n).toLocaleString("ru-RU")} ₽`;
+  return formatRub(n);
 }
 
 function pct(n: number): string {
   if (!Number.isFinite(n)) return "—";
-  return `${n.toFixed(1)}%`;
+  return formatPct(n);
 }
 
 function profitColor(n: number): string {

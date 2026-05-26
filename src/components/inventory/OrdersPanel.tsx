@@ -29,7 +29,7 @@ import {
   Trash2,
   ChevronDown,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 import {
   type Order,
   type OrderStatus,
@@ -113,7 +113,7 @@ function ChannelIcon({ channel, size = 13 }: { channel: OrderChannel; size?: num
 }
 
 function money(n: number): string {
-  return `${Math.round(n).toLocaleString("ru-RU")} ₽`;
+  return formatRub(n);
 }
 
 function channelLabel(channel: OrderChannel): string {

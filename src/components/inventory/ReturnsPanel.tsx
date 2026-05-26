@@ -18,7 +18,7 @@ import {
   type SalesChannel,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 
 
 const STATUS_LABELS: Record<ReturnStatus, string> = {
@@ -77,10 +77,6 @@ const CONDITION_LABELS: Record<string, string> = {
   damaged: "Повреждён",
   unsellable: "Непригоден",
 };
-
-function formatRub(v: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(v);
-}
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });

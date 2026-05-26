@@ -20,6 +20,8 @@ import {
   Percent,
   CheckCircle2,
   MapPin,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn, formatRub } from "@/lib/utils";
@@ -27,6 +29,7 @@ import { getAvailableStock } from "@/mock/inventory";
 import type { Product, Order, OrderItem } from "@/mock/inventory";
 import { BarcodeInput } from "@/components/ui/BarcodeInput";
 import { usePOSSession, type POSReceipt } from "@/store/pos-session";
+import { useManagerPin } from "@/store/manager-pin";
 import { toast } from "sonner";
 
 // ── Local types ──────────────────────────────────────────────────────────────
@@ -89,6 +92,117 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   card: "Банковская карта",
   sbp: "СБП",
 };
+
+// ── Manager PIN dialog ────────────────────────────────────────────────────────
+
+interface ManagerPinDialogProps {
+  discountLabel: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+function ManagerPinDialog({ discountLabel, onSuccess, onCancel }: ManagerPinDialogProps) {
+  const { verifyPin } = useManagerPin();
+  const [pin, setPin] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!lockUntil) return;
+    const id = setInterval(() => {
+      if (Date.now() >= lockUntil) {
+        setLocked(false);
+        setLockUntil(null);
+        setAttempts(0);
+        clearInterval(id);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lockUntil]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (locked) return;
+    if (verifyPin(pin)) {
+      onSuccess();
+    } else {
+      const next = attempts + 1;
+      setAttempts(next);
+      setPin("");
+      if (next >= 3) {
+        const until = Date.now() + 5 * 60 * 1000;
+        setLocked(true);
+        setLockUntil(until);
+        setError("Слишком много попыток. Касса заблокирована на 5 минут.");
+      } else {
+        setError(`Неверный ПИН. Осталось попыток: ${3 - next}`);
+      }
+    }
+  }
+
+  const remaining = lockUntil ? Math.ceil((lockUntil - Date.now()) / 1000) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative z-10 w-full max-w-xs rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Lock size={16} className="text-[var(--c-amber)]" />
+            <h2 className="text-base font-semibold text-[var(--c-text)]">Подтверждение менеджера</h2>
+          </div>
+          <button onClick={onCancel} className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition">
+            <X size={16} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-sm text-[var(--c-text2)]">
+            Скидка <span className="font-semibold text-[var(--c-amber)]">{discountLabel}</span> требует ПИН-кода менеджера.
+          </p>
+          <div>
+            <input
+              ref={inputRef}
+              type="password"
+              inputMode="numeric"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setError(null); }}
+              disabled={locked}
+              maxLength={8}
+              placeholder="••••"
+              className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-4 py-3 text-center text-xl tracking-widest text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none disabled:opacity-50"
+            />
+          </div>
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg bg-[var(--c-red-dim)] px-3 py-2 text-xs text-[var(--c-red)]">
+              <AlertCircle size={13} className="mt-0.5 shrink-0" />
+              {error}
+              {locked && remaining > 0 && ` (${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")})`}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button type="button" onClick={onCancel}
+              className="flex-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] py-2.5 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+            >
+              Отмена
+            </button>
+            <button type="submit" disabled={locked || pin.length < 4}
+              className="flex-1 rounded-lg bg-[var(--c-green)] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+            >
+              Подтвердить
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
@@ -484,6 +598,7 @@ function ReceiptModal({
 export function POSSellScreen() {
   const { products, locations, actions } = useInventory();
   const addSale = usePOSSession((s) => s.addSale);
+  const { pinHash, discountThresholdPct, verifyPin } = useManagerPin();
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -500,6 +615,7 @@ export function POSSellScreen() {
   });
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
   // Mobile cart bottom sheet state
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -644,9 +760,22 @@ export function POSSellScreen() {
     setPaymentMethod("cash");
   }, []);
 
+  // ── PIN requirement check ──────────────────────────────────────────────────
+
+  const discountPct = useMemo(() => {
+    if (!discountAmount || !subtotal) return 0;
+    return (discountAmount / subtotal) * 100;
+  }, [discountAmount, subtotal]);
+
+  const pinRequired = !!pinHash && discountAmount > 0 && discountPct >= discountThresholdPct;
+
+  const discountLabel = discount.mode === "pct"
+    ? `${discount.value}%`
+    : fmt(discountAmount);
+
   // ── Payment / checkout ─────────────────────────────────────────────────────
 
-  const handlePay = useCallback(async () => {
+  const processPayment = useCallback(async () => {
     if (!canPay) return;
     setIsProcessing(true);
 
@@ -755,6 +884,15 @@ export function POSSellScreen() {
     actions,
   ]);
 
+  const handlePay = useCallback(() => {
+    if (!canPay) return;
+    if (pinRequired) {
+      setPinDialogOpen(true);
+    } else {
+      processPayment();
+    }
+  }, [canPay, pinRequired, processPayment]);
+
   const handleNewSale = useCallback(() => {
     setReceipt(null);
     clearCart();
@@ -765,6 +903,13 @@ export function POSSellScreen() {
   return (
     <>
       {receipt && <ReceiptModal receipt={receipt} onNewSale={handleNewSale} />}
+      {pinDialogOpen && (
+        <ManagerPinDialog
+          discountLabel={discountLabel}
+          onSuccess={() => { setPinDialogOpen(false); processPayment(); }}
+          onCancel={() => setPinDialogOpen(false)}
+        />
+      )}
 
       <div className="fixed inset-0 z-[100] flex bg-[var(--c-bg)] overflow-hidden">
         {/* ── LEFT PANEL (product grid) ───────────────────────────────────── */}

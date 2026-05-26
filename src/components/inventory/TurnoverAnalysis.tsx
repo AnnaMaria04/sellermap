@@ -29,7 +29,7 @@ import {
   type ABCClass,
 } from "@/lib/inventory/analytics";
 import { getAvailableStock } from "@/mock/inventory";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -66,7 +66,7 @@ const ABC_META: Record<
 };
 
 function rub(n: number): string {
-  return Math.round(n).toLocaleString("ru-RU") + " ₽";
+  return formatRub(n);
 }
 
 type SortKey = "daysOfStock" | "turnover" | "name" | "velocity";

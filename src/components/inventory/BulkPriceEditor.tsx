@@ -17,7 +17,7 @@ import {
   Hash,
 } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 
 type SortField = "name" | "price" | "cost" | "margin";
 type SortDir = "asc" | "desc";
@@ -35,10 +35,6 @@ const PRICE_HISTORY: Record<string, number> = {
   "prod-002": 1390,
   "prod-007": 3490,
 };
-
-function formatRub(n: number): string {
-  return n.toLocaleString("ru-RU") + " ₽";
-}
 
 function calcMargin(price: number, cost: number): number {
   if (price <= 0) return 0;

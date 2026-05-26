@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { type Product, type Location } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
-import { cn } from "@/lib/utils";
+import { cn, formatRub } from "@/lib/utils";
 import Link from "next/link";
 
 type LocationType = Location["type"];
@@ -100,10 +100,6 @@ function getLocationProducts(locationId: string, products: Product[]) {
     qty: p.stockByLocation[locationId] ?? 0,
     value: (p.stockByLocation[locationId] ?? 0) * p.costPrice,
   }));
-}
-
-function formatRub(v: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(v);
 }
 
 interface NewLocationForm {
