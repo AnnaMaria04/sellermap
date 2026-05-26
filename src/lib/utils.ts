@@ -13,6 +13,17 @@ export function formatRub(value: number) {
   }).format(value);
 }
 
+/** Canonical ruble formatter — "1 156 000 ₽". Alias of formatRub. */
+export const formatRUB = formatRub;
+
+/** Percent formatter — accepts a percentage value (52.5 → "52,5 %"). */
+export function formatPct(value: number) {
+  return value.toLocaleString("ru-RU", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }) + " %";
+}
+
 export function scoreVerdict(score: number) {
   if (score < 40) return "Не запускать";
   if (score < 60) return "Рискованно";
