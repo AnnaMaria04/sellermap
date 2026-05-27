@@ -76,6 +76,45 @@ async function enrich(token: string, products: RawProduct[]) {
   } catch (e) {
     console.error("[wb/stocks] failed:", e instanceof Error ? e.message : String(e));
   }
+
+  // FBS stock (own warehouse) via Marketplace API — keyed by barcode (sku).
+  // Statistics /stocks above is FBO only; most small sellers ship FBS.
+  try {
+    const byBarcode = new Map<string, RawProduct>();
+    for (const p of products) if (p.barcode) byBarcode.set(p.barcode, p);
+    const barcodes = [...byBarcode.keys()];
+    if (barcodes.length > 0) {
+      const whRes = await fetch("https://marketplace-api.wildberries.ru/api/v3/warehouses", {
+        headers: { Authorization: token }, cache: "no-store", signal: AbortSignal.timeout(20000),
+      });
+      if (whRes.ok) {
+        const warehouses = (await whRes.json()) as { id?: number }[];
+        for (const wh of Array.isArray(warehouses) ? warehouses : []) {
+          if (!wh.id) continue;
+          for (let i = 0; i < barcodes.length; i += 1000) {
+            const chunk = barcodes.slice(i, i + 1000);
+            const sres = await fetch(`https://marketplace-api.wildberries.ru/api/v3/stocks/${wh.id}`, {
+              method: "POST",
+              headers: { Authorization: token, "Content-Type": "application/json" },
+              body: JSON.stringify({ skus: chunk }),
+              cache: "no-store",
+              signal: AbortSignal.timeout(20000),
+            });
+            if (!sres.ok) { console.error(`[wb/fbs-stock] wh ${wh.id}: ${sres.status}`); continue; }
+            const sd = (await sres.json()) as { stocks?: { sku?: string; amount?: number }[] };
+            for (const st of sd.stocks ?? []) {
+              const p = st.sku ? byBarcode.get(st.sku) : undefined;
+              if (p) p.stock = (p.stock ?? 0) + (st.amount ?? 0);
+            }
+          }
+        }
+      } else {
+        console.error(`[wb/warehouses] ${whRes.status}`);
+      }
+    }
+  } catch (e) {
+    console.error("[wb/fbs-stock] failed:", e instanceof Error ? e.message : String(e));
+  }
 }
 
 export async function POST(req: NextRequest) {
