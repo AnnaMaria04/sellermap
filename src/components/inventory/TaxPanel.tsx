@@ -222,23 +222,44 @@ export function TaxPanel() {
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--c-text2)]">Авансовые платежи {year}</p>
         <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
-          {schedule.map((q, i) => (
-            <div key={q.label} className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${i < schedule.length - 1 ? "border-b border-[var(--c-border)]" : ""}`}>
-              <div>
-                <p className="text-sm font-medium text-[var(--c-text)]">{q.label}</p>
-                <p className="text-xs text-[var(--c-text3)]">Срок: {q.deadline}</p>
+          {schedule.map((q, i) => {
+            const [dd, mm, yy] = q.deadline.split(".").map(Number);
+            const due = new Date(yy, mm - 1, dd); due.setHours(0, 0, 0, 0);
+            const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+            const days = Math.round((due.getTime() - todayMid.getTime()) / 86400000);
+            const paid = data.taxPaid > 0 && expenses.some(
+              (e) => e.category === "tax" && e.description.includes(`${q.label} ${year}`),
+            );
+            const countdown = paid
+              ? { text: "Оплачено", cls: "text-[var(--c-green)]" }
+              : days < 0
+                ? { text: "Просрочено", cls: "text-[var(--c-red)]" }
+                : days === 0
+                  ? { text: "Сегодня срок", cls: "text-[var(--c-red)]" }
+                  : days <= 14
+                    ? { text: `осталось ${days} дн.`, cls: "text-[var(--c-amber)]" }
+                    : { text: `осталось ${days} дн.`, cls: "text-[var(--c-text3)]" };
+            return (
+              <div key={q.label} className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${i < schedule.length - 1 ? "border-b border-[var(--c-border)]" : ""}`}>
+                <div>
+                  <p className="text-sm font-medium text-[var(--c-text)]">{q.label}</p>
+                  <p className="text-xs text-[var(--c-text3)]">
+                    Срок: {q.deadline} · <span className={countdown.cls}>{countdown.text}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold tabular-nums text-[var(--c-text)]">≈ {formatRub(quarterAmount)}</span>
+                  <button
+                    onClick={() => recordPayment("tax", quarterAmount, `Авансовый платёж — ${q.label} ${year}`)}
+                    disabled={paid}
+                    className="rounded-lg border border-[var(--c-border2)] px-2.5 py-1 text-xs font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:opacity-40"
+                  >
+                    {paid ? "Оплачено" : "Записать оплату"}
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabular-nums text-[var(--c-text)]">≈ {formatRub(quarterAmount)}</span>
-                <button
-                  onClick={() => recordPayment("tax", quarterAmount, `Авансовый платёж — ${q.label} ${year}`)}
-                  className="rounded-lg border border-[var(--c-border2)] px-2.5 py-1 text-xs font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
-                >
-                  Записать оплату
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
