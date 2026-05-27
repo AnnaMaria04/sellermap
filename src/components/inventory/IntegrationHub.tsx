@@ -292,7 +292,14 @@ export function IntegrationHub() {
         const sku = raw.sku ?? raw.externalId;
         const existing = products.find((p) => p.sku === sku);
         if (existing) {
-          if (raw.price !== undefined) actions.updateProduct(existing.id, { price: raw.price });
+          const patch: Partial<Product> = {};
+          if (raw.price !== undefined) patch.price = raw.price;
+          if (raw.stock !== undefined) {
+            const byLoc = { ...existing.stockByLocation, "loc-main": raw.stock };
+            patch.stockByLocation = byLoc;
+            patch.totalPhysical = Object.values(byLoc).reduce((s, v) => s + v, 0);
+          }
+          if (Object.keys(patch).length > 0) actions.updateProduct(existing.id, patch);
         } else {
           actions.addProduct(toProduct(raw, integration.kind));
         }
