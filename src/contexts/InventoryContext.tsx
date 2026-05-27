@@ -97,6 +97,14 @@ const initialState: InventoryState = {
   staff: STAFF_MEMBERS,
 };
 
+// A real (Supabase-backed) shop starts empty — the demo mock above is only the
+// in-memory seed for SSR / no-session demo mode.
+const emptyState: InventoryState = {
+  products: [], suppliers: [], locations: [], purchaseOrders: [], transfers: [],
+  stocktakes: [], movements: [], reservations: [], returns: [], bundles: [],
+  replenishmentRules: [], batches: [], orders: [], customers: [], staff: [],
+};
+
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 type InventoryAction =
@@ -610,9 +618,9 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
 
     // ── Hydration / demo reset ──────────────────────────────────────────────
     case "HYDRATE":
-      // Merge: use initialState as fallback for any collection not present in remote
-      // (e.g. tables not yet created in the user's Supabase instance).
-      return { ...initialState, ...action.state };
+      // Real shops start empty; only collections present in the remote load
+      // populate. (Demo/in-memory mode never dispatches HYDRATE.)
+      return { ...emptyState, ...action.state };
 
     case "RESET_STATE":
       return initialState;
@@ -945,7 +953,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
-  const ownerId = useRef<string | null>(null);
+  const orgId = useRef<string | null>(null);
   const currentUser = useRef<{ id: string; name: string }>({ id: "u-current", name: "Текущий пользователь" });
   // createClient() returns null when env vars are absent (SSR prerender).
   // Initialised lazily inside the effect so it only runs client-side.
@@ -974,20 +982,29 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         setReady(true);
         return;
       }
-      ownerId.current = user.id;
       currentUser.current = {
         id: user.id,
         name: (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "Пользователь",
       };
+      // The seller's shop id (RLS scopes every row to it).
+      const { data: profile } = await supabase.current
+        .from("profiles")
+        .select("org_id")
+        .eq("id", user.id)
+        .single();
+      if (cancelled) return;
+      if (!profile?.org_id) {
+        // No shop provisioned yet — stay in the in-memory seed, don't persist.
+        hydrated.current = true;
+        setReady(true);
+        return;
+      }
+      orgId.current = profile.org_id;
       try {
-        const remote = await loadWorkspace(supabase.current, user.id);
+        const remote = await loadWorkspace(supabase.current, profile.org_id);
         if (cancelled) return;
-        if (remote) {
-          dispatch({ type: "HYDRATE", state: remote });
-        } else {
-          // Fresh account: seed Supabase with the demo workspace.
-          await saveWorkspace(supabase.current, user.id, initialState);
-        }
+        // Existing shop → its data; fresh shop (null) → empty, no demo seed.
+        dispatch({ type: "HYDRATE", state: remote ?? {} });
       } catch {
         // Network/load failure — fall back to the in-memory seed.
       } finally {
@@ -1002,10 +1019,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 
   // Debounced persistence to Supabase after any mutation.
   useEffect(() => {
-    if (!hydrated.current || !ownerId.current || !supabase.current) return;
+    if (!hydrated.current || !orgId.current || !supabase.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const id = ownerId.current;
+      const id = orgId.current;
       const sb = supabase.current;
       if (!id || !sb) return;
       saveWorkspace(sb, id, stateRef.current).catch(() => {
@@ -1147,7 +1164,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     ),
     resetDemo: useCallback(() => {
       dispatch({ type: "RESET_STATE" });
-      const id = ownerId.current;
+      const id = orgId.current;
       const sb = supabase.current;
       if (id && sb) {
         saveWorkspace(sb, id, initialState).catch(() => {});

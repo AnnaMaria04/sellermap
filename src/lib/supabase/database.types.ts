@@ -118,25 +118,31 @@ export type Database = {
       }
       bundles: {
         Row: {
+          app_id: string | null
           created_at: string
+          data: Json | null
           id: string
-          name: string
+          name: string | null
           org_id: string
           product_id: string | null
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
-          name: string
+          name?: string | null
           org_id: string
           product_id?: string | null
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
-          name?: string
+          name?: string | null
           org_id?: string
           product_id?: string | null
           updated_at?: string
@@ -160,12 +166,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          app_id: string | null
           city: string | null
           created_at: string
+          data: Json | null
           email: string | null
           id: string
           loyalty_points: number
-          name: string
+          name: string | null
           notes: string | null
           org_id: string
           phone: string | null
@@ -173,12 +181,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           city?: string | null
           created_at?: string
+          data?: Json | null
           email?: string | null
           id?: string
           loyalty_points?: number
-          name: string
+          name?: string | null
           notes?: string | null
           org_id: string
           phone?: string | null
@@ -186,12 +196,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           city?: string | null
           created_at?: string
+          data?: Json | null
           email?: string | null
           id?: string
           loyalty_points?: number
-          name?: string
+          name?: string | null
           notes?: string | null
           org_id?: string
           phone?: string | null
@@ -442,8 +454,10 @@ export type Database = {
       }
       inventory_batches: {
         Row: {
+          app_id: string | null
           batch_number: string | null
           created_at: string
+          data: Json | null
           expiry_date: string | null
           id: string
           location_id: string | null
@@ -454,8 +468,10 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          app_id?: string | null
           batch_number?: string | null
           created_at?: string
+          data?: Json | null
           expiry_date?: string | null
           id?: string
           location_id?: string | null
@@ -466,8 +482,10 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          app_id?: string | null
           batch_number?: string | null
           created_at?: string
+          data?: Json | null
           expiry_date?: string | null
           id?: string
           location_id?: string | null
@@ -562,33 +580,39 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
+          app_id: string | null
           capacity: number | null
           created_at: string
+          data: Json | null
           id: string
           is_default: boolean
-          name: string
+          name: string | null
           org_id: string
           type: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          app_id?: string | null
           capacity?: number | null
           created_at?: string
+          data?: Json | null
           id?: string
           is_default?: boolean
-          name: string
+          name?: string | null
           org_id: string
           type?: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          app_id?: string | null
           capacity?: number | null
           created_at?: string
+          data?: Json | null
           id?: string
           is_default?: boolean
-          name?: string
+          name?: string | null
           org_id?: string
           type?: string
           updated_at?: string
@@ -837,14 +861,16 @@ export type Database = {
       }
       orders: {
         Row: {
+          app_id: string | null
           channel: string
           cost: number
           created_at: string
           customer_id: string | null
+          data: Json | null
           fulfillment_model: string | null
           id: string
           location_id: string | null
-          order_number: string
+          order_number: string | null
           org_id: string
           region: string | null
           revenue: number
@@ -852,14 +878,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           channel?: string
           cost?: number
           created_at?: string
           customer_id?: string | null
+          data?: Json | null
           fulfillment_model?: string | null
           id?: string
           location_id?: string | null
-          order_number: string
+          order_number?: string | null
           org_id: string
           region?: string | null
           revenue?: number
@@ -867,14 +895,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           channel?: string
           cost?: number
           created_at?: string
           customer_id?: string | null
+          data?: Json | null
           fulfillment_model?: string | null
           id?: string
           location_id?: string | null
-          order_number?: string
+          order_number?: string | null
           org_id?: string
           region?: string | null
           revenue?: number
@@ -1120,6 +1150,7 @@ export type Database = {
       }
       products: {
         Row: {
+          app_id: string | null
           barcode: string | null
           batch_number: string | null
           category: string
@@ -1128,6 +1159,7 @@ export type Database = {
           channels: string[]
           cost_price: number
           created_at: string
+          data: Json | null
           data_matrix_code: string | null
           delivery_cost: number | null
           description: string | null
@@ -1139,7 +1171,7 @@ export type Database = {
           image_url: string | null
           internal_barcode: string | null
           labeling_type: string | null
-          name: string
+          name: string | null
           org_id: string
           packaging_cost: number | null
           price: number
@@ -1153,6 +1185,7 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          app_id?: string | null
           barcode?: string | null
           batch_number?: string | null
           category?: string
@@ -1161,6 +1194,7 @@ export type Database = {
           channels?: string[]
           cost_price?: number
           created_at?: string
+          data?: Json | null
           data_matrix_code?: string | null
           delivery_cost?: number | null
           description?: string | null
@@ -1172,7 +1206,7 @@ export type Database = {
           image_url?: string | null
           internal_barcode?: string | null
           labeling_type?: string | null
-          name: string
+          name?: string | null
           org_id: string
           packaging_cost?: number | null
           price?: number
@@ -1186,6 +1220,7 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          app_id?: string | null
           barcode?: string | null
           batch_number?: string | null
           category?: string
@@ -1194,6 +1229,7 @@ export type Database = {
           channels?: string[]
           cost_price?: number
           created_at?: string
+          data?: Json | null
           data_matrix_code?: string | null
           delivery_cost?: number | null
           description?: string | null
@@ -1205,7 +1241,7 @@ export type Database = {
           image_url?: string | null
           internal_barcode?: string | null
           labeling_type?: string | null
-          name?: string
+          name?: string | null
           org_id?: string
           packaging_cost?: number | null
           price?: number
@@ -1273,7 +1309,7 @@ export type Database = {
           created_at: string
           ends_at: string | null
           id: string
-          name: string
+          name: string | null
           org_id: string
           promo_code: string | null
           starts_at: string | null
@@ -1289,7 +1325,7 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
-          name: string
+          name?: string | null
           org_id: string
           promo_code?: string | null
           starts_at?: string | null
@@ -1305,7 +1341,7 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
-          name?: string
+          name?: string | null
           org_id?: string
           promo_code?: string | null
           starts_at?: string | null
@@ -1383,8 +1419,10 @@ export type Database = {
       }
       purchase_orders: {
         Row: {
+          app_id: string | null
           created_at: string
           currency: string
+          data: Json | null
           expected_arrival: string | null
           id: string
           location_id: string | null
@@ -1399,8 +1437,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
           currency?: string
+          data?: Json | null
           expected_arrival?: string | null
           id?: string
           location_id?: string | null
@@ -1415,8 +1455,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           created_at?: string
           currency?: string
+          data?: Json | null
           expected_arrival?: string | null
           id?: string
           location_id?: string | null
@@ -1456,7 +1498,9 @@ export type Database = {
       }
       replenishment_rules: {
         Row: {
+          app_id: string | null
           created_at: string
+          data: Json | null
           id: string
           is_active: boolean
           location_id: string | null
@@ -1468,7 +1512,9 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           is_active?: boolean
           location_id?: string | null
@@ -1480,7 +1526,9 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           is_active?: boolean
           location_id?: string | null
@@ -1517,8 +1565,10 @@ export type Database = {
       }
       reservations: {
         Row: {
+          app_id: string | null
           created_at: string
           customer_name: string | null
+          data: Json | null
           expires_at: string | null
           fulfilled_at: string | null
           id: string
@@ -1532,8 +1582,10 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
           customer_name?: string | null
+          data?: Json | null
           expires_at?: string | null
           fulfilled_at?: string | null
           id?: string
@@ -1547,8 +1599,10 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          app_id?: string | null
           created_at?: string
           customer_name?: string | null
+          data?: Json | null
           expires_at?: string | null
           fulfilled_at?: string | null
           id?: string
@@ -1640,9 +1694,11 @@ export type Database = {
       returns: {
         Row: {
           amount: number
+          app_id: string | null
           channel: string | null
           created_at: string
           customer_id: string | null
+          data: Json | null
           id: string
           order_id: string | null
           org_id: string
@@ -1652,9 +1708,11 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          app_id?: string | null
           channel?: string | null
           created_at?: string
           customer_id?: string | null
+          data?: Json | null
           id?: string
           order_id?: string | null
           org_id: string
@@ -1664,9 +1722,11 @@ export type Database = {
         }
         Update: {
           amount?: number
+          app_id?: string | null
           channel?: string | null
           created_at?: string
           customer_id?: string | null
+          data?: Json | null
           id?: string
           order_id?: string | null
           org_id?: string
@@ -1828,11 +1888,13 @@ export type Database = {
       }
       staff_members: {
         Row: {
+          app_id: string | null
           created_at: string
+          data: Json | null
           email: string | null
           id: string
           location_access: string[]
-          name: string
+          name: string | null
           notes: string | null
           org_id: string
           phone: string | null
@@ -1842,11 +1904,13 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           email?: string | null
           id?: string
           location_access?: string[]
-          name: string
+          name?: string | null
           notes?: string | null
           org_id: string
           phone?: string | null
@@ -1856,11 +1920,13 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           email?: string | null
           id?: string
           location_access?: string[]
-          name?: string
+          name?: string | null
           notes?: string | null
           org_id?: string
           phone?: string | null
@@ -1881,7 +1947,9 @@ export type Database = {
       }
       stock_movements: {
         Row: {
+          app_id: string | null
           created_at: string
+          data: Json | null
           id: string
           location_id: string | null
           note: string | null
@@ -1892,13 +1960,15 @@ export type Database = {
           reason: string | null
           reference_id: string | null
           reference_type: string | null
-          type: string
+          type: string | null
           user_id: string | null
           user_name: string | null
           variant_id: string | null
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           location_id?: string | null
           note?: string | null
@@ -1909,13 +1979,15 @@ export type Database = {
           reason?: string | null
           reference_id?: string | null
           reference_type?: string | null
-          type: string
+          type?: string | null
           user_id?: string | null
           user_name?: string | null
           variant_id?: string | null
         }
         Update: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           location_id?: string | null
           note?: string | null
@@ -1926,7 +1998,7 @@ export type Database = {
           reason?: string | null
           reference_id?: string | null
           reference_type?: string | null
-          type?: string
+          type?: string | null
           user_id?: string | null
           user_name?: string | null
           variant_id?: string | null
@@ -2012,9 +2084,11 @@ export type Database = {
       }
       stocktakes: {
         Row: {
+          app_id: string | null
           approved_by: string | null
           completed_at: string | null
           created_at: string
+          data: Json | null
           id: string
           location_id: string | null
           note: string | null
@@ -2023,9 +2097,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           approved_by?: string | null
           completed_at?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           location_id?: string | null
           note?: string | null
@@ -2034,9 +2110,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           approved_by?: string | null
           completed_at?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           location_id?: string | null
           note?: string | null
@@ -2131,17 +2209,19 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          app_id: string | null
           catalog_url: string | null
           city: string | null
           contact_name: string | null
           country: string
           created_at: string
           currency: string
+          data: Json | null
           email: string | null
           id: string
           lead_time_days: number
           min_order_qty: number | null
-          name: string
+          name: string | null
           notes: string | null
           org_id: string
           payment_terms: string | null
@@ -2153,17 +2233,19 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          app_id?: string | null
           catalog_url?: string | null
           city?: string | null
           contact_name?: string | null
           country?: string
           created_at?: string
           currency?: string
+          data?: Json | null
           email?: string | null
           id?: string
           lead_time_days?: number
           min_order_qty?: number | null
-          name: string
+          name?: string | null
           notes?: string | null
           org_id: string
           payment_terms?: string | null
@@ -2175,17 +2257,19 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          app_id?: string | null
           catalog_url?: string | null
           city?: string | null
           contact_name?: string | null
           country?: string
           created_at?: string
           currency?: string
+          data?: Json | null
           email?: string | null
           id?: string
           lead_time_days?: number
           min_order_qty?: number | null
-          name?: string
+          name?: string | null
           notes?: string | null
           org_id?: string
           payment_terms?: string | null
@@ -2350,7 +2434,9 @@ export type Database = {
       }
       transfers: {
         Row: {
+          app_id: string | null
           created_at: string
+          data: Json | null
           expected_arrival: string | null
           from_location_id: string | null
           id: string
@@ -2362,7 +2448,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           expected_arrival?: string | null
           from_location_id?: string | null
           id?: string
@@ -2374,7 +2462,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_id?: string | null
           created_at?: string
+          data?: Json | null
           expected_arrival?: string | null
           from_location_id?: string | null
           id?: string
