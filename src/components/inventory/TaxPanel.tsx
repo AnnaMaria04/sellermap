@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Download } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
 import { useFinance } from "@/hooks/useFinance";
 import { computePnL } from "@/lib/inventory/finance";
 import { computeTax, calcInsurance, quarterSchedule, thresholdWarnings } from "@/lib/finance/tax";
-import type { TaxRegime } from "@/types/finance";
+import { EXPENSE_CATEGORY_LABELS, type TaxRegime } from "@/types/finance";
+import { exportData } from "@/lib/export";
 import { formatRub } from "@/lib/utils";
+
+interface KudirRow { n: number; date: string; content: string; income: number | string; expense: number | string }
 
 const REGIMES: { id: TaxRegime; name: string; rate: string; desc: string }[] = [
   { id: "usn_income", name: "УСН «Доходы»", rate: "6%", desc: "Налог с выручки. Уменьшается на взносы." },
@@ -66,8 +69,44 @@ export function TaxPanel() {
   const schedule = quarterSchedule(year);
   const quarterAmount = data.tax.taxPayable / 4;
 
+  function exportKUDiR() {
+    const yr = String(year);
+    const income: KudirRow[] = orders
+      .filter((o) => (o.createdAt ?? "").slice(0, 4) === yr && (o.status === "delivered" || o.status === "shipped"))
+      .map((o, i) => ({ n: i + 1, date: o.createdAt, content: `Реализация — заказ ${o.orderNumber}`, income: o.revenue, expense: "" }));
+    const exp: KudirRow[] = expenses
+      .filter((e) => (e.date ?? "").slice(0, 4) === yr && !e.isPersonalPurchase && !e.excludeFromTax)
+      .map((e, i) => ({ n: income.length + i + 1, date: e.date, content: `${EXPENSE_CATEGORY_LABELS[e.category]}${e.description ? ` — ${e.description}` : e.vendor ? ` — ${e.vendor}` : ""}`, income: "", expense: e.amount }));
+    exportData<KudirRow>({
+      filename: `КУДиР-${yr}`,
+      title: `Книга учёта доходов и расходов — ${yr}`,
+      format: "excel",
+      columns: [
+        { key: "n", label: "№" },
+        { key: "date", label: "Дата" },
+        { key: "content", label: "Содержание операции" },
+        { key: "income", label: "Доходы, ₽", align: "right" },
+        { key: "expense", label: "Расходы, ₽", align: "right" },
+      ],
+      rows: [...income, ...exp],
+      meta: [
+        { label: "Доходы всего", value: formatRub(data.revenue) },
+        { label: "Расходы (вычитаемые)", value: formatRub(data.deductibleExpenses) },
+      ],
+    });
+  }
+
   return (
     <div className="space-y-5">
+      <div className="flex justify-end">
+        <button
+          onClick={exportKUDiR}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+        >
+          <Download size={15} /> Скачать КУДиР
+        </button>
+      </div>
+
       {/* Regime selector */}
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--c-text2)]">Налоговый режим</p>
