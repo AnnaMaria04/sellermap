@@ -157,7 +157,7 @@ export function InventoryOverview() {
   const recentMovements   = useMemo(() => movements.slice(0, 6), [movements]);
   const activeTransfers   = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
   const pnl               = useMemo(() => computePnL(orders), [orders]);
-  const alerts            = useMemo(() => computeAlerts(products, batches ?? []), [products, batches]);
+  const alerts            = useMemo(() => computeAlerts(products, batches ?? [], purchaseOrders), [products, batches, purchaseOrders]);
   const pendingOrders     = useMemo(() => orders.filter((o) => ["new", "confirmed", "packed"].includes(o.status)).length, [orders]);
 
   // 30-day revenue for the area chart

@@ -1,9 +1,11 @@
 import {
   type Product,
   type InventoryBatch,
+  type PurchaseOrder,
   getStockStatus,
   getAvailableStock,
 } from "@/mock/inventory";
+import { quarterSchedule } from "@/lib/finance/tax";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 export type AlertCategory = "stock" | "expiry" | "performance" | "system";
@@ -23,11 +25,51 @@ export interface ComputedAlert {
 export function computeAlerts(
   products: Product[],
   batches: InventoryBatch[],
+  purchaseOrders: PurchaseOrder[] = [],
 ): ComputedAlert[] {
   const alerts: ComputedAlert[] = [];
   const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // ── Overdue purchase orders ─────────────────────────────────────────────────
+  purchaseOrders.forEach((po) => {
+    if (po.status === "closed" || !po.expectedArrival) return;
+    const exp = new Date(po.expectedArrival);
+    exp.setHours(0, 0, 0, 0);
+    if (exp.getTime() >= today.getTime()) return;
+    const daysLate = Math.round((today.getTime() - exp.getTime()) / 86400000);
+    alerts.push({
+      id: `po-overdue-${po.id}`,
+      title: "Просрочен заказ поставщику",
+      description: `${po.supplierName} — ожидался ${exp.toLocaleDateString("ru-RU")} (просрочен на ${daysLate} дн.)`,
+      severity: "critical",
+      category: "system",
+      actionLabel: "Открыть заказ",
+      actionHref: `/inventory/purchase-orders/${po.id}`,
+      createdAt: now.toISOString(),
+    });
+  });
+
+  // ── Upcoming tax advance deadline (within 14 days) ──────────────────────────
+  for (const q of quarterSchedule(today.getFullYear())) {
+    const [d, m, y] = q.deadline.split(".").map(Number);
+    const due = new Date(y, m - 1, d);
+    due.setHours(0, 0, 0, 0);
+    const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+    if (days >= 0 && days <= 14) {
+      alerts.push({
+        id: `tax-${q.deadline}`,
+        title: "Скоро авансовый платёж",
+        description: `Налог за «${q.label}» — срок ${q.deadline}, осталось ${days} дн.`,
+        severity: days <= 5 ? "critical" : "warning",
+        category: "system",
+        actionLabel: "Открыть налоги",
+        actionHref: "/inventory/tax",
+        createdAt: now.toISOString(),
+      });
+    }
+  }
 
   products.filter((p) => p.status === "active").forEach((p) => {
     const status = getStockStatus(p);

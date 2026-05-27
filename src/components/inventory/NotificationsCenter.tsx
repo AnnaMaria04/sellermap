@@ -139,13 +139,13 @@ function AlertCard({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NotificationsCenter() {
-  const { products, batches } = useInventory();
+  const { products, batches, purchaseOrders } = useInventory();
   const { dismissed, dismiss, dismissAll } = useDismissedAlerts();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
   const allAlerts = useMemo(
-    () => computeAlerts(products, batches).filter((a) => !dismissed.has(a.id)),
-    [products, batches, dismissed],
+    () => computeAlerts(products, batches, purchaseOrders).filter((a) => !dismissed.has(a.id)),
+    [products, batches, purchaseOrders, dismissed],
   );
 
   const visibleAlerts = useMemo(
