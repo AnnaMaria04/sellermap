@@ -35,7 +35,20 @@ function KPI({ label, value, tone }: { label: string; value: string; tone?: "goo
 
 export function TaxPanel() {
   const { orders } = useInventory();
-  const { expenses, taxSettings, saveTaxSettings } = useFinance();
+  const { expenses, taxSettings, saveTaxSettings, addExpense } = useFinance();
+
+  function recordPayment(category: "tax" | "insurance", amount: number, description: string) {
+    addExpense({
+      date: new Date().toISOString().slice(0, 10),
+      category,
+      vendor: category === "tax" ? "ФНС" : "СФР/ФНС",
+      description,
+      amount: Math.round(amount),
+      isPersonalPurchase: false,
+      excludeFromTax: category === "tax",
+      hasDocument: false,
+    });
+  }
 
   const year = new Date().getFullYear();
 
@@ -45,12 +58,17 @@ export function TaxPanel() {
 
     const isThisYear = (d: string) => (d ?? "").slice(0, 4) === String(year);
     const yearExpenses = expenses.filter((e) => isThisYear(e.date));
-    const allExpenses = yearExpenses.reduce((s, e) => s + e.amount, 0);
+    // Operating expenses exclude insurance/tax payments — those are shown on
+    // their own lines, so counting them here too would double-subtract.
+    const operatingExpenses = yearExpenses
+      .filter((e) => e.category !== "insurance" && e.category !== "tax")
+      .reduce((s, e) => s + e.amount, 0);
     const deductibleExpenses = yearExpenses
-      .filter((e) => !e.isPersonalPurchase && !e.excludeFromTax)
+      .filter((e) => !e.isPersonalPurchase && !e.excludeFromTax && e.category !== "tax")
       .reduce((s, e) => s + e.amount, 0);
     const personalPurchases = yearExpenses.filter((e) => e.isPersonalPurchase).reduce((s, e) => s + e.amount, 0);
     const insurancePaid = yearExpenses.filter((e) => e.category === "insurance").reduce((s, e) => s + e.amount, 0);
+    const taxPaid = yearExpenses.filter((e) => e.category === "tax").reduce((s, e) => s + e.amount, 0);
 
     const insuranceDue = calcInsurance(revenue);
     const tax = computeTax({
@@ -61,8 +79,8 @@ export function TaxPanel() {
       hasEmployees: taxSettings.hasEmployees,
     });
 
-    const realNet = revenue - allExpenses - insuranceDue.total - tax.taxPayable;
-    return { revenue, allExpenses, deductibleExpenses, personalPurchases, insuranceDue, tax, realNet };
+    const realNet = revenue - operatingExpenses - insuranceDue.total - tax.taxPayable;
+    return { revenue, operatingExpenses, deductibleExpenses, personalPurchases, insuranceDue, insurancePaid, taxPaid, tax, realNet };
   }, [orders, expenses, taxSettings, year]);
 
   const warnings = thresholdWarnings(taxSettings.regime, data.revenue);
@@ -169,7 +187,7 @@ export function TaxPanel() {
         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
           <h3 className="text-sm font-semibold text-[var(--c-text)]">Реальный учёт</h3>
           <Row label="Доход" value={formatRub(data.revenue)} />
-          <Row label="Все расходы" value={`− ${formatRub(data.allExpenses)}`} />
+          <Row label="Операционные расходы" value={`− ${formatRub(data.operatingExpenses)}`} />
           <Row label="Взносы + налог" value={`− ${formatRub(data.insuranceDue.total + data.tax.taxPayable)}`} />
           <Row label="Чистая прибыль" value={formatRub(data.realNet)} bold />
           <Row label="Маржа" value={data.revenue > 0 ? pct(data.realNet / data.revenue) : "—"} />
@@ -182,17 +200,43 @@ export function TaxPanel() {
         </p>
       )}
 
+      {/* Insurance contributions */}
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">Страховые взносы ИП</h3>
+            <p className="mt-0.5 text-xs text-[var(--c-text3)]">
+              Начислено {formatRub(data.insuranceDue.total)} · оплачено {formatRub(data.insurancePaid)}
+            </p>
+          </div>
+          <button
+            onClick={() => recordPayment("insurance", Math.max(data.insuranceDue.total - data.insurancePaid, 0), `Страховые взносы ИП ${year}`)}
+            className="shrink-0 rounded-lg border border-[var(--c-border2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+          >
+            Записать оплату
+          </button>
+        </div>
+      </div>
+
       {/* Quarterly schedule */}
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--c-text2)]">Авансовые платежи {year}</p>
         <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
           {schedule.map((q, i) => (
-            <div key={q.label} className={`flex items-center justify-between px-4 py-3 ${i < schedule.length - 1 ? "border-b border-[var(--c-border)]" : ""}`}>
+            <div key={q.label} className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${i < schedule.length - 1 ? "border-b border-[var(--c-border)]" : ""}`}>
               <div>
                 <p className="text-sm font-medium text-[var(--c-text)]">{q.label}</p>
                 <p className="text-xs text-[var(--c-text3)]">Срок: {q.deadline}</p>
               </div>
-              <span className="text-sm font-semibold tabular-nums text-[var(--c-text)]">≈ {formatRub(quarterAmount)}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold tabular-nums text-[var(--c-text)]">≈ {formatRub(quarterAmount)}</span>
+                <button
+                  onClick={() => recordPayment("tax", quarterAmount, `Авансовый платёж — ${q.label} ${year}`)}
+                  className="rounded-lg border border-[var(--c-border2)] px-2.5 py-1 text-xs font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+                >
+                  Записать оплату
+                </button>
+              </div>
             </div>
           ))}
         </div>
