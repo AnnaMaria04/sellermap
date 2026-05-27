@@ -3,6 +3,7 @@ import { Geologica, Unbounded } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import { PWARegister } from "@/components/pwa/PWARegister";
 import { Toaster } from "sonner";
 
 const geologica = Geologica({
@@ -20,13 +21,16 @@ const unbounded = Unbounded({
 export const metadata: Metadata = {
   title: "SellerMap",
   description:
-    "Инструмент анализа товаров для продавцов Wildberries и Ozon.",
+    "Физический магазин + WB + Ozon — в одном приложении.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "SellerMap", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#0c0e0f",
 };
 
 export default function RootLayout({
@@ -43,6 +47,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
+        <PWARegister />
         <Toaster position="bottom-right" richColors />
       </body>
     </html>
