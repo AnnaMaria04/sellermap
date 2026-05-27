@@ -46,7 +46,8 @@ function ProductsPageInner() {
   const [showImport, setShowImport] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
-  const [showBulkCost, setShowBulkCost] = useState(false);
+  // Opened directly from the post-sync prompt (?fillcost=1).
+  const [showBulkCost, setShowBulkCost] = useState(() => searchParams.get("fillcost") === "1");
   const [showAdjust, setShowAdjust] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>("products");
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Settings,
   RefreshCw,
@@ -181,6 +183,7 @@ function fromPersistedIntegration(pi: PersistedIntegration): ConnectedIntegratio
 
 export function IntegrationHub() {
   const { products, actions } = useInventory();
+  const router = useRouter();
 
   const [integrations, setIntegrations] = useState<ConnectedIntegration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -293,10 +296,12 @@ export function IntegrationHub() {
     const result = await adapter.pullProducts(conn);
 
     let imported = 0;
+    let missingCost = 0;
     if (result.ok && result.products) {
       for (const raw of result.products) {
         const sku = raw.sku ?? raw.externalId;
         const existing = products.find((p) => p.sku === sku);
+        if (!existing || (existing.costPrice ?? 0) <= 0) missingCost++;
         if (existing) {
           const patch: Partial<Product> = {};
           if (raw.price !== undefined) patch.price = raw.price;
@@ -366,6 +371,17 @@ export function IntegrationHub() {
         const userId = data.user?.id;
         if (!userId) return;
         updateIntegrationSync(supabase, id, userId, syncedAt, newStatus).catch(() => {});
+      });
+    }
+
+    // Cost can't come from marketplaces — nudge the seller to fill it so P&L is real.
+    if (result.ok && missingCost > 0) {
+      toast.warning(`У ${missingCost} товаров нет себестоимости — прибыль считается неверно`, {
+        duration: 8000,
+        action: {
+          label: "Заполнить",
+          onClick: () => router.push("/inventory/products?fillcost=1"),
+        },
       });
     }
   }
