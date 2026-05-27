@@ -33,6 +33,7 @@ import {
   FileText,
   Map,
   ShoppingCart,
+  MessageSquare,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ const NAV: NavSection[] = [
         label: "Клиенты",        href: "/inventory/customers", icon: Users,
         children: [{ label: "Акции и промо", href: "/inventory/promotions" }],
       },
+      { label: "Отзывы",         href: "/inventory/feedbacks", icon: MessageSquare },
     ],
   },
   {
