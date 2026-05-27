@@ -22,7 +22,7 @@ import {
 } from "recharts";
 import { getAvailableStock, type Product, type Supplier } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
-import { computeProductProfit } from "@/lib/inventory/finance";
+import { computeProductProfit, costLookupFromProducts } from "@/lib/inventory/finance";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ export function DemandForecast() {
   // ---- ABC Analysis --------------------------------------------------------
 
   const abcData = useMemo(() => {
-    const profitData = computeProductProfit(orders);
+    const profitData = computeProductProfit(orders, costLookupFromProducts(products));
     const totalRev = profitData.reduce((s, p) => s + p.revenue, 0);
     let cumRev = 0;
     return profitData.map((p) => {
@@ -212,7 +212,7 @@ export function DemandForecast() {
         abcClass: pct <= 0.8 ? "A" : pct <= 0.95 ? "B" : ("C" as "A" | "B" | "C"),
       };
     });
-  }, [orders]);
+  }, [orders, products]);
 
   const abcCounts = useMemo(
     () => ({

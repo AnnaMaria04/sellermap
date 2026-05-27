@@ -26,6 +26,7 @@ import {
   computePnL,
   computeChannelPnL,
   computeProductProfit,
+  costLookupFromProducts,
   computeUnitEconomics,
   buildProductFromContext,
   type PnL,
@@ -99,8 +100,9 @@ export function FinancePanel() {
 
 // ── Tab 1: P&L ─────────────────────────────────────────────────────────────────
 function PnLTab() {
-  const { orders } = useInventory();
-  const pnl: PnL = useMemo(() => computePnL(orders), [orders]);
+  const { orders, products } = useInventory();
+  const costFor = useMemo(() => costLookupFromProducts(products), [products]);
+  const pnl: PnL = useMemo(() => computePnL(orders, costFor), [orders, costFor]);
 
   const waterfall = useMemo(() => {
     return [
@@ -285,8 +287,9 @@ function KPIGrid({ pnl }: { pnl: PnL }) {
 
 // ── Tab 2: Channels ──────────────────────────────────────────────────────────
 function ChannelsTab() {
-  const { orders } = useInventory();
-  const channels: ChannelPnL[] = useMemo(() => computeChannelPnL(orders), [orders]);
+  const { orders, products } = useInventory();
+  const costFor = useMemo(() => costLookupFromProducts(products), [products]);
+  const channels: ChannelPnL[] = useMemo(() => computeChannelPnL(orders, costFor), [orders, costFor]);
 
   const maxRevenue = useMemo(
     () => Math.max(1, ...channels.map((c) => c.revenue)),
@@ -524,7 +527,8 @@ function UnitEconomicsTab({ products }: { products: Product[] }) {
     ];
   }, [input, result]);
 
-  const productProfit: ProductProfit[] = useMemo(() => computeProductProfit(orders), [orders]);
+  const costFor = useMemo(() => costLookupFromProducts(products), [products]);
+  const productProfit: ProductProfit[] = useMemo(() => computeProductProfit(orders, costFor), [orders, costFor]);
 
   const handleExportProfit = () => {
     const columns: ExportColumn<ProductProfit>[] = [

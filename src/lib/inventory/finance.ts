@@ -66,9 +66,24 @@ function isRealized(o: Order): boolean {
   return o.status === "shipped" || o.status === "delivered";
 }
 
-export function orderEconomics(order: Order): OrderEconomics {
+/** Resolves a product's purchase cost when the order line carries none (e.g.
+ *  marketplace imports, where WB never sends cost). */
+export type CostLookup = (productId: string) => number | undefined;
+
+function lineCost(item: Order["items"][number], costFor?: CostLookup): number {
+  const unit = item.unitCost > 0 ? item.unitCost : (costFor?.(item.productId) ?? 0);
+  return unit * item.qty;
+}
+
+/** Build a cost lookup from the product catalog (id → costPrice). */
+export function costLookupFromProducts(products: Product[]): CostLookup {
+  const byId = new Map(products.map((p) => [p.id, p.costPrice] as const));
+  return (productId) => byId.get(productId);
+}
+
+export function orderEconomics(order: Order, costFor?: CostLookup): OrderEconomics {
   const revenue = order.revenue;
-  const cogs = order.items.reduce((s, i) => s + i.unitCost * i.qty, 0);
+  const cogs = order.items.reduce((s, i) => s + lineCost(i, costFor), 0);
   const commission = revenue * (order.commissionRate ?? DEFAULT_COMMISSION[order.channel] ?? 0);
   const logistics = order.logisticsCost ?? 0;
   const netProfit = revenue - cogs - commission - logistics;
@@ -93,7 +108,7 @@ function emptyPnL(): PnL {
   };
 }
 
-export function computePnL(orders: Order[]): PnL {
+export function computePnL(orders: Order[], costFor?: CostLookup): PnL {
   const acc = emptyPnL();
   let returned = 0;
   let shippedOrDelivered = 0;
@@ -104,7 +119,7 @@ export function computePnL(orders: Order[]): PnL {
       // Not yet realized revenue; skip from P&L but cancelled never counts.
       continue;
     }
-    const e = orderEconomics(o);
+    const e = orderEconomics(o, costFor);
     // Returned orders: revenue reversed, but logistics + commission lost.
     if (o.status === "returned") {
       acc.logistics += e.logistics;
@@ -127,11 +142,11 @@ export function computePnL(orders: Order[]): PnL {
   return acc;
 }
 
-export function computeChannelPnL(orders: Order[]): ChannelPnL[] {
+export function computeChannelPnL(orders: Order[], costFor?: CostLookup): ChannelPnL[] {
   const channels = [...new Set(orders.map((o) => o.channel))];
   return channels
     .map((ch) => {
-      const pnl = computePnL(orders.filter((o) => o.channel === ch));
+      const pnl = computePnL(orders.filter((o) => o.channel === ch), costFor);
       return {
         ...pnl,
         channel: ch,
@@ -141,14 +156,14 @@ export function computeChannelPnL(orders: Order[]): ChannelPnL[] {
     .sort((a, b) => b.revenue - a.revenue);
 }
 
-export function computeProductProfit(orders: Order[]): ProductProfit[] {
+export function computeProductProfit(orders: Order[], costFor?: CostLookup): ProductProfit[] {
   const map = new Map<string, ProductProfit>();
   for (const o of orders) {
     if (o.status === "cancelled" || !isRealized(o)) continue;
     const commissionPerRevenue = o.commissionRate ?? DEFAULT_COMMISSION[o.channel] ?? 0;
     for (const item of o.items) {
       const lineRevenue = item.unitPrice * item.qty;
-      const lineCogs = item.unitCost * item.qty;
+      const lineCogs = lineCost(item, costFor);
       const lineCommission = lineRevenue * commissionPerRevenue;
       // Distribute order logistics across line items by revenue share.
       const logisticsShare = o.revenue > 0 ? (lineRevenue / o.revenue) * o.logisticsCost : 0;

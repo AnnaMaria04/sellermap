@@ -786,9 +786,39 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
       return { ...state, orders: [action.order, ...state.orders] };
 
     case "IMPORT_ORDERS": {
-      const existing = new Set(state.orders.map((o) => o.orderNumber));
-      const fresh = action.orders.filter((o) => !existing.has(o.orderNumber));
-      return { ...state, orders: [...fresh, ...state.orders] };
+      const key = (o: Order) => o.externalNumber ?? o.orderNumber;
+      const existing = new Set(state.orders.map(key));
+      const fresh = action.orders.filter((o) => !existing.has(key(o)));
+      // Record each imported sale/return as an audit movement so "Последние
+      // операции" reflects marketplace activity. Marketplace stock is synced
+      // live with the catalog, so these entries do NOT change local stock.
+      const newMovements: StockMovement[] = [];
+      for (const o of fresh) {
+        const isReturn = o.status === "returned";
+        for (const item of o.items) {
+          newMovements.push({
+            id: uid("mv"),
+            type: isReturn ? "return" : "sale",
+            productId: item.productId,
+            productName: item.productName,
+            sku: item.sku,
+            qtyBefore: 0,
+            qtyAfter: 0,
+            qtyDelta: isReturn ? item.qty : -item.qty,
+            locationId: o.locationId,
+            userId: "u-sync",
+            userName: "Синхронизация",
+            createdAt: o.deliveredAt ? `${o.deliveredAt}T00:00:00.000Z` : `${o.createdAt}T00:00:00.000Z`,
+            reason: `${isReturn ? "Возврат" : "Продажа"} ${o.channel} ${o.orderNumber}`,
+            referenceId: o.id,
+            referenceType: isReturn ? "return" : "sale",
+          });
+        }
+      }
+      const movements = newMovements.length > 0
+        ? [...newMovements, ...state.movements].slice(0, 5000)
+        : state.movements;
+      return { ...state, orders: [...fresh, ...state.orders], movements };
     }
 
     case "UPDATE_ORDER_STATUS": {

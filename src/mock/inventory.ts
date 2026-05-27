@@ -745,7 +745,8 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  orderNumber: string;          // marketplace order id
+  orderNumber: string;          // short internal number shown in lists
+  externalNumber?: string;      // full marketplace order id (e.g. WB srid)
   channel: OrderChannel;
   fulfillment: FulfillmentModel;
   status: OrderStatus;

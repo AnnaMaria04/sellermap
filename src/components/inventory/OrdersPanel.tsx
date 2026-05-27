@@ -28,6 +28,7 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Hash,
 } from "lucide-react";
 import { cn, formatRub } from "@/lib/utils";
 import {
@@ -41,7 +42,7 @@ import {
   CHANNEL_LABELS,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
-import { orderEconomics } from "@/lib/inventory/finance";
+import { orderEconomics, costLookupFromProducts, type CostLookup } from "@/lib/inventory/finance";
 import { exportData } from "@/lib/export";
 
 // ── Presentation config ────────────────────────────────────────────────────
@@ -159,6 +160,7 @@ function generateOrderNumber(): string {
 
 export function OrdersPanel() {
   const { orders, products, locations, actions, getLocationName } = useInventory();
+  const costFor = useMemo(() => costLookupFromProducts(products), [products]);
 
   const [searchQ, setSearchQ] = useState("");
   const [channelFilter, setChannelFilter] = useState<OrderChannel | "all">("all");
@@ -179,7 +181,7 @@ export function OrdersPanel() {
     let newCount = 0;
     let awaiting = 0;
     for (const o of orders) {
-      const e = orderEconomics(o);
+      const e = orderEconomics(o, costFor);
       if (e.realized) realizedRevenue += e.revenue;
       if (o.status === "new") newCount += 1;
       if (PENDING_STATUSES.includes(o.status)) awaiting += 1;
@@ -190,7 +192,7 @@ export function OrdersPanel() {
       realizedRevenue,
       awaiting,
     };
-  }, [orders]);
+  }, [orders, costFor]);
 
   // ── Filtering ────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -365,7 +367,7 @@ export function OrdersPanel() {
           </thead>
           <tbody>
             {filtered.map((o) => {
-              const e = orderEconomics(o);
+              const e = orderEconomics(o, costFor);
               const canFulfill = FULFILLABLE.includes(o.status);
               return (
                 <tr
@@ -459,6 +461,7 @@ export function OrdersPanel() {
       {selected && (
         <OrderDrawer
           order={selected}
+          costFor={costFor}
           getLocationName={getLocationName}
           onClose={() => setSelectedId(null)}
           onFulfill={() => requestFulfill(selected.id)}
@@ -519,6 +522,7 @@ export function OrdersPanel() {
 
 interface OrderDrawerProps {
   order: Order;
+  costFor: CostLookup;
   getLocationName: (id: string) => string;
   onClose: () => void;
   onFulfill: () => void;
@@ -526,8 +530,8 @@ interface OrderDrawerProps {
   onCancel: () => void;
 }
 
-function OrderDrawer({ order, getLocationName, onClose, onFulfill, onAdvance, onCancel }: OrderDrawerProps) {
-  const e = orderEconomics(order);
+function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAdvance, onCancel }: OrderDrawerProps) {
+  const e = orderEconomics(order, costFor);
   const canFulfill = FULFILLABLE.includes(order.status);
   const flowIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = flowIdx >= 0 && flowIdx < STATUS_FLOW.length - 1 ? STATUS_FLOW[flowIdx + 1] : null;
@@ -572,6 +576,7 @@ function OrderDrawer({ order, getLocationName, onClose, onFulfill, onAdvance, on
             <InfoRow icon={Calendar} label="Создан" value={order.createdAt} />
             <InfoRow icon={Truck} label="Отправлен" value={order.shippedAt ?? "—"} />
             {order.deliveredAt && <InfoRow icon={CheckCircle2} label="Доставлен" value={order.deliveredAt} />}
+            {order.externalNumber && <InfoRow icon={Hash} label="ID на маркетплейсе" value={order.externalNumber} />}
           </div>
 
           {order.note && (
@@ -599,7 +604,8 @@ function OrderDrawer({ order, getLocationName, onClose, onFulfill, onAdvance, on
                 </thead>
                 <tbody>
                   {order.items.map((it) => {
-                    const lineProfit = (it.unitPrice - it.unitCost) * it.qty;
+                    const unitCost = it.unitCost > 0 ? it.unitCost : (costFor(it.productId) ?? 0);
+                    const lineProfit = (it.unitPrice - unitCost) * it.qty;
                     return (
                       <tr key={it.productId} className="border-b border-[var(--c-border)] last:border-0">
                         <td className="px-3 py-2.5">
@@ -608,7 +614,7 @@ function OrderDrawer({ order, getLocationName, onClose, onFulfill, onAdvance, on
                         </td>
                         <td className="px-3 py-2.5 text-right text-[var(--c-text2)]">{it.qty} шт</td>
                         <td className="px-3 py-2.5 text-right text-[var(--c-text2)]">{money(it.unitPrice)}</td>
-                        <td className="px-3 py-2.5 text-right text-[var(--c-text3)]">{money(it.unitCost)}</td>
+                        <td className="px-3 py-2.5 text-right text-[var(--c-text3)]">{money(unitCost)}</td>
                         <td className={cn("px-3 py-2.5 text-right font-medium", lineProfit >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]")}>
                           {lineProfit >= 0 ? "" : "−"}{money(Math.abs(lineProfit))}
                         </td>

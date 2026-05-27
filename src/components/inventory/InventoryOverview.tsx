@@ -31,7 +31,7 @@ import {
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
 import { cn } from "@/lib/utils";
-import { computePnL } from "@/lib/inventory/finance";
+import { computePnL, costLookupFromProducts } from "@/lib/inventory/finance";
 import { computeAlerts } from "@/lib/inventory/alerts";
 
 function fmt(n: number) {
@@ -156,7 +156,8 @@ export function InventoryOverview() {
   const activePOs         = useMemo(() => purchaseOrders.filter((po) => !["closed", "draft"].includes(po.status)).slice(0, 6), [purchaseOrders]);
   const recentMovements   = useMemo(() => movements.slice(0, 6), [movements]);
   const activeTransfers   = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
-  const pnl               = useMemo(() => computePnL(orders), [orders]);
+  const costFor           = useMemo(() => costLookupFromProducts(products), [products]);
+  const pnl               = useMemo(() => computePnL(orders, costFor), [orders, costFor]);
   const alerts            = useMemo(() => computeAlerts(products, batches ?? [], purchaseOrders), [products, batches, purchaseOrders]);
   const pendingOrders     = useMemo(() => orders.filter((o) => ["new", "confirmed", "packed"].includes(o.status)).length, [orders]);
 

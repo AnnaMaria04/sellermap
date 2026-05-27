@@ -759,7 +759,7 @@ function StockPill({ label, value, color, minus }: { label: string; value: numbe
     <div className="rounded-xl bg-[var(--c-bg3)] border border-[var(--c-border)] p-3 text-center">
       <p className="text-xs text-[var(--c-text3)]">{label}</p>
       <p className={cn("text-base font-bold tabular", colors[color])}>
-        {minus ? "−" : ""}{value}
+        {minus && value !== 0 ? "−" : ""}{value}
       </p>
     </div>
   );

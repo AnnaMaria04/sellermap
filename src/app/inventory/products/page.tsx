@@ -12,7 +12,30 @@ import { BulkCostEditor } from "@/components/inventory/BulkCostEditor";
 import { QuickStockAdjust } from "@/components/inventory/QuickStockAdjust";
 import { PriceListsPanel } from "@/components/inventory/PriceListsPanel";
 import { ChannelAllocationPanel } from "@/components/inventory/ChannelAllocationPanel";
+import { useInventory } from "@/contexts/InventoryContext";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function MissingCostBanner({ onFix }: { onFix: () => void }) {
+  const { products } = useInventory();
+  const missing = products.filter((p) => p.status === "active" && (p.costPrice ?? 0) <= 0).length;
+  if (missing === 0) return null;
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-[rgba(245,166,35,0.3)] bg-[var(--c-amber-dim)] px-4 py-3">
+      <AlertTriangle size={16} className="shrink-0 text-[var(--c-amber)]" />
+      <p className="min-w-0 flex-1 text-sm text-[var(--c-text)]">
+        У {missing} товаров не указана себестоимость — прибыль и P&L считаются неверно.
+        Заполните закупочные цены, чтобы видеть реальную маржу.
+      </p>
+      <button
+        onClick={onFix}
+        className="shrink-0 rounded-lg bg-[var(--c-amber)] px-3 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90"
+      >
+        Заполнить себестоимость
+      </button>
+    </div>
+  );
+}
 
 type SubTab = "products" | "pricelists" | "allocation";
 
@@ -55,6 +78,7 @@ function ProductsPageInner() {
 
       {subTab === "products" && (
         <>
+          <MissingCostBanner onFix={() => setShowBulkCost(true)} />
           <div className="mb-3 flex flex-wrap gap-2">
             <button
               onClick={() => setShowBulkCost(true)}

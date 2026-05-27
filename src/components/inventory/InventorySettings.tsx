@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Settings,
   MapPin,
@@ -16,7 +17,10 @@ import {
   AlertCircle,
   Check,
   ChevronDown,
+  ChevronRight,
   Building2,
+  Plug,
+  Users2,
 } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
@@ -343,6 +347,30 @@ export function InventorySettings() {
           </span>
         )}
       </div>
+
+      <SectionCard icon={<Settings size={15} />} title="Управление">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            { href: "/inventory/integrations", icon: Plug, label: "Интеграции", hint: "Wildberries, Ozon и другие каналы" },
+            { href: "/inventory/staff", icon: Users2, label: "Персонал", hint: "Сотрудники и их доступ" },
+          ].map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3 transition hover:border-[var(--c-green)]"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--c-bg2)] text-[var(--c-text2)]">
+                <l.icon size={16} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[var(--c-text)]">{l.label}</p>
+                <p className="truncate text-xs text-[var(--c-text3)]">{l.hint}</p>
+              </div>
+              <ChevronRight size={16} className="shrink-0 text-[var(--c-text3)]" />
+            </Link>
+          ))}
+        </div>
+      </SectionCard>
 
       <SectionCard icon={<Building2 size={15} />} title="Профиль компании">
         <Field label="Название компании" hint="Отображается в отчётах и документах">

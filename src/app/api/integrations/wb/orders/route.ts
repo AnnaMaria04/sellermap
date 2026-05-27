@@ -12,7 +12,7 @@ interface WbSale {
 
 // Minimal subset of the app's Order shape we populate from WB.
 type MappedOrder = {
-  id: string; orderNumber: string; channel: "wildberries"; fulfillment: "FBO";
+  id: string; orderNumber: string; externalNumber: string; channel: "wildberries"; fulfillment: "FBO";
   status: "delivered" | "new" | "returned"; locationId: string;
   items: { productId: string; productName: string; sku: string; qty: number; unitPrice: number; unitCost: number }[];
   revenue: number; commissionRate: number; logisticsCost: number;
@@ -21,6 +21,14 @@ type MappedOrder = {
 
 function day(s?: string): string {
   return (s ?? new Date().toISOString()).slice(0, 10);
+}
+
+/** Short, stable, human-friendly internal number derived from the WB srid.
+ *  Lists show this; the full WB id is kept in externalNumber for details. */
+function shortNumber(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return `WB-${h.toString(36).toUpperCase().padStart(6, "0").slice(-6)}`;
 }
 
 async function wbGet(url: string, token: string, dateFrom: string) {
@@ -97,7 +105,8 @@ export async function POST(req: NextRequest) {
         const status: MappedOrder["status"] = fin?.returned ? "returned" : "delivered";
         orders.push({
           id: `wb-sale-${key}`,
-          orderNumber: `wb-${key}`,
+          orderNumber: shortNumber(key),
+          externalNumber: key,
           channel: "wildberries",
           fulfillment: "FBO",
           status,

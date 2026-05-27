@@ -17,7 +17,6 @@ import {
   Truck,
   Home,
   Settings,
-  Plug,
   Bell,
   Menu,
   X,
@@ -26,7 +25,6 @@ import {
   ShoppingBag,
   Wallet,
   Users,
-  Users2,
   Building2,
   ClipboardList,
   RotateCcw,
@@ -92,10 +90,9 @@ const NAV: NavSection[] = [
   },
 ];
 
-// Footer items (settings-level, kept small)
+// Footer items (settings-level, kept small). Интеграции/Персонал live inside
+// Настройки to keep the main nav focused on day-to-day work.
 const FOOTER_LINKS = [
-  { label: "Интеграции", href: "/inventory/integrations", icon: Plug },
-  { label: "Персонал",   href: "/inventory/staff",         icon: Users2 },
   { label: "Настройки",  href: "/inventory/settings",      icon: Settings },
 ];
 

@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { TrendingUp, ShoppingCart, BarChart2, Percent } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
-import { computePnL, computeChannelPnL, computeProductProfit } from "@/lib/inventory/finance";
+import { computePnL, computeChannelPnL, computeProductProfit, costLookupFromProducts } from "@/lib/inventory/finance";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/mock/inventory";
 
@@ -149,10 +149,11 @@ function ChartCard({ title, subtitle, children, footer, className }: ChartCardPr
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function SalesChartPanel() {
-  const { orders } = useInventory();
+  const { orders, products } = useInventory();
+  const costFor = useMemo(() => costLookupFromProducts(products), [products]);
 
   // ── KPI summary ──────────────────────────────────────────────────────────────
-  const pnl = useMemo(() => computePnL(orders), [orders]);
+  const pnl = useMemo(() => computePnL(orders, costFor), [orders, costFor]);
 
   // ── Chart 1: Revenue by Day (last 30 days) ───────────────────────────────────
   const revenueByDay = useMemo(() => {
@@ -178,7 +179,7 @@ export function SalesChartPanel() {
   }, [orders]);
 
   // ── Chart 2: Revenue by Channel (Pie) ────────────────────────────────────────
-  const channelPnl = useMemo(() => computeChannelPnL(orders), [orders]);
+  const channelPnl = useMemo(() => computeChannelPnL(orders, costFor), [orders, costFor]);
 
   const channelPieData = useMemo(
     () =>
@@ -190,7 +191,7 @@ export function SalesChartPanel() {
 
   // ── Chart 3: Top 10 products (Horizontal Bar) ────────────────────────────────
   const top10Products = useMemo(() => {
-    const list = computeProductProfit(orders)
+    const list = computeProductProfit(orders, costFor)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
     return list.map((p) => ({
@@ -198,7 +199,7 @@ export function SalesChartPanel() {
       revenue: Math.round(p.revenue),
       profit: Math.round(p.netProfit),
     }));
-  }, [orders]);
+  }, [orders, costFor]);
 
   // ── Chart 4: Orders by status ────────────────────────────────────────────────
   const statusCounts = useMemo(() => {
