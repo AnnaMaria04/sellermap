@@ -240,16 +240,6 @@ function SidebarFooter({ pathname, onNavigate }: { pathname: string; onNavigate?
   );
 }
 
-// ── Quick actions toolbar ─────────────────────────────────────────────────────
-
-const QUICK_ACTIONS = [
-  { label: "Добавить товар",  href: "/inventory/products/new",          icon: Package },
-  { label: "Принять товар",   href: "/inventory/purchase-orders",       icon: Truck },
-  { label: "Переместить",     href: "/inventory/transfers?open=create", icon: ArrowLeftRight },
-  { label: "Инвентаризация",  href: "/inventory/stocktake?open=create", icon: ClipboardList },
-  { label: "Открыть кассу",   href: "/pos",                             icon: ShoppingCart },
-];
-
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -317,20 +307,6 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
 
       {/* ── Main content ── */}
       <div className="lg:pl-56">
-        {/* Desktop quick-action top bar (h-16 matches sidebar logo row) */}
-        <div className="hidden h-16 shrink-0 items-center gap-2 border-b border-[var(--c-border)] bg-[var(--c-bg2)] px-6 lg:flex">
-          {QUICK_ACTIONS.map((a) => (
-            <Link
-              key={a.label}
-              href={a.href}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
-            >
-              <a.icon size={14} className="shrink-0" />
-              {a.label}
-            </Link>
-          ))}
-        </div>
-
         {/* Mobile top bar */}
         <div className="flex h-14 items-center gap-3 border-b border-[var(--c-border)] bg-[var(--c-bg2)] px-4 lg:hidden">
           <button
