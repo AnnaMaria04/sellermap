@@ -8,6 +8,7 @@ import { AccountMenu } from "./AccountMenu";
 import { useInventory } from "@/contexts/InventoryContext";
 import { computeAlerts } from "@/lib/inventory/alerts";
 import { useDismissedAlerts } from "@/hooks/useDismissedAlerts";
+import { useSeenAlerts } from "@/hooks/useSeenAlerts";
 import { useTheme } from "@/components/ui/ThemeProvider";
 import {
   Package,
@@ -187,8 +188,10 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
 function SidebarFooter({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const { products, batches, purchaseOrders } = useInventory();
   const { dismissed }         = useDismissedAlerts();
+  const { seen }              = useSeenAlerts();
   const { theme, toggle }     = useTheme();
-  const unread = computeAlerts(products, batches, purchaseOrders).filter((a) => !dismissed.has(a.id)).length;
+  const unread = computeAlerts(products, batches, purchaseOrders)
+    .filter((a) => !dismissed.has(a.id) && !seen.has(a.id)).length;
 
   return (
     <div className="border-t border-[var(--c-border)] px-2 pb-2 pt-2 space-y-0.5">

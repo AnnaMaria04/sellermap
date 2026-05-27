@@ -170,7 +170,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const StoreCard = () => (
     <div className="shrink-0 border-b border-[var(--c-border)] px-4 py-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-sm font-bold">
+        <div
+          title="Инициалы из названия компании. Измените его в «Общие настройки → Профиль компании»."
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--c-green)] text-[var(--c-bg)] text-sm font-bold"
+        >
           {initials}
         </div>
         <div className="min-w-0">

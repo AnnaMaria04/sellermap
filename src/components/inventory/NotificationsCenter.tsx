@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { computeAlerts, type ComputedAlert, type AlertSeverity, type AlertCategory } from "@/lib/inventory/alerts";
 import { useDismissedAlerts } from "@/hooks/useDismissedAlerts";
+import { useSeenAlerts } from "@/hooks/useSeenAlerts";
 import { useInventory } from "@/contexts/InventoryContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -69,9 +70,11 @@ function matchesTab(alert: ComputedAlert, tab: FilterTab): boolean {
 function AlertCard({
   alert,
   onDismiss,
+  unread,
 }: {
   alert: ComputedAlert;
   onDismiss: (id: string) => void;
+  unread?: boolean;
 }) {
   const color = severityColor(alert.severity);
 
@@ -101,7 +104,10 @@ function AlertCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3 flex-wrap">
-            <p className="text-sm font-semibold text-[var(--c-text)]">{alert.title}</p>
+            <p className="flex items-center gap-2 text-sm font-semibold text-[var(--c-text)]">
+              {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--c-blue)]" title="Новое" />}
+              {alert.title}
+            </p>
             <span className="shrink-0 text-[11px] text-[var(--c-text3)] tabular whitespace-nowrap">
               {timeAgo(alert.createdAt)}
             </span>
@@ -141,12 +147,21 @@ function AlertCard({
 export function NotificationsCenter() {
   const { products, batches, purchaseOrders } = useInventory();
   const { dismissed, dismiss, dismissAll } = useDismissedAlerts();
+  const { seen, markSeen } = useSeenAlerts();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  // Snapshot which alerts were unread on entry, so the unread dots stay visible
+  // for this visit even after we mark everything seen.
+  const [unreadOnEntry] = useState<Set<string>>(() => new Set(seen));
 
   const allAlerts = useMemo(
     () => computeAlerts(products, batches, purchaseOrders).filter((a) => !dismissed.has(a.id)),
     [products, batches, purchaseOrders, dismissed],
   );
+
+  // Opening this page clears the unread badge.
+  useEffect(() => {
+    if (allAlerts.length > 0) markSeen(allAlerts.map((a) => a.id));
+  }, [allAlerts, markSeen]);
 
   const visibleAlerts = useMemo(
     () => allAlerts.filter((a) => matchesTab(a, activeTab)),
@@ -267,7 +282,7 @@ export function NotificationsCenter() {
           </div>
         ) : (
           visibleAlerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} onDismiss={dismiss} />
+            <AlertCard key={alert.id} alert={alert} onDismiss={dismiss} unread={!unreadOnEntry.has(alert.id)} />
           ))
         )}
       </div>
