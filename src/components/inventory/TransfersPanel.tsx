@@ -228,9 +228,22 @@ interface Props {
 export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
   const { transfers, locations, actions } = useInventory();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
+  const [tab, setTab] = useState<"all" | "active" | "draft" | "done">("all");
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  const matchesTab = (t: Transfer) =>
+    tab === "all" ||
+    (tab === "active" && t.status === "in_transit") ||
+    (tab === "draft" && t.status === "draft") ||
+    (tab === "done" && (t.status === "received" || t.status === "partial"));
+
+  const tabCounts = useMemo(() => ({
+    all: transfers.length,
+    active: transfers.filter((t) => t.status === "in_transit").length,
+    draft: transfers.filter((t) => t.status === "draft").length,
+    done: transfers.filter((t) => t.status === "received" || t.status === "partial").length,
+  }), [transfers]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("open") === "create") {
@@ -253,11 +266,9 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
           (locations.find(l => l.id === t.toLocationId)?.name ?? t.toLocationId).toLowerCase().includes(q),
       );
     }
-    if (statusFilter !== "all") {
-      list = list.filter((t) => t.status === statusFilter);
-    }
+    list = list.filter(matchesTab);
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [transfers, search, statusFilter, locations]);
+  }, [transfers, search, tab, locations]);
 
   // Keep selected transfer in sync when transfers change (e.g. after receive)
   const currentSelected = useMemo(
@@ -269,6 +280,28 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
     <div className="space-y-5">
       {/* Header stats */}
       <SummaryStats transfers={transfers} />
+
+      {/* Status tabs */}
+      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1 w-fit">
+        {([
+          ["all", "Все"],
+          ["active", "В пути"],
+          ["draft", "Черновики"],
+          ["done", "Завершённые"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition",
+              tab === id ? "bg-[var(--c-bg3)] text-[var(--c-text)]" : "text-[var(--c-text2)] hover:text-[var(--c-text)]",
+            )}
+          >
+            {label}
+            {tabCounts[id] > 0 && <span className="text-[var(--c-text3)]">{tabCounts[id]}</span>}
+          </button>
+        ))}
+      </div>
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -282,18 +315,6 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
             className="h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
           />
         </div>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as TransferStatus | "all")}
-          className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
-        >
-          <option value="all">Все статусы</option>
-          <option value="draft">Черновик</option>
-          <option value="in_transit">В пути</option>
-          <option value="received">Принят</option>
-          <option value="partial">Частично</option>
-        </select>
 
         <div className="ml-auto flex items-center gap-2">
           <ExportButton transfers={filtered} />

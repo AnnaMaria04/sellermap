@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Package,
   ShoppingCart,
@@ -144,6 +144,16 @@ function EmptyState({ message, ctaLabel, ctaHref }: { message: string; ctaLabel?
   );
 }
 
+// ─── Dashboard period filter ────────────────────────────────────────────────
+
+type PeriodId = "today" | "7d" | "30d" | "all";
+const PERIODS: { id: PeriodId; label: string; days: number }[] = [
+  { id: "today", label: "Сегодня", days: 1 },
+  { id: "7d",    label: "7 дней",  days: 7 },
+  { id: "30d",   label: "30 дней", days: 30 },
+  { id: "all",   label: "Всё время", days: 0 },
+];
+
 // ─── Quick actions ────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
@@ -165,23 +175,40 @@ export function InventoryOverview() {
   const recentMovements   = useMemo(() => movements.slice(0, 6), [movements]);
   const activeTransfers   = useMemo(() => transfers.filter((t) => t.status === "in_transit"), [transfers]);
   const costFor           = useMemo(() => costLookupFromProducts(products), [products]);
-  const pnl               = useMemo(() => computePnL(orders, costFor), [orders, costFor]);
+
+  // Date-range filter for the P&L KPIs and the revenue chart.
+  const [period, setPeriod] = useState<PeriodId>("30d");
+  const periodCfg = PERIODS.find((p) => p.id === period)!;
+  const periodStart = useMemo(() => {
+    if (periodCfg.days === 0) return null; // "all time"
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (periodCfg.days - 1));
+    return d.toISOString().slice(0, 10);
+  }, [periodCfg]);
+  const periodOrders = useMemo(
+    () => (periodStart ? orders.filter((o) => (o.deliveredAt ?? o.createdAt) >= periodStart) : orders),
+    [orders, periodStart],
+  );
+
+  const pnl               = useMemo(() => computePnL(periodOrders, costFor), [periodOrders, costFor]);
   const alerts            = useMemo(() => computeAlerts(products, batches ?? [], purchaseOrders), [products, batches, purchaseOrders]);
   const pendingOrders     = useMemo(() => orders.filter((o) => ["new", "confirmed", "packed"].includes(o.status)).length, [orders]);
 
   // 30-day revenue for the area chart
+  const chartDays = Math.min(Math.max(periodCfg.days || 90, 7), 90);
   const revenueChart = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 30 }, (_, i) => {
+    return Array.from({ length: chartDays }, (_, i) => {
       const d = new Date(today);
-      d.setDate(d.getDate() - (29 - i));
+      d.setDate(d.getDate() - (chartDays - 1 - i));
       const date = d.toISOString().split("T")[0];
       const rev = orders
         .filter((o) => o.createdAt === date && (o.status === "shipped" || o.status === "delivered"))
         .reduce((s, o) => s + o.revenue, 0);
       return { date, rev };
     });
-  }, [orders]);
+  }, [orders, chartDays]);
 
   const monthLabel = useMemo(
     () => new Date().toLocaleString("ru-RU", { month: "long", year: "numeric" }),
@@ -239,11 +266,29 @@ export function InventoryOverview() {
         ))}
       </div>
 
+      {/* ── Period filter ─────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1 w-fit">
+        {PERIODS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition",
+              period === p.id
+                ? "bg-[var(--c-bg3)] text-[var(--c-text)]"
+                : "text-[var(--c-text2)] hover:text-[var(--c-text)]",
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── 4-stat strip (Shopify style) ──────────────────────────────────── */}
       <StatStrip
         stats={[
           {
-            label: "Выручка за месяц",
+            label: `Выручка · ${periodCfg.label.toLowerCase()}`,
             value: `${fmt(pnl.revenue)} ₽`,
             sub: "реализованные заказы",
             status: "neutral",
@@ -275,7 +320,7 @@ export function InventoryOverview() {
         {/* Area chart — 2/3 width */}
         <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] lg:col-span-2">
           <div className="border-b border-[var(--c-border)] px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--c-text)]">Выручка за 30 дней</p>
+            <p className="text-sm font-semibold text-[var(--c-text)]">Выручка за {chartDays} дней</p>
             <p className="mt-0.5 text-xs text-[var(--c-text3)]">{monthLabel} · реализованные заказы</p>
           </div>
           <div className="p-4">
