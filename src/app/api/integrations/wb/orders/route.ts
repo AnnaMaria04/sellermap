@@ -3,17 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 // Wildberries Statistics API — orders + sales. Maps them to the app's Order
 // shape so the dashboard P&L/revenue reflect real WB data. Server-side only.
 const SALES_URL = "https://statistics-api.wildberries.ru/api/v1/supplier/sales";
-const ORDERS_URL = "https://statistics-api.wildberries.ru/api/v1/supplier/orders";
 
 interface WbSale {
   date?: string; supplierArticle?: string; nmId?: number;
   finishedPrice?: number; priceWithDisc?: number; forPay?: number;
   srid?: string; saleID?: string; regionName?: string;
-}
-interface WbOrder {
-  date?: string; supplierArticle?: string; nmId?: number;
-  priceWithDisc?: number; totalPrice?: number; isCancel?: boolean;
-  srid?: string; regionName?: string;
 }
 
 // Minimal subset of the app's Order shape we populate from WB.
@@ -82,7 +76,6 @@ export async function POST(req: NextRequest) {
   const dateTo = new Date().toISOString().slice(0, 10);
 
   const orders: MappedOrder[] = [];
-  const saleSrids = new Set<string>();
 
   // Exact commission/logistics/returns from the realization report, keyed by srid.
   const finance = await fetchFinance(token, dateFrom, dateTo);
@@ -94,7 +87,6 @@ export async function POST(req: NextRequest) {
       const rows = (await r.json()) as WbSale[];
       for (const s of Array.isArray(rows) ? rows : []) {
         const key = s.srid || s.saleID || `${s.nmId}-${s.date}`;
-        saleSrids.add(key);
         // Prefer exact figures from the realization report; fall back to the
         // sales estimate (forPay) when the report has no matching row.
         const fin = finance.get(key);
@@ -131,41 +123,11 @@ export async function POST(req: NextRequest) {
     console.error("[wb/orders] sales failed:", e instanceof Error ? e.message : String(e));
   }
 
-  // ── Orders not yet realized (→ "new" = in progress) ───────────────────────
-  try {
-    const r = await wbGet(ORDERS_URL, token, dateFrom);
-    if (r.ok) {
-      const rows = (await r.json()) as WbOrder[];
-      for (const o of Array.isArray(rows) ? rows : []) {
-        const key = o.srid || `${o.nmId}-${o.date}`;
-        if (o.isCancel || saleSrids.has(key)) continue;
-        const price = o.priceWithDisc ?? o.totalPrice ?? 0;
-        orders.push({
-          id: `wb-order-${key}`,
-          orderNumber: `wb-${key}`,
-          channel: "wildberries",
-          fulfillment: "FBO",
-          status: "new",
-          locationId: "loc-main",
-          items: [{
-            productId: `imp-wildberries-${o.nmId}`,
-            productName: o.supplierArticle ?? String(o.nmId ?? ""),
-            sku: o.supplierArticle ?? String(o.nmId ?? ""),
-            qty: 1, unitPrice: price, unitCost: 0,
-          }],
-          revenue: price,
-          commissionRate: 0,
-          logisticsCost: 0,
-          createdAt: day(o.date),
-          region: o.regionName,
-        });
-      }
-    } else {
-      console.error(`[wb/orders] orders ${r.status}`);
-    }
-  } catch (e) {
-    console.error("[wb/orders] orders failed:", e instanceof Error ? e.message : String(e));
-  }
+  // NOTE: we intentionally do NOT import the statistics /orders feed as "new"
+  // orders — that endpoint is a full historical orders log, so unsold rows were
+  // being mislabelled "new" and didn't match WB Partners. Genuine new/assembly
+  // orders should come from the FBS postings API (a future addition). For now
+  // the order feed is realized sales only — the money-true data.
 
   // Cap to keep the payload + client state reasonable.
   return NextResponse.json({ ok: true, count: orders.length, orders: orders.slice(0, 2000) });
