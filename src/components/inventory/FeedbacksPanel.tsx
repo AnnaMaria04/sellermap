@@ -48,7 +48,7 @@ export function FeedbacksPanel() {
       if (!userId) { setLoading(false); setError("Нет сессии"); return; }
       const ints = await loadIntegrations(supabase, userId).catch(() => []);
       const wb = ints.find((i) => i.kind === "wildberries");
-      const t = wb?.credentials.statisticsToken?.trim() || wb?.credentials.contentToken?.trim() || null;
+      const t = wb?.credentials.token?.trim() || null;
       if (!t) { setLoading(false); setError("Подключите Wildberries в Интеграциях"); return; }
       setToken(t);
       void load(t);

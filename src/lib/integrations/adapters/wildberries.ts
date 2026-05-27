@@ -10,8 +10,12 @@ const WB_META: ChannelMeta = {
   name: "Wildberries",
   authModel: "JWT-токен по категориям (Контент, Маркетплейс, Статистика, Цены)",
   credentialFields: [
-    { key: "contentToken", label: "Токен «Контент»", type: "password", hint: "Личный кабинет → Настройки → Доступ к API → Контент" },
-    { key: "statisticsToken", label: "Токен «Статистика»", type: "password", hint: "Для остатков и продаж (добавим позже)" },
+    {
+      key: "token",
+      label: "API-токен",
+      type: "password",
+      hint: "ЛК Wildberries → Настройки → Доступ к API → создать токен и отметить ВСЕ категории",
+    },
   ],
   docsUrl: "https://dev.wildberries.ru",
   capabilities: ["products", "stock", "prices", "orders"],
@@ -42,15 +46,15 @@ export const wildberriesAdapter: ChannelAdapter = {
   meta: WB_META,
 
   async testConnection(conn: Connection) {
-    const token = conn.credentials.contentToken?.trim();
-    if (!token) return { ok: false, message: "Введите токен «Контент»" };
+    const token = conn.credentials.token?.trim();
+    if (!token) return { ok: false, message: "Введите API-токен" };
     const r = await callCards(token, true);
     return { ok: r.ok, message: r.ok ? "Подключение к Wildberries установлено" : (r.message ?? "Ошибка подключения") };
   },
 
   async pullProducts(conn: Connection): Promise<SyncResult> {
-    const token = conn.credentials.contentToken?.trim();
-    if (!token) return { entity: "products", ok: false, count: 0, message: "Введите токен «Контент»" };
+    const token = conn.credentials.token?.trim();
+    if (!token) return { entity: "products", ok: false, count: 0, message: "Введите API-токен" };
     const r = await callCards(token, false);
     return {
       entity: "products",
@@ -67,7 +71,7 @@ export const wildberriesAdapter: ChannelAdapter = {
   },
 
   async pullOrders(conn: Connection) {
-    const token = conn.credentials.statisticsToken?.trim() || conn.credentials.contentToken?.trim();
+    const token = conn.credentials.token?.trim();
     if (!token) return { ok: false, message: "Введите токен" };
     const res = await fetch("/api/integrations/wb/orders", {
       method: "POST",

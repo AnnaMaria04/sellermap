@@ -120,6 +120,7 @@ function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
   return {
     id: `imp-${kind}-${raw.externalId}`,
     name: raw.name,
+    imageUrl: raw.imageUrl,
     category: "Импорт",
     productType: "product",
     status: "active",
@@ -294,6 +295,7 @@ export function IntegrationHub() {
         if (existing) {
           const patch: Partial<Product> = {};
           if (raw.price !== undefined) patch.price = raw.price;
+          if (raw.imageUrl && !existing.imageUrl) patch.imageUrl = raw.imageUrl;
           if (raw.stock !== undefined) {
             const byLoc = { ...existing.stockByLocation, "loc-main": raw.stock };
             patch.stockByLocation = byLoc;

@@ -52,6 +52,7 @@ export interface RawExternalProduct {
   barcode?: string;
   price?: number;
   stock?: number;
+  imageUrl?: string;
 }
 
 export interface StockUpdate {

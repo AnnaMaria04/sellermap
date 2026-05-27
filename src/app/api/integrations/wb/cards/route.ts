@@ -8,6 +8,7 @@ const CONTENT_LIST_URL = "https://content-api.wildberries.ru/content/v2/get/card
 interface WbSize {
   skus?: string[];
 }
+interface WbPhoto { big?: string; c516x688?: string; c246x328?: string; square?: string }
 interface WbCard {
   nmID?: number;
   vendorCode?: string;
@@ -15,6 +16,8 @@ interface WbCard {
   subjectName?: string;
   brand?: string;
   sizes?: WbSize[];
+  photos?: WbPhoto[];
+  mediaFiles?: string[];
 }
 interface WbCursor {
   updatedAt?: string;
@@ -29,6 +32,7 @@ type RawProduct = {
   barcode?: string;
   price?: number;
   stock?: number;
+  imageUrl?: string;
 };
 
 /** Best-effort enrich with price (Prices API) and stock (Statistics API) using
@@ -122,7 +126,7 @@ export async function POST(req: NextRequest) {
   const token = body.token?.trim();
   const test = body.test === true;
   if (!token) {
-    return NextResponse.json({ ok: false, message: "Не передан токен «Контент»" }, { status: 400 });
+    return NextResponse.json({ ok: false, message: "Не передан API-токен" }, { status: 400 });
   }
 
   const limit = test ? 1 : 100;
@@ -170,11 +174,13 @@ export async function POST(req: NextRequest) {
 
       for (const c of cards) {
         if (c.nmID == null) continue;
+        const photo = c.photos?.[0]?.big || c.photos?.[0]?.c516x688 || c.photos?.[0]?.square || c.mediaFiles?.[0];
         products.push({
           externalId: String(c.nmID),
           name: c.title || c.subjectName || c.vendorCode || `nm ${c.nmID}`,
           sku: c.vendorCode,
           barcode: c.sizes?.[0]?.skus?.[0],
+          imageUrl: photo,
         });
       }
 
