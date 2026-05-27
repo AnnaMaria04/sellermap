@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { ProductsTable } from "@/components/inventory/ProductsTable";
-import { AddProductForm } from "@/components/inventory/AddProductForm";
 import { ImportWizard } from "@/components/inventory/ImportWizard";
 import { BarcodeLabelPanel } from "@/components/inventory/BarcodeLabelPanel";
 import { BulkPriceEditor } from "@/components/inventory/BulkPriceEditor";
@@ -41,8 +40,8 @@ type SubTab = "products" | "pricelists" | "allocation";
 
 function ProductsPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const stockParam = searchParams.get("stock") as "low" | "out" | "in" | null;
-  const [showAddProduct, setShowAddProduct] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
@@ -95,7 +94,7 @@ function ProductsPageInner() {
             </button>
           </div>
           <ProductsTable
-            onAddProduct={() => setShowAddProduct(true)}
+            onAddProduct={() => router.push("/inventory/products/new")}
             onImport={() => setShowImport(true)}
             initialStockFilter={stockParam ?? "all"}
           />
@@ -104,12 +103,6 @@ function ProductsPageInner() {
       {subTab === "pricelists" && <PriceListsPanel />}
       {subTab === "allocation" && <ChannelAllocationPanel />}
 
-      {showAddProduct && (
-        <AddProductForm
-          onClose={() => setShowAddProduct(false)}
-          onSave={() => setShowAddProduct(false)}
-        />
-      )}
       {showImport && <ImportWizard onClose={() => setShowImport(false)} />}
       {showLabels && <BarcodeLabelPanel onClose={() => setShowLabels(false)} />}
       {showBulkPrice && (

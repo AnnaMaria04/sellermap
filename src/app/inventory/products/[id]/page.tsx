@@ -319,31 +319,15 @@ export default function ProductDetailPage({ params }: Props) {
               {Object.entries(product.stockByLocation).map(([locId, qty]) => {
                 const loc = locations.find((l) => l.id === locId);
                 return (
-                  <div key={locId} className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3">
-                    <MapPin size={14} className="text-[var(--c-text3)] shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-[var(--c-text)]">{loc?.name ?? locId}</p>
-                      <p className="text-xs text-[var(--c-text3)]">{loc ? LOCATION_TYPE_LABELS[loc.type] : ""}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => actions.adjustStock(product.id, locId, -1, "adjustment", "Ручная корректировка")}
-                        disabled={qty <= 0}
-                        aria-label="Уменьшить остаток"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <p className="w-10 text-center text-base font-bold text-[var(--c-text)] tabular">{qty}</p>
-                      <button
-                        onClick={() => actions.adjustStock(product.id, locId, 1, "adjustment", "Ручная корректировка")}
-                        aria-label="Увеличить остаток"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition"
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  </div>
+                  <LocationStockRow
+                    key={locId}
+                    name={loc?.name ?? locId}
+                    typeLabel={loc ? LOCATION_TYPE_LABELS[loc.type] : ""}
+                    qty={qty}
+                    onSet={(newQty) =>
+                      actions.adjustStock(product.id, locId, newQty - qty, "adjustment", "Ручная корректировка")
+                    }
+                  />
                 );
               })}
             </div>
@@ -823,6 +807,55 @@ function PriceCell({ label, value, main }: { label: string; value: string; main?
       <p className={cn("font-bold tabular", main ? "text-xl text-[var(--c-text)]" : "text-base text-[var(--c-text2)]")}>
         {value}
       </p>
+    </div>
+  );
+}
+
+/** Stock row with a directly editable quantity (type a number, or use ± for small tweaks). */
+function LocationStockRow({ name, typeLabel, qty, onSet }: { name: string; typeLabel: string; qty: number; onSet: (newQty: number) => void }) {
+  const [draft, setDraft] = useState(String(qty));
+  useEffect(() => { setDraft(String(qty)); }, [qty]);
+
+  const commit = () => {
+    const n = Math.max(0, Math.round(Number(draft)));
+    if (!Number.isFinite(n) || n === qty) { setDraft(String(qty)); return; }
+    onSet(n);
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] px-4 py-3">
+      <MapPin size={14} className="text-[var(--c-text3)] shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-[var(--c-text)]">{name}</p>
+        <p className="text-xs text-[var(--c-text3)]">{typeLabel}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onSet(Math.max(0, qty - 1))}
+          disabled={qty <= 0}
+          aria-label="Уменьшить остаток"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Minus size={14} />
+        </button>
+        <input
+          type="number"
+          min={0}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+          aria-label={`Остаток на ${name}`}
+          className="w-16 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2 py-1 text-center text-base font-bold text-[var(--c-text)] tabular outline-none focus:border-[var(--c-green)]"
+        />
+        <button
+          onClick={() => onSet(qty + 1)}
+          aria-label="Увеличить остаток"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg2)] transition"
+        >
+          <Plus size={14} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -45,6 +45,15 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   packaging: "Упаковка",
 };
 
+// Честный Знак product groups (товарные группы) subject to mandatory marking.
+const CHESTNY_ZNAK_GROUPS = [
+  "Одежда", "Обувь", "Духи и туалетная вода", "Шины и покрышки",
+  "Фотоаппараты и лампы-вспышки", "Молочная продукция", "Упакованная вода",
+  "Табачная продукция", "Лекарства", "БАДы", "Антисептики",
+  "Безалкогольное пиво", "Кресла-коляски", "Велосипеды",
+  "Ветеринарные препараты", "Икра",
+];
+
 function parseValues(raw: string): string[] {
   return raw
     .split(",")
@@ -119,6 +128,7 @@ export default function NewProductPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [requiresLabeling, setRequiresLabeling] = useState(false);
+  const [markingGroup, setMarkingGroup] = useState("");
   const [gtin, setGtin] = useState("");
 
   const toggleChannel = (ch: SalesChannel) => {
@@ -233,7 +243,7 @@ export default function NewProductPage() {
       variants,
       supplierId: supplierId || undefined,
       channels,
-      tags,
+      tags: requiresLabeling && markingGroup ? [...tags, `ЧЗ: ${markingGroup}`] : tags,
       requiresLabeling,
       ...(requiresLabeling
         ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined }
@@ -685,17 +695,34 @@ export default function NewProductPage() {
               </span>
             </button>
             {requiresLabeling && (
-              <div className="mt-4">
-                <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-                  GTIN
-                </label>
-                <input
-                  type="text"
-                  value={gtin}
-                  onChange={(e) => setGtin(e.target.value)}
-                  placeholder="Например: 04606007384825"
-                  className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-                />
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+                    Товарная группа
+                  </label>
+                  <select
+                    value={markingGroup}
+                    onChange={(e) => setMarkingGroup(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)]"
+                  >
+                    <option value="">— выберите товарную группу —</option>
+                    {CHESTNY_ZNAK_GROUPS.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+                    GTIN
+                  </label>
+                  <input
+                    type="text"
+                    value={gtin}
+                    onChange={(e) => setGtin(e.target.value)}
+                    placeholder="Например: 04606007384825"
+                    className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+                  />
+                </div>
               </div>
             )}
           </div>
