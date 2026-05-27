@@ -51,20 +51,22 @@ export async function POST(req: NextRequest) {
         signal: AbortSignal.timeout(20000),
       });
 
-      if (res.status === 401) {
-        return NextResponse.json(
-          { ok: false, message: "Неверный или просроченный токен (нужен доступ «Контент»)" },
-          { status: 200 },
-        );
-      }
-      if (res.status === 429) {
-        return NextResponse.json(
-          { ok: false, message: "WB: превышен лимит запросов, попробуйте позже" },
-          { status: 200 },
-        );
-      }
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
+        // Diagnostic: status + body snippet (never the token).
+        console.error(`[wb/cards] ${CONTENT_LIST_URL} -> ${res.status}: ${txt.slice(0, 300)}`);
+        if (res.status === 401) {
+          return NextResponse.json(
+            { ok: false, message: "Неверный или просроченный токен (нужен доступ «Контент»)" },
+            { status: 200 },
+          );
+        }
+        if (res.status === 429) {
+          return NextResponse.json(
+            { ok: false, message: "WB: превышен лимит запросов, попробуйте позже" },
+            { status: 200 },
+          );
+        }
         return NextResponse.json(
           { ok: false, message: `WB API ${res.status}: ${txt.slice(0, 200)}` },
           { status: 200 },
@@ -94,7 +96,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, count: products.length, products });
-  } catch {
+  } catch (e) {
+    console.error("[wb/cards] fetch failed:", e instanceof Error ? e.message : String(e));
     return NextResponse.json({ ok: false, message: "Не удалось связаться с WB API" }, { status: 200 });
   }
 }
