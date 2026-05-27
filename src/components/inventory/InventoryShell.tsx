@@ -34,6 +34,7 @@ import {
   Map,
   ShoppingCart,
   MessageSquare,
+  Calculator,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ const NAV: NavSection[] = [
     title: "Финансы",
     items: [
       { label: "Финансы",   href: "/inventory/finance",    icon: Wallet },
+      { label: "Налоги",    href: "/inventory/tax",        icon: Calculator },
       { label: "Аналитика", href: "/inventory/analytics",  icon: BarChart3 },
       { label: "Отчёты",    href: "/inventory/reports",    icon: FileText },
     ],
