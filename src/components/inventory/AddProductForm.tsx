@@ -59,6 +59,26 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "labeling", label: "Маркировка" },
 ];
 
+// Честный Знак product groups (товарные группы) subject to mandatory marking.
+const CHESTNY_ZNAK_GROUPS = [
+  "Одежда",
+  "Обувь",
+  "Духи и туалетная вода",
+  "Шины и покрышки",
+  "Фотоаппараты и лампы-вспышки",
+  "Молочная продукция",
+  "Упакованная вода",
+  "Табачная продукция",
+  "Лекарства",
+  "БАДы",
+  "Антисептики",
+  "Безалкогольное пиво",
+  "Кресла-коляски",
+  "Велосипеды",
+  "Ветеринарные препараты",
+  "Икра",
+];
+
 type VariantOption = { name: string; values: string[] };
 
 export function AddProductForm({ onClose, onSave }: Props) {
@@ -106,6 +126,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
   // Labeling
   const [requiresLabeling, setRequiresLabeling] = useState(false);
   const [labelingType, setLabelingType] = useState<"chestny_znak" | "egais" | "mercury">("chestny_znak");
+  const [markingGroup, setMarkingGroup] = useState("");
   const [gtin, setGtin] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -231,7 +252,9 @@ export function AddProductForm({ onClose, onSave }: Props) {
       margin,
       supplierId: supplierId || undefined,
       channels,
-      tags,
+      tags: requiresLabeling && labelingType === "chestny_znak" && markingGroup
+        ? [...tags, `ЧЗ: ${markingGroup}`]
+        : tags,
       requiresLabeling,
       labelingType: requiresLabeling ? labelingType : undefined,
       gtin: gtin || undefined,
@@ -961,6 +984,26 @@ export function AddProductForm({ onClose, onSave }: Props) {
                         ))}
                       </div>
                     </FormSection>
+
+                    {labelingType === "chestny_znak" && (
+                      <FormSection title="Товарная группа Честного Знака">
+                        <FormField label="Группа">
+                          <select
+                            value={markingGroup}
+                            onChange={(e) => setMarkingGroup(e.target.value)}
+                            className={inputCls}
+                          >
+                            <option value="">— выберите товарную группу —</option>
+                            {CHESTNY_ZNAK_GROUPS.map((g) => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </FormField>
+                        <p className="mt-1 text-xs text-[var(--c-text3)]">
+                          Определяет правила маркировки и формат кодов Data Matrix.
+                        </p>
+                      </FormSection>
+                    )}
 
                     <FormSection title="Данные маркировки">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -23,7 +23,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import type { ProductStatus } from "@/mock/inventory";
+import type { ProductStatus, ProductVariant } from "@/mock/inventory";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { StockStatusBadge, ProductStatusBadge, MovementTypeBadge } from "@/components/inventory/StockStatusBadge";
 import {
@@ -63,6 +63,7 @@ export default function ProductDetailPage({ params }: Props) {
     status: (product?.status ?? "active") as ProductStatus,
     description: product?.description ?? "",
   });
+  const [variantRows, setVariantRows] = useState<ProductVariant[]>(product?.variants ?? []);
 
   useEffect(() => {
     if (product) {
@@ -74,8 +75,22 @@ export default function ProductDetailPage({ params }: Props) {
         status: product.status,
         description: product.description ?? "",
       });
+      setVariantRows(product.variants ?? []);
     }
   }, [product?.id]);
+
+  function updateVariant(id: string, patch: Partial<ProductVariant>) {
+    setVariantRows((rows) => rows.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  }
+  function addVariant() {
+    setVariantRows((rows) => [
+      ...rows,
+      { id: `var-${Date.now()}`, name: "", sku: "", price: form.price, costPrice: form.costPrice, stock: {} },
+    ]);
+  }
+  function removeVariant(id: string) {
+    setVariantRows((rows) => rows.filter((v) => v.id !== id));
+  }
 
   // Escape closes whichever overlay is open (UX standard).
   useEffect(() => {
@@ -92,7 +107,13 @@ export default function ProductDetailPage({ params }: Props) {
   const saveEdit = () => {
     if (!product) return;
     const margin = form.price > 0 ? Math.round(((form.price - form.costPrice) / form.price) * 1000) / 10 : 0;
-    actions.updateProduct(product.id, { ...form, margin });
+    const cleanVariants = variantRows.filter((v) => v.name.trim() || v.sku.trim());
+    actions.updateProduct(product.id, {
+      ...form,
+      margin,
+      variants: cleanVariants,
+      hasVariants: cleanVariants.length > 0,
+    });
     setEditing(false);
   };
 
@@ -717,6 +738,51 @@ export default function ProductDetailPage({ params }: Props) {
                   rows={4}
                   className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] transition"
                 />
+              </Field>
+
+              <Field label="Варианты">
+                <div className="space-y-2">
+                  {variantRows.length === 0 && (
+                    <p className="text-xs text-[var(--c-text3)]">Нет вариантов. Добавьте размеры, цвета и т.п.</p>
+                  )}
+                  {variantRows.map((v) => (
+                    <div key={v.id} className="flex items-center gap-2">
+                      <input
+                        value={v.name}
+                        onChange={(e) => updateVariant(v.id, { name: e.target.value })}
+                        placeholder="Название (напр. M / Синий)"
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1.5 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                      />
+                      <input
+                        value={v.sku}
+                        onChange={(e) => updateVariant(v.id, { sku: e.target.value })}
+                        placeholder="SKU"
+                        className="w-24 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1.5 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        value={v.price || ""}
+                        onChange={(e) => updateVariant(v.id, { price: Number(e.target.value) || 0 })}
+                        placeholder="Цена"
+                        className="w-20 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1.5 text-right text-sm tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                      />
+                      <button
+                        onClick={() => removeVariant(v.id)}
+                        aria-label="Удалить вариант"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-red)] transition"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addVariant}
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+                  >
+                    <Plus size={14} /> Добавить вариант
+                  </button>
+                </div>
               </Field>
             </div>
 
