@@ -7,6 +7,12 @@
 -- Shopify-style inventory: products -> variants -> inventory_levels
 -- (one row per variant x location).
 -- REVIEW ONLY — not yet applied to any database.
+-- ----------------------------------------------------------------------------
+-- APPLIED 2026-05-27 to project xvgzpryzqxwcihhptfpw as two migrations:
+--   1) drop_legacy_blob_inventory_tables  (dropped the empty JSON-blob tables:
+--      products, locations, suppliers, purchase_orders, transfers, stocktakes,
+--      reservations, movements, profiles — 0 external FKs, all empty)
+--   2) relational_shopify_v1               (the schema below)
 -- ============================================================================
 
 -- ── Extensions ──────────────────────────────────────────────────────────────
