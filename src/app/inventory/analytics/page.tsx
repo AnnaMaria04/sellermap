@@ -4,6 +4,7 @@ import { useState } from "react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { InventoryAnalytics } from "@/components/inventory/InventoryAnalytics";
 import { DemandForecast } from "@/components/inventory/DemandForecast";
+import { SeasonalityPanel } from "@/components/inventory/SeasonalityPanel";
 import { WriteOffPanel } from "@/components/inventory/WriteOffPanel";
 import { CostAnalysisPanel } from "@/components/inventory/CostAnalysisPanel";
 import { ReplenishmentRules } from "@/components/inventory/ReplenishmentRules";
@@ -55,6 +56,7 @@ export default function InventoryAnalyticsPage() {
       )}
       {tab === "planning" && (
         <div className="space-y-8">
+          <SeasonalityPanel />
           <DemandForecast />
           <ReplenishmentRules />
         </div>
