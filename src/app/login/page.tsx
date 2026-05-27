@@ -48,10 +48,25 @@ function LoginForm() {
     setMode("signin");
   }
 
-  function enterAsDeveloper() {
-    // Set the bypass cookie the proxy checks (1 year). Demo data lives in the
-    // browser. The developer override is the only access mode — full access.
-    document.cookie = `sm_dev_bypass=1; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  async function enterAsDeveloper() {
+    const supabase = createClient();
+    if (!supabase) {
+      // No Supabase configured (e.g. local dev) — fall back to the demo bypass
+      // cookie so the app is still explorable without a backend.
+      document.cookie = `sm_dev_bypass=1; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+      router.push(next);
+      return;
+    }
+    // Real session: sign in as the shared developer account so RLS-scoped data
+    // (the account's shop) loads and persists.
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: "test@sellermap.com",
+      password: "Test1234!",
+    });
+    setBusy(false);
+    if (error) { setError(error.message); return; }
     router.push(next);
   }
 
