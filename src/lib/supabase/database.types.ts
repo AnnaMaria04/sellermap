@@ -377,33 +377,39 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          app_id: string | null
           category_id: string | null
           created_at: string
+          data: Json | null
           id: string
           incurred_on: string
           note: string | null
           org_id: string
-          title: string
+          title: string | null
         }
         Insert: {
           amount?: number
+          app_id?: string | null
           category_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           incurred_on?: string
           note?: string | null
           org_id: string
-          title: string
+          title?: string | null
         }
         Update: {
           amount?: number
+          app_id?: string | null
           category_id?: string | null
           created_at?: string
+          data?: Json | null
           id?: string
           incurred_on?: string
           note?: string | null
           org_id?: string
-          title?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -424,6 +430,7 @@ export type Database = {
       }
       integrations: {
         Row: {
+          app_id: string | null
           created_at: string
           credentials: Json
           id: string
@@ -433,6 +440,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          app_id?: string | null
           created_at?: string
           credentials?: Json
           id?: string
@@ -442,6 +450,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          app_id?: string | null
           created_at?: string
           credentials?: Json
           id?: string
@@ -1273,25 +1282,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_type: string | null
+          channels: string[]
+          company: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          onboarding_complete: boolean
           org_id: string | null
+          updated_at: string
         }
         Insert: {
+          business_type?: string | null
+          channels?: string[]
+          company?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          onboarding_complete?: boolean
           org_id?: string | null
+          updated_at?: string
         }
         Update: {
+          business_type?: string | null
+          channels?: string[]
+          company?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          onboarding_complete?: boolean
           org_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
