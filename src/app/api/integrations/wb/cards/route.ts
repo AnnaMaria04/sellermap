@@ -27,7 +27,56 @@ type RawProduct = {
   name: string;
   sku?: string;
   barcode?: string;
+  price?: number;
+  stock?: number;
 };
+
+/** Best-effort enrich with price (Prices API) and stock (Statistics API) using
+ *  the same token. If the token lacks those scopes the calls fail and price/
+ *  stock are left unset — cards still import. */
+async function enrich(token: string, products: RawProduct[]) {
+  const byNm = new Map(products.map((p) => [p.externalId, p]));
+
+  try {
+    const r = await fetch(
+      "https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter?limit=1000&offset=0",
+      { headers: { Authorization: token }, cache: "no-store", signal: AbortSignal.timeout(20000) },
+    );
+    if (r.ok) {
+      const d = (await r.json()) as {
+        data?: { listGoods?: { nmID?: number; sizes?: { price?: number; discountedPrice?: number }[] }[] };
+      };
+      for (const g of d.data?.listGoods ?? []) {
+        const p = byNm.get(String(g.nmID));
+        if (p) { const s = g.sizes?.[0]; p.price = s?.discountedPrice ?? s?.price; }
+      }
+    } else {
+      console.error(`[wb/prices] ${r.status}`);
+    }
+  } catch (e) {
+    console.error("[wb/prices] failed:", e instanceof Error ? e.message : String(e));
+  }
+
+  try {
+    const r = await fetch(
+      "https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2019-01-01",
+      { headers: { Authorization: token }, cache: "no-store", signal: AbortSignal.timeout(30000) },
+    );
+    if (r.ok) {
+      const rows = (await r.json()) as { nmId?: number; quantity?: number }[];
+      const sums = new Map<string, number>();
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const k = String(row.nmId);
+        sums.set(k, (sums.get(k) ?? 0) + (row.quantity ?? 0));
+      }
+      for (const [k, q] of sums) { const p = byNm.get(k); if (p) p.stock = q; }
+    } else {
+      console.error(`[wb/stocks] ${r.status}`);
+    }
+  } catch (e) {
+    console.error("[wb/stocks] failed:", e instanceof Error ? e.message : String(e));
+  }
+}
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { token?: string; test?: boolean };
@@ -95,6 +144,7 @@ export async function POST(req: NextRequest) {
       cursor = { limit, updatedAt: data.cursor?.updatedAt, nmID: data.cursor?.nmID };
     }
 
+    await enrich(token, products);
     return NextResponse.json({ ok: true, count: products.length, products });
   } catch (e) {
     console.error("[wb/cards] fetch failed:", e instanceof Error ? e.message : String(e));

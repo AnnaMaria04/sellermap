@@ -116,6 +116,7 @@ function channelForKind(kind: ChannelKind): SalesChannel[] {
 /** Build a minimal-but-valid Product from a pulled external product. */
 function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
   const today = new Date().toISOString().split("T")[0];
+  const stock = raw.stock ?? 0;
   return {
     id: `imp-${kind}-${raw.externalId}`,
     name: raw.name,
@@ -133,11 +134,11 @@ function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
     requiresLabeling: false,
     createdAt: today,
     updatedAt: today,
-    stockByLocation: {},
+    stockByLocation: stock > 0 ? { "loc-main": stock } : {},
     reservedUnits: 0,
     damagedUnits: 0,
     inTransitUnits: 0,
-    totalPhysical: 0,
+    totalPhysical: stock,
   };
 }
 

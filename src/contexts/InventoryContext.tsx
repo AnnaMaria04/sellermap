@@ -947,10 +947,9 @@ interface InventoryContextValue extends InventoryState {
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  // SSR renders the deterministic mock seed; the client loads the seller's
-  // workspace from Supabase on mount. A fresh account is seeded with the demo
-  // data so there's something to explore immediately.
-  const [state, dispatch] = useReducer(reducer, initialState);
+  // Start EMPTY so a real (logged-in) shop never flashes the demo catalog
+  // before its data loads. The demo mock is only dispatched in no-backend mode.
+  const [state, dispatch] = useReducer(reducer, emptyState);
   const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
   const orgId = useRef<string | null>(null);
@@ -969,7 +968,8 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       if (!supabase.current) {
-        // Env vars not configured — run in demo/in-memory mode.
+        // No backend configured — show the demo catalog so the app is explorable.
+        dispatch({ type: "HYDRATE", state: initialState });
         hydrated.current = true;
         setReady(true);
         return;
@@ -977,7 +977,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       const { data: { user } } = await supabase.current.auth.getUser();
       if (cancelled) return;
       if (!user) {
-        // No session (e.g. SSR/demo) — keep the in-memory seed, don't persist.
+        // Not signed in — stay empty (in production the proxy redirects to /login).
         hydrated.current = true;
         setReady(true);
         return;
