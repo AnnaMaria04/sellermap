@@ -121,7 +121,7 @@ function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
     id: `imp-${kind}-${raw.externalId}`,
     name: raw.name,
     imageUrl: raw.imageUrl,
-    category: "Импорт",
+    category: raw.category?.trim() || "Без категории",
     productType: "product",
     status: "active",
     sku: raw.sku ?? raw.externalId,

@@ -85,7 +85,7 @@ export function computeAlerts(
         productId: p.id,
         actionLabel: "Создать заказ",
         actionHref: "/inventory/purchase-orders",
-        createdAt: new Date(now.getTime() - Math.random() * 86400000).toISOString(),
+        createdAt: now.toISOString(),
       });
     } else if (status === "low_stock") {
       alerts.push({
@@ -97,7 +97,7 @@ export function computeAlerts(
         productId: p.id,
         actionLabel: "Пополнить",
         actionHref: "/inventory/purchase-orders",
-        createdAt: new Date(now.getTime() - Math.random() * 86400000).toISOString(),
+        createdAt: now.toISOString(),
       });
     }
   });
@@ -118,7 +118,7 @@ export function computeAlerts(
         productId: b.productId,
         actionLabel: "Списать",
         actionHref: "/inventory/batches",
-        createdAt: new Date(now.getTime() - Math.random() * 3600000).toISOString(),
+        createdAt: now.toISOString(),
       });
     } else if (days <= 30) {
       alerts.push({
@@ -130,7 +130,7 @@ export function computeAlerts(
         productId: b.productId,
         actionLabel: "Просмотреть",
         actionHref: "/inventory/batches",
-        createdAt: new Date(now.getTime() - Math.random() * 3600000).toISOString(),
+        createdAt: now.toISOString(),
       });
     }
   });

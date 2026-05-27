@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
-import { type Product, type Location } from "@/mock/inventory";
+import { type Product, type Location, LOCATION_TYPE_LABELS } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn, formatRub } from "@/lib/utils";
 import Link from "next/link";
@@ -37,16 +37,7 @@ const CAPACITY_MAX: Record<LocationType, number> = {
   backroom: 150,
 };
 
-const TYPE_LABELS: Record<LocationType, string> = {
-  warehouse: "Склад",
-  store: "Магазин",
-  showroom: "Шоурум",
-  online_reserve: "Онлайн-резерв",
-  returns: "Возвраты",
-  damaged: "Брак",
-  in_transit: "В пути",
-  backroom: "Подсобка",
-};
+const TYPE_LABELS = LOCATION_TYPE_LABELS;
 
 const TYPE_COLORS: Record<LocationType, string> = {
   warehouse: "text-[var(--c-blue)] bg-blue-500/10 border-blue-500/20",

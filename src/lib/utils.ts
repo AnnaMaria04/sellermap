@@ -16,6 +16,19 @@ export function formatRub(value: number) {
 /** Canonical ruble formatter — "1 156 000 ₽". Alias of formatRub. */
 export const formatRUB = formatRub;
 
+/** Russian date — "9 марта 2026" from an ISO date/datetime. Returns "—" for empty. */
+export function formatDateRu(d?: string | null) {
+  if (!d) return "—";
+  const date = new Date(d.length <= 10 ? `${d}T00:00:00` : d);
+  if (isNaN(date.getTime())) return d;
+  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Decimal formatter with Russian comma — 812.5 → "812,5". */
+export function formatDec(value: number, digits = 1) {
+  return value.toLocaleString("ru-RU", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
 /** Percent formatter — accepts a percentage value (52.5 → "52,5 %"). */
 export function formatPct(value: number) {
   return value.toLocaleString("ru-RU", {

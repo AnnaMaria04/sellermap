@@ -649,13 +649,13 @@ function UnitEconomicsTab({ products }: { products: Product[] }) {
             />
             <ResultCard
               label="Цена безубыточности"
-              value={money(result.breakEvenPrice)}
+              value={input.costPrice > 0 ? money(result.breakEvenPrice) : "—"}
               icon={<Scale size={14} />}
               tone="text-[var(--c-amber)]"
             />
             <ResultCard
               label="ROI %"
-              value={pct(result.roi)}
+              value={input.costPrice > 0 ? pct(result.roi) : "—"}
               icon={<Target size={14} />}
               tone={profitColor(result.roi)}
             />

@@ -198,8 +198,9 @@ export function AddProductForm({ onClose, onSave }: Props) {
     setTimeout(() => setWbSuccess(false), 4000);
   }
 
-  function handleSave() {
+  function handleSave(overrideStatus?: "active" | "draft") {
     if (!name.trim()) return;
+    const effectiveStatus = overrideStatus ?? status;
     const now = new Date().toISOString().split("T")[0];
     const stockByLocation: Record<string, number> = {};
     Object.entries(selectedLocations).forEach(([locId, qtyStr]) => {
@@ -217,7 +218,7 @@ export function AddProductForm({ onClose, onSave }: Props) {
       imageUrl: imageUrl || undefined,
       category: category || "Без категории",
       productType,
-      status,
+      status: effectiveStatus,
       sku: sku || `SKU-${Date.now()}`,
       barcode: barcode || undefined,
       hasVariants,
@@ -1028,13 +1029,14 @@ export function AddProductForm({ onClose, onSave }: Props) {
           </button>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setStatus("draft"); handleSave(); }}
-              className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+              onClick={() => { setStatus("draft"); handleSave("draft"); }}
+              disabled={!isValid || saved}
+              className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Сохранить как черновик
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={!isValid || saved}
               className={cn(
                 "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",

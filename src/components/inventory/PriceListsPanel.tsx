@@ -629,7 +629,7 @@ export function PriceListsPanel() {
       {/* ── Lists view ── */}
       {viewMode === "lists" && (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {priceLists.map((list) => {
               const sc = STATUS_COLORS[list.status];
               const isApplied = applySuccess === list.id;
@@ -718,7 +718,7 @@ export function PriceListsPanel() {
                   </div>
 
                   <div
-                    className="flex items-center gap-2 pt-1 border-t"
+                    className="flex flex-wrap items-center gap-2 pt-1 border-t"
                     style={{ borderColor: "var(--c-border)" }}
                   >
                     <button

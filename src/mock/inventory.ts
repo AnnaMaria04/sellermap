@@ -80,11 +80,26 @@ export interface StockMovement {
   note?: string;
 }
 
+export type LocationType =
+  | "warehouse" | "store" | "showroom" | "backroom"
+  | "online_reserve" | "returns" | "damaged" | "in_transit";
+
 export interface Location {
   id: string; name: string;
-  type: "warehouse" | "store" | "showroom" | "backroom" | "online_reserve" | "returns" | "damaged" | "in_transit";
+  type: LocationType;
   address?: string; isDefault: boolean; capacity?: number;
 }
+
+export const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
+  warehouse: "Склад",
+  store: "Магазин",
+  showroom: "Шоурум",
+  online_reserve: "Онлайн-резерв",
+  returns: "Возвраты",
+  damaged: "Брак",
+  in_transit: "В пути",
+  backroom: "Подсобка",
+};
 
 export type ReservationStatus = "active" | "fulfilled" | "cancelled" | "expired";
 export type ReservationSource = "manual" | "wildberries" | "ozon" | "yandex_market" | "website" | "pos";

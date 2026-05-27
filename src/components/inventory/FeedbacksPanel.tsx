@@ -140,15 +140,17 @@ export function FeedbacksPanel() {
               </div>
               <span className="shrink-0 text-xs text-[var(--c-text3)]">{it.date}</span>
             </div>
-            <p className="mt-2 text-sm text-[var(--c-text)]">{it.text || <span className="text-[var(--c-text3)]">— без текста —</span>}</p>
+            <p className="mt-2 text-sm text-[var(--c-text)]">{it.text || <span className="text-[var(--c-text3)]">Покупатель не оставил комментарий</span>}</p>
 
             <textarea
               value={drafts[it.id] ?? ""}
-              onChange={(e) => setDrafts((p) => ({ ...p, [it.id]: e.target.value }))}
+              onChange={(e) => setDrafts((p) => ({ ...p, [it.id]: e.target.value.slice(0, 1000) }))}
               rows={3}
+              maxLength={1000}
               placeholder="Ваш ответ…"
               className="mt-3 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] p-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
             />
+            <p className="mt-1 text-right text-[11px] text-[var(--c-text3)]">{(drafts[it.id]?.length ?? 0)} / 1000</p>
             <div className="mt-2 flex flex-wrap justify-end gap-2">
               <button
                 onClick={() => generate(tab, it)}

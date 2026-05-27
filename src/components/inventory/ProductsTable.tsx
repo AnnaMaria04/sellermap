@@ -436,7 +436,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
+                    <p title={product.name} className="text-sm font-medium text-[var(--c-text)] truncate">{product.name}</p>
                     <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
                   </div>
                   <div className="text-right shrink-0">
@@ -533,7 +533,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-[var(--c-text)] leading-tight truncate">{product.name}</p>
+                              <p title={product.name} className="text-sm font-medium text-[var(--c-text)] leading-tight truncate">{product.name}</p>
                               <p className="text-xs text-[var(--c-text3)] font-mono">{product.sku}</p>
                             </div>
                           </Link>

@@ -128,10 +128,18 @@ function Block({
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, ctaLabel, ctaHref }: { message: string; ctaLabel?: string; ctaHref?: string }) {
   return (
-    <div className="flex items-center justify-center py-8 text-sm text-[var(--c-text3)]">
+    <div className="flex flex-col items-center justify-center gap-3 py-8 text-sm text-[var(--c-text3)]">
       {message}
+      {ctaLabel && ctaHref && (
+        <Link
+          href={ctaHref}
+          className="rounded-lg border border-[var(--c-border2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+        >
+          {ctaLabel}
+        </Link>
+      )}
     </div>
   );
 }
@@ -221,7 +229,7 @@ export function InventoryOverview() {
           {
             label: "Заказов в работе",
             value: String(pendingOrders),
-            sub: pendingOrders === 0 ? "нет активных" : "обрабатываются",
+            sub: pendingOrders === 0 ? `${pnl.orderCount} реализовано` : "обрабатываются",
             status: pendingOrders > 0 ? "warn" : "neutral",
           },
         ]}
@@ -428,7 +436,7 @@ export function InventoryOverview() {
           linkLabel="Вся история"
         >
           {recentMovements.length === 0 ? (
-            <EmptyState message="Операций пока нет" />
+            <EmptyState message="Операций пока нет" ctaLabel="Синхронизировать маркетплейс" ctaHref="/inventory/settings/integrations" />
           ) : (
             <div className="space-y-1">
               {recentMovements.map((m) => {

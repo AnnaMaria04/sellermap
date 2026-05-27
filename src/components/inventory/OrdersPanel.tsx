@@ -30,7 +30,15 @@ import {
   ChevronDown,
   Hash,
 } from "lucide-react";
-import { cn, formatRub } from "@/lib/utils";
+import { cn, formatRub, formatDateRu, formatDec } from "@/lib/utils";
+
+/** Channel-aware fallback when the marketplace doesn't share the buyer's name. */
+function customerLabel(order: Order): string {
+  if (order.customerName) return order.customerName;
+  if (order.channel === "wildberries") return "Покупатель WB";
+  if (order.channel === "ozon") return "Покупатель Ozon";
+  return "Без имени";
+}
 import {
   type Order,
   type OrderStatus,
@@ -167,6 +175,7 @@ export function OrdersPanel() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
   // Two-step confirmation for the stock-decrementing fulfill action.
   const [confirmFulfillId, setConfirmFulfillId] = useState<string | null>(null);
 
@@ -342,10 +351,11 @@ export function OrdersPanel() {
         </span>
         <button
           onClick={() => setShowCreate(true)}
+          title="Ручной заказ (продажа вне маркетплейса: прямая продажа, сайт). Заказы WB/Ozon приходят автоматически при синхронизации."
           className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
         >
           <Plus size={15} />
-          Создать заказ
+          Создать заказ вручную
         </button>
       </div>
 
@@ -366,7 +376,7 @@ export function OrdersPanel() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((o) => {
+            {filtered.slice(0, visibleCount).map((o) => {
               const e = orderEconomics(o, costFor);
               const canFulfill = FULFILLABLE.includes(o.status);
               return (
@@ -388,11 +398,7 @@ export function OrdersPanel() {
                     <StatusBadge status={o.status} />
                   </td>
                   <td className="px-4 py-3">
-                    {o.customerName ? (
-                      <div className="text-[var(--c-text)]">{o.customerName}</div>
-                    ) : (
-                      <div className="text-[var(--c-text3)]">Без имени</div>
-                    )}
+                    <div className={o.customerName ? "text-[var(--c-text)]" : "text-[var(--c-text3)]"}>{customerLabel(o)}</div>
                     <div className="text-xs text-[var(--c-text3)]">{o.region ?? "—"}</div>
                   </td>
                   <td className="px-4 py-3 text-[var(--c-text2)]">{itemsSummary(o)}</td>
@@ -403,7 +409,7 @@ export function OrdersPanel() {
                     </div>
                     <div className="mt-0.5"><MarginPill pct={e.marginPct} /></div>
                   </td>
-                  <td className="px-4 py-3 text-[var(--c-text3)]">{o.createdAt}</td>
+                  <td className="px-4 py-3 text-[var(--c-text3)]">{formatDateRu(o.createdAt)}</td>
                   <td className="px-4 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                     {canFulfill ? (
                       <button
@@ -443,6 +449,17 @@ export function OrdersPanel() {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > visibleCount && (
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => setVisibleCount((c) => c + 50)}
+            className="rounded-lg border border-[var(--c-border2)] px-4 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+          >
+            Показать ещё ({filtered.length - visibleCount})
+          </button>
+        </div>
+      )}
 
       {/* Create order drawer */}
       {showCreate && (
@@ -541,7 +558,7 @@ function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAd
   const breakdown: { label: string; value: number; tone: "pos" | "neg" | "neutral" }[] = [
     { label: "Выручка", value: e.revenue, tone: "pos" },
     { label: "Себестоимость (COGS)", value: -e.cogs, tone: "neg" },
-    { label: `Комиссия канала (${Math.round((order.commissionRate ?? 0) * 100)}%)`, value: -e.commission, tone: "neg" },
+    { label: `Комиссия канала (${formatDec((order.commissionRate ?? 0) * 100, 1)}%)`, value: -e.commission, tone: "neg" },
     { label: "Логистика", value: -e.logistics, tone: "neg" },
   ];
 
@@ -569,13 +586,13 @@ function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAd
         <div className="p-6 space-y-6">
           {/* Order meta */}
           <div className="grid grid-cols-2 gap-4">
-            <InfoRow icon={User} label="Клиент" value={order.customerName ?? "Без имени"} />
+            <InfoRow icon={User} label="Клиент" value={customerLabel(order)} />
             <InfoRow icon={MapPin} label="Регион" value={order.region ?? "—"} />
             <InfoRow icon={Store} label="Склад" value={getLocationName(order.locationId)} />
             <InfoRow icon={Boxes} label="Состав" value={`${order.items.length} поз. · ${totalUnits} шт`} />
-            <InfoRow icon={Calendar} label="Создан" value={order.createdAt} />
-            <InfoRow icon={Truck} label="Отправлен" value={order.shippedAt ?? "—"} />
-            {order.deliveredAt && <InfoRow icon={CheckCircle2} label="Доставлен" value={order.deliveredAt} />}
+            <InfoRow icon={Calendar} label="Создан" value={formatDateRu(order.createdAt)} />
+            <InfoRow icon={Truck} label="Отправлен" value={formatDateRu(order.shippedAt)} />
+            {order.deliveredAt && <InfoRow icon={CheckCircle2} label="Доставлен" value={formatDateRu(order.deliveredAt)} />}
             {order.externalNumber && <InfoRow icon={Hash} label="ID на маркетплейсе" value={order.externalNumber} />}
           </div>
 

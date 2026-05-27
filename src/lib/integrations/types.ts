@@ -53,6 +53,7 @@ export interface RawExternalProduct {
   price?: number;
   stock?: number;
   imageUrl?: string;
+  category?: string;          // provider category (WB subjectName, …)
 }
 
 export interface StockUpdate {

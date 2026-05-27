@@ -41,7 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Касса (POS)",  href: "/inventory/settings/pos",  icon: MonitorSmartphone },
       { label: "Локации",      href: "/inventory/locations",     icon: MapPin },
-      { label: "Интеграции",   href: "/inventory/integrations",  icon: Plug },
+      { label: "Интеграции",   href: "/inventory/settings/integrations", icon: Plug },
     ],
   },
   {

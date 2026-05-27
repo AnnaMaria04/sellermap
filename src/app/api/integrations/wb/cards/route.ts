@@ -33,6 +33,7 @@ type RawProduct = {
   price?: number;
   stock?: number;
   imageUrl?: string;
+  category?: string;
 };
 
 /** Best-effort enrich with price (Prices API) and stock (Statistics API) using
@@ -181,6 +182,7 @@ export async function POST(req: NextRequest) {
           sku: c.vendorCode,
           barcode: c.sizes?.[0]?.skus?.[0],
           imageUrl: photo,
+          category: c.subjectName,
         });
       }
 

@@ -32,6 +32,7 @@ import {
   getSupplierName,
   PRODUCT_TYPE_LABELS,
   CHANNEL_LABELS,
+  LOCATION_TYPE_LABELS,
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { STOCK_TERMS } from "@/components/inventory/ui/StockTerms";
@@ -75,6 +76,18 @@ export default function ProductDetailPage({ params }: Props) {
       });
     }
   }, [product?.id]);
+
+  // Escape closes whichever overlay is open (UX standard).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setEditing(false);
+      setReceiveOpen(false);
+      setConfirmArchive(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const saveEdit = () => {
     if (!product) return;
@@ -289,7 +302,7 @@ export default function ProductDetailPage({ params }: Props) {
                     <MapPin size={14} className="text-[var(--c-text3)] shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-[var(--c-text)]">{loc?.name ?? locId}</p>
-                      <p className="text-xs text-[var(--c-text3)]">{loc?.type}</p>
+                      <p className="text-xs text-[var(--c-text3)]">{loc ? LOCATION_TYPE_LABELS[loc.type] : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button

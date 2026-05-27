@@ -16,7 +16,7 @@ type MappedOrder = {
   status: "delivered" | "new" | "returned"; locationId: string;
   items: { productId: string; productName: string; sku: string; qty: number; unitPrice: number; unitCost: number }[];
   revenue: number; commissionRate: number; logisticsCost: number;
-  createdAt: string; deliveredAt?: string; region?: string;
+  createdAt: string; shippedAt?: string; deliveredAt?: string; region?: string;
 };
 
 function day(s?: string): string {
@@ -121,6 +121,8 @@ export async function POST(req: NextRequest) {
           commissionRate,
           logisticsCost,
           createdAt: day(s.date),
+          // WB sales feed gives a single sale date; treat it as shipped+delivered.
+          shippedAt: day(s.date),
           deliveredAt: day(s.date),
           region: s.regionName,
         });
