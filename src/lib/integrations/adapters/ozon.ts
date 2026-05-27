@@ -60,6 +60,20 @@ export const ozonAdapter: ChannelAdapter = {
     };
   },
 
+  async pullOrders(conn: Connection) {
+    const clientId = conn.credentials.clientId?.trim();
+    const apiKey = conn.credentials.apiKey?.trim();
+    if (!clientId || !apiKey) return { ok: false, message: "Введите Client-Id и Api-Key" };
+    const res = await fetch("/api/integrations/ozon/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId, apiKey, days: 90 }),
+    });
+    return (await res.json().catch(() => ({ ok: false, message: "Некорректный ответ сервера" }))) as {
+      ok: boolean; orders?: unknown[]; count?: number; message?: string;
+    };
+  },
+
   async pullStock(): Promise<SyncResult> {
     return { entity: "stock", ok: false, count: 0, message: "Синхронизация остатков Ozon будет добавлена" };
   },
