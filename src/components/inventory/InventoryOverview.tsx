@@ -30,7 +30,7 @@ import {
 } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
-import { cn } from "@/lib/utils";
+import { cn, formatRUB } from "@/lib/utils";
 import { computePnL, costLookupFromProducts } from "@/lib/inventory/finance";
 import { computeAlerts } from "@/lib/inventory/alerts";
 
@@ -188,8 +188,42 @@ export function InventoryOverview() {
     [],
   );
 
+  // "Сколько я заработал сегодня" — the one number that matters on a phone.
+  const today = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todays = orders.filter((o) => (o.deliveredAt ?? o.createdAt) === todayStr);
+    const tp = computePnL(todays, costFor);
+    const wb = todays.filter((o) => o.channel === "wildberries").length;
+    const ozon = todays.filter((o) => o.channel === "ozon").length;
+    const other = todays.length - wb - ozon;
+    return { profit: tp.netProfit, revenue: tp.revenue, orders: todays.length, wb, ozon, other };
+  }, [orders, costFor]);
+
   return (
     <div className="space-y-4">
+
+      {/* ── Today hero — "сколько я заработал сегодня" ─────────────────────── */}
+      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5 sm:p-6">
+        <p className="text-xs font-medium uppercase tracking-wider text-[var(--c-text3)]">Заработано сегодня</p>
+        <p className={cn(
+          "mt-1 text-4xl font-bold tabular sm:text-5xl",
+          today.profit >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]",
+        )}>
+          {today.profit < 0 ? "−" : ""}{formatRUB(Math.abs(today.profit))}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--c-text2)]">
+          <span>Выручка {formatRUB(today.revenue)}</span>
+          <span className="text-[var(--c-text3)]">·</span>
+          <span>
+            {today.orders} {today.orders === 1 ? "заказ" : "заказов"}
+            {today.orders > 0 && (
+              <span className="text-[var(--c-text3)]">
+                {" "}({[today.wb && `WB ${today.wb}`, today.ozon && `Ozon ${today.ozon}`, today.other && `прочее ${today.other}`].filter(Boolean).join(" · ")})
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
 
       {/* ── Quick actions (mobile only — desktop uses shell top bar) ────────── */}
       <div className="flex flex-wrap gap-2 lg:hidden">

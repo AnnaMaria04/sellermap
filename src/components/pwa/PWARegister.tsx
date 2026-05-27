@@ -3,23 +3,17 @@
 import { useEffect } from "react";
 
 /**
- * PWA cleanup. We previously registered a caching service worker that could
- * serve a stale app shell and break client-rendered pages (e.g. /login).
- * This unregisters any installed service worker and clears its caches on load,
- * so users recover automatically. (Install/offline can return later with a
- * properly tested SW.)
+ * Registers the network-first service worker (public/sw.js). It never serves a
+ * cached HTML shell while online — navigations go to the network and only fall
+ * back to /offline.html when truly offline — so the old "stale shell broke
+ * /login" regression can't recur. Only Next's content-hashed assets are cached.
  */
 export function PWARegister() {
   useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations()
-        .then((regs) => regs.forEach((r) => r.unregister()))
-        .catch(() => {});
-    }
-    if (typeof caches !== "undefined") {
-      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
-    }
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const register = () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); };
+    if (document.readyState === "complete") register();
+    else window.addEventListener("load", register, { once: true });
   }, []);
 
   return null;
