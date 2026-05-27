@@ -24,6 +24,14 @@ import {
 import { CHANNEL_LABELS, PRODUCT_TYPE_LABELS, type SalesChannel, type ProductType, type Product } from "@/mock/inventory";
 import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+/** Generate a valid EAN-13 barcode (12 random digits + check digit). */
+function genBarcode(): string {
+  const base = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10)).join("");
+  const sum = base.split("").reduce((s, d, i) => s + Number(d) * (i % 2 === 0 ? 1 : 3), 0);
+  return base + ((10 - (sum % 10)) % 10);
+}
 
 interface Props {
   onClose: () => void;
@@ -652,10 +660,19 @@ export function AddProductForm({ onClose, onSave }: Props) {
                           placeholder="4680001234567"
                           className={cn(inputCls, "flex-1")}
                         />
-                        <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+                        <button
+                          type="button"
+                          title="Сканировать штрихкод (скоро)"
+                          onClick={() => toast.info("Сканирование штрихкода — в разработке")}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                        >
                           <Camera size={15} />
                         </button>
-                        <button className="flex h-9 px-2 items-center justify-center rounded-lg border border-[var(--c-border2)] text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+                        <button
+                          type="button"
+                          onClick={() => setBarcode(genBarcode())}
+                          className="flex h-9 px-2 items-center justify-center rounded-lg border border-[var(--c-border2)] text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                        >
                           Авто
                         </button>
                       </div>
@@ -721,7 +738,11 @@ export function AddProductForm({ onClose, onSave }: Props) {
                       <option key={s.id} value={s.id}>{s.name} ({s.country})</option>
                     ))}
                   </select>
-                  <button className="flex items-center gap-2 text-xs text-[var(--c-green)] hover:opacity-80 transition">
+                  <button
+                    type="button"
+                    onClick={() => window.open("/inventory/suppliers", "_blank")}
+                    className="flex items-center gap-2 text-xs text-[var(--c-green)] hover:opacity-80 transition"
+                  >
                     <Plus size={12} />
                     Создать нового поставщика
                   </button>
@@ -979,7 +1000,11 @@ export function AddProductForm({ onClose, onSave }: Props) {
                           </div>
                           <p className="text-sm text-[var(--c-text2)]">Data Matrix код</p>
                           <p className="text-xs text-[var(--c-text3)] mt-1">Будет сгенерирован после сохранения товара</p>
-                          <button className="mt-3 flex mx-auto items-center gap-2 rounded-lg bg-[var(--c-bg2)] border border-[var(--c-border2)] px-3 py-2 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition">
+                          <button
+                            type="button"
+                            onClick={() => toast.info("Интеграция с «Честный Знак» — в разработке")}
+                            className="mt-3 flex mx-auto items-center gap-2 rounded-lg bg-[var(--c-bg2)] border border-[var(--c-border2)] px-3 py-2 text-xs text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+                          >
                             <Barcode size={13} />
                             Запросить коды в Честный Знак
                           </button>

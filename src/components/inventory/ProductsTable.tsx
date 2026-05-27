@@ -39,6 +39,35 @@ import { computeProductMetrics, type ABCClass } from "@/lib/inventory/analytics"
 type SortKey = "name" | "stock" | "price" | "costPrice" | "margin" | "updatedAt";
 type SortDir = "asc" | "desc";
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
+}
+
+/** Open a dedicated print window with one label per product (name + SKU +
+ *  barcode) instead of printing the whole app chrome. */
+function printLabels(items: { name: string; sku: string; barcode?: string }[]) {
+  if (typeof window === "undefined" || items.length === 0) return;
+  const w = window.open("", "_blank", "width=420,height=640");
+  if (!w) return;
+  const labels = items
+    .map(
+      (p) => `<div class="label"><div class="name">${escapeHtml(p.name)}</div>` +
+        `<div class="sku">SKU: ${escapeHtml(p.sku)}</div>` +
+        `<div class="bc">${escapeHtml(p.barcode ?? "—")}</div></div>`,
+    )
+    .join("");
+  w.document.write(
+    `<!doctype html><html><head><meta charset="utf-8"><title>Этикетки</title><style>` +
+      `@page{margin:8mm}body{font-family:system-ui,sans-serif;margin:0}` +
+      `.label{width:58mm;padding:4mm;border:1px solid #ccc;border-radius:4px;margin:0 0 4mm;page-break-inside:avoid}` +
+      `.name{font-size:12px;font-weight:600;line-height:1.2}.sku{font-size:10px;color:#555;margin-top:2px}` +
+      `.bc{font-family:monospace;font-size:15px;letter-spacing:2px;margin-top:6px}` +
+      `</style></head><body>${labels}` +
+      `<script>window.onload=function(){window.print();}<\/script></body></html>`,
+  );
+  w.document.close();
+}
+
 function SortButton({
   col, label, sortKey, onSort,
 }: { col: SortKey; label: string; sortKey: SortKey; onSort: (col: SortKey) => void }) {
@@ -677,7 +706,7 @@ function BulkActionsMenu({ selectedIds, products, onClear }: { selectedIds: stri
             <div className="p-1">
               <MenuItem icon={Archive} label="Архивировать" onClick={() => { selectedIds.forEach((id) => actions.archiveProduct(id)); onClear(); setOpen(false); }} />
               <MenuItem icon={Download} label="Экспортировать" onClick={exportSelected} />
-              <MenuItem icon={Barcode} label="Печать этикеток" onClick={() => { setOpen(false); window.print(); }} />
+              <MenuItem icon={Barcode} label="Печать этикеток" onClick={() => { setOpen(false); printLabels(products.filter((p) => selectedIds.includes(p.id))); }} />
               <MenuItem icon={ShoppingCart} label="Создать заказ" onClick={() => router.push("/inventory/purchase-orders")} />
               <MenuItem icon={X} label="Снять выделение" onClick={onClear} danger />
             </div>
@@ -721,7 +750,7 @@ function ProductActionMenu({ product, onClose }: { product: Product; onClose: ()
         <Link href={`/inventory/products/${product.id}`}>
           <MenuItem icon={Eye} label="Открыть" />
         </Link>
-        <MenuItem icon={Barcode} label="Штрихкод" onClick={() => { onClose(); window.print(); }} />
+        <MenuItem icon={Barcode} label="Штрихкод" onClick={() => { onClose(); printLabels([product]); }} />
         <MenuItem icon={Copy} label="Дублировать" onClick={duplicate} />
         <MenuItem icon={ShoppingCart} label="Создать заказ" onClick={() => { onClose(); router.push("/inventory/purchase-orders"); }} />
         <div className="my-1 border-t border-[var(--c-border)]" />
