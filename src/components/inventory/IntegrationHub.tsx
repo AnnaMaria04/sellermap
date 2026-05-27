@@ -24,7 +24,7 @@ import {
   type SyncLogEntry,
 } from "@/lib/integrations/types";
 import { useInventory } from "@/contexts/InventoryContext";
-import { type Product, type SalesChannel } from "@/mock/inventory";
+import { type Product, type SalesChannel, type Order } from "@/mock/inventory";
 import { createClient } from "@/lib/supabase/client";
 import {
   loadIntegrations,
@@ -304,6 +304,19 @@ export function IntegrationHub() {
           actions.addProduct(toProduct(raw, integration.kind));
         }
         imported++;
+      }
+    }
+
+    // Also pull orders/sales (e.g. WB Statistics) so revenue/P&L are real.
+    if (adapter.pullOrders) {
+      try {
+        const ores = await adapter.pullOrders(conn);
+        if (ores.ok && ores.orders?.length) {
+          actions.importOrders(ores.orders as Order[]);
+          imported += ores.orders.length;
+        }
+      } catch {
+        // non-fatal — products already imported
       }
     }
 

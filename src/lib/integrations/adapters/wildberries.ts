@@ -62,7 +62,21 @@ export const wildberriesAdapter: ChannelAdapter = {
   },
 
   async pullStock(): Promise<SyncResult> {
-    return { entity: "stock", ok: false, count: 0, message: "Синхронизация остатков WB будет добавлена (нужен токен «Статистика»)" };
+    // Stock is pulled together with cards (Statistics API) during pullProducts.
+    return { entity: "stock", ok: true, count: 0, message: "Остатки синхронизируются вместе с товарами" };
+  },
+
+  async pullOrders(conn: Connection) {
+    const token = conn.credentials.statisticsToken?.trim() || conn.credentials.contentToken?.trim();
+    if (!token) return { ok: false, message: "Введите токен" };
+    const res = await fetch("/api/integrations/wb/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, days: 90 }),
+    });
+    return (await res.json().catch(() => ({ ok: false, message: "Некорректный ответ сервера" }))) as {
+      ok: boolean; orders?: unknown[]; count?: number; message?: string;
+    };
   },
 
   async pushStock(_conn: Connection): Promise<SyncResult> {

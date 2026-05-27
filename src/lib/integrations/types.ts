@@ -84,4 +84,6 @@ export interface ChannelAdapter {
   pullProducts(conn: Connection): Promise<SyncResult>;
   pullStock(conn: Connection): Promise<SyncResult>;
   pushStock(conn: Connection, updates: StockUpdate[]): Promise<SyncResult>;
+  /** Optional: pull orders/sales already mapped to the app Order shape. */
+  pullOrders?(conn: Connection): Promise<{ ok: boolean; orders?: unknown[]; count?: number; message?: string }>;
 }
