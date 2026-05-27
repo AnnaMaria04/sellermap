@@ -117,6 +117,10 @@ function channelForKind(kind: ChannelKind): SalesChannel[] {
 function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
   const today = new Date().toISOString().split("T")[0];
   const stock = raw.stock ?? 0;
+  const channels = channelForKind(kind);
+  // Imported products sell 100% through the source channel by default, so the
+  // channel-allocation view reflects them immediately after sync.
+  const channelAllocation = channels.length === 1 ? { [channels[0]]: 100 } : undefined;
   return {
     id: `imp-${kind}-${raw.externalId}`,
     name: raw.name,
@@ -130,7 +134,8 @@ function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
     variants: [],
     price: raw.price ?? 0,
     costPrice: 0,
-    channels: channelForKind(kind),
+    channels,
+    channelAllocation,
     tags: ["импорт", kind],
     requiresLabeling: false,
     createdAt: today,
@@ -296,6 +301,13 @@ export function IntegrationHub() {
           const patch: Partial<Product> = {};
           if (raw.price !== undefined) patch.price = raw.price;
           if (raw.imageUrl && !existing.imageUrl) patch.imageUrl = raw.imageUrl;
+          if (raw.category?.trim() && (!existing.category || existing.category === "Импорт")) {
+            patch.category = raw.category.trim();
+          }
+          const chans = channelForKind(integration.kind);
+          if (!existing.channelAllocation && chans.length === 1) {
+            patch.channelAllocation = { [chans[0]]: 100 };
+          }
           if (raw.stock !== undefined) {
             const byLoc = { ...existing.stockByLocation, "loc-main": raw.stock };
             patch.stockByLocation = byLoc;
