@@ -8,6 +8,7 @@ import { AddProductForm } from "@/components/inventory/AddProductForm";
 import { ImportWizard } from "@/components/inventory/ImportWizard";
 import { BarcodeLabelPanel } from "@/components/inventory/BarcodeLabelPanel";
 import { BulkPriceEditor } from "@/components/inventory/BulkPriceEditor";
+import { BulkCostEditor } from "@/components/inventory/BulkCostEditor";
 import { QuickStockAdjust } from "@/components/inventory/QuickStockAdjust";
 import { PriceListsPanel } from "@/components/inventory/PriceListsPanel";
 import { ChannelAllocationPanel } from "@/components/inventory/ChannelAllocationPanel";
@@ -22,6 +23,7 @@ function ProductsPageInner() {
   const [showImport, setShowImport] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
+  const [showBulkCost, setShowBulkCost] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>("products");
 
@@ -52,11 +54,27 @@ function ProductsPageInner() {
       </div>
 
       {subTab === "products" && (
-        <ProductsTable
-          onAddProduct={() => setShowAddProduct(true)}
-          onImport={() => setShowImport(true)}
-          initialStockFilter={stockParam ?? "all"}
-        />
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowBulkCost(true)}
+              className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
+            >
+              Себестоимость
+            </button>
+            <button
+              onClick={() => setShowBulkPrice(true)}
+              className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
+            >
+              Изменить цены
+            </button>
+          </div>
+          <ProductsTable
+            onAddProduct={() => setShowAddProduct(true)}
+            onImport={() => setShowImport(true)}
+            initialStockFilter={stockParam ?? "all"}
+          />
+        </>
       )}
       {subTab === "pricelists" && <PriceListsPanel />}
       {subTab === "allocation" && <ChannelAllocationPanel />}
@@ -79,6 +97,19 @@ function ProductsPageInner() {
             onClick={(e) => e.stopPropagation()}
           >
             <BulkPriceEditor onClose={() => setShowBulkPrice(false)} />
+          </div>
+        </div>
+      )}
+      {showBulkCost && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-end bg-black/40"
+          onClick={() => setShowBulkCost(false)}
+        >
+          <div
+            className="h-full w-full max-w-3xl overflow-hidden bg-[var(--c-bg)] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <BulkCostEditor onClose={() => setShowBulkCost(false)} />
           </div>
         </div>
       )}
