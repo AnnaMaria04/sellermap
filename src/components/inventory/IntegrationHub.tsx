@@ -263,13 +263,21 @@ export function IntegrationHub() {
         saveIntegration(supabase, userId, toPersistedIntegration(newInt)).catch(() => {});
       });
     }
+
+    // Immediately pull products so connecting actually imports data (one step).
+    void runSync(newInt);
+  }
+
+  async function handleSync(id: string) {
+    const integration = integrations.find((i) => i.id === id);
+    if (integration) await runSync(integration);
   }
 
   /** Pull products through the adapter and upsert them into inventory by SKU. */
-  async function handleSync(id: string) {
-    const integration = integrations.find((i) => i.id === id);
-    const adapter = integration && getAdapter(integration.kind);
-    if (!integration || !adapter) return;
+  async function runSync(integration: ConnectedIntegration) {
+    const adapter = getAdapter(integration.kind);
+    if (!adapter) return;
+    const id = integration.id;
 
     setSyncing(id);
     setIntegrations((list) => list.map((i) => (i.id === id ? { ...i, status: "syncing" } : i)));
