@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { SavedReportCard } from "@/components/sellermap/report-card";
 import { PageSection } from "@/components/sellermap/section";
 import { savedReports as demoSavedReports } from "@/mock/sellermap";
-import { createClient } from "@/lib/supabase/client";
 
 interface StoredReport {
   id: string;
@@ -23,26 +22,8 @@ export default function SavedReportsPage() {
 
   useEffect(() => {
     async function load() {
-      // Try Supabase first
-      try {
-        const supabase = createClient();
-        if (supabase) {
-          const { data } = await supabase
-            .from("saved_reports")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(50);
-          if (data && data.length > 0) {
-            setStoredReports(data as StoredReport[]);
-            setLoaded(true);
-            return;
-          }
-        }
-      } catch {
-        // fall through to localStorage
-      }
-
-      // Fall back to localStorage
+      // WB analysis reports persist to localStorage for now; relational
+      // persistence (saved_reports table) is wired in a later pass.
       try {
         const raw = localStorage.getItem("saved_reports");
         if (raw) {

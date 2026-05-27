@@ -4,7 +4,6 @@ import { FileCheck2, Search, PackagePlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRub } from "@/lib/utils";
@@ -64,17 +63,8 @@ export function ResultHeader({
         input_data: inputData,
       };
 
-      // Try Supabase first
-      try {
-        const supabase = createClient();
-        if (supabase) {
-          await supabase.from("saved_reports").insert(report);
-        }
-      } catch {
-        // fall through to localStorage
-      }
-
-      // Always persist to localStorage as fallback
+      // WB analysis reports persist to localStorage for now; relational
+      // persistence (saved_reports table) is wired in a later pass.
       const existing: SavedReport[] = JSON.parse(
         localStorage.getItem("saved_reports") ?? "[]",
       );
