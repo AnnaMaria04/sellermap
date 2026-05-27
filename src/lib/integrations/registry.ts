@@ -1,13 +1,13 @@
 import { type ChannelAdapter, type ChannelKind } from "./types";
 import {
-  ozonAdapter,
   yandexMarketAdapter,
   moyskladAdapter,
 } from "./adapters/mock";
 import { wildberriesAdapter } from "./adapters/wildberries";
+import { ozonAdapter } from "./adapters/ozon";
 
-/** Central registry mapping a channel kind to its adapter. Wildberries is a
- *  live adapter (Content API); the others remain mock until implemented. */
+/** Central registry mapping a channel kind to its adapter. Wildberries + Ozon
+ *  are live adapters; Я.Маркет / МойСклад remain mock until implemented. */
 export const ADAPTERS: Partial<Record<ChannelKind, ChannelAdapter>> = {
   wildberries: wildberriesAdapter,
   ozon: ozonAdapter,
