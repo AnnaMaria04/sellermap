@@ -2178,6 +2178,7 @@ export type Database = {
           price_min: number | null
           raw_payload: Json | null
           specs: Json | null
+          supplier_id: string | null
           supplier_name: string | null
           supplier_url: string
           title: string | null
@@ -2197,6 +2198,7 @@ export type Database = {
           price_min?: number | null
           raw_payload?: Json | null
           specs?: Json | null
+          supplier_id?: string | null
           supplier_name?: string | null
           supplier_url: string
           title?: string | null
@@ -2216,12 +2218,20 @@ export type Database = {
           price_min?: number | null
           raw_payload?: Json | null
           specs?: Json | null
+          supplier_id?: string | null
           supplier_name?: string | null
           supplier_url?: string
           title?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_products_user_id_fkey"
             columns: ["user_id"]
@@ -2779,7 +2789,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      app_resolve_location: {
+        Args: { p_app_location_id: string; p_org: string }
+        Returns: string
+      }
+      app_resolve_variant: {
+        Args: { p_app_product_id: string; p_org: string; p_sku: string }
+        Returns: string
+      }
+      available_to_sell: {
+        Args: { p_location: string; p_variant: string }
+        Returns: number
+      }
       current_org: { Args: never; Returns: string }
+      product_available_to_sell: {
+        Args: { p_location?: string; p_product: string }
+        Returns: number
+      }
+      refresh_inventory_level: {
+        Args: { p_location: string; p_variant: string }
+        Returns: undefined
+      }
       user_in_org: { Args: { o: string }; Returns: boolean }
     }
     Enums: {
