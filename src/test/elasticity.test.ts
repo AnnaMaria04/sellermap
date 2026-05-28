@@ -1,5 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { fitElasticity, predictUnits, priceScenarios } from "@/lib/inventory/elasticity";
+import { fitElasticity, predictUnits, priceScenarios, priceAt, recentSalesAsPoints } from "@/lib/inventory/elasticity";
+import type { Product, StockMovement } from "@/mock/inventory";
+
+function makeProduct(overrides: Partial<Product> = {}): Product {
+  return {
+    id: "p1", name: "Test", sku: "TEST-1",
+    category: "Test", productType: "product", status: "active",
+    hasVariants: false, variants: [],
+    price: 1000, costPrice: 500,
+    channels: [], tags: [], requiresLabeling: false,
+    stockByLocation: {}, reservedUnits: 0, damagedUnits: 0, inTransitUnits: 0, totalPhysical: 0,
+    createdAt: "2026-01-01", updatedAt: "2026-01-01",
+    ...overrides,
+  };
+}
+
+function makeSale(productId: string, date: string, qty: number): StockMovement {
+  return {
+    id: `mv-${date}-${qty}`, type: "sale", productId, productName: productId, sku: productId,
+    qtyBefore: 0, qtyAfter: 0, qtyDelta: -qty,
+    locationId: "loc-main", userId: "u", userName: "u",
+    createdAt: `${date}T00:00:00.000Z`,
+  };
+}
 
 describe("fitElasticity", () => {
   it("returns null when fewer than 3 distinct points", () => {
@@ -54,5 +77,52 @@ describe("predictUnits + priceScenarios", () => {
     ])!;
     expect(predictUnits(model, 1)).toBeGreaterThanOrEqual(0);
     expect(predictUnits(model, 10000)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("priceAt + recentSalesAsPoints with priceHistory", () => {
+  it("returns the price effective on a given date", () => {
+    const p = makeProduct({
+      price: 900,
+      priceHistory: [
+        { price: 1200, from: "2026-01-01" },
+        { price: 1000, from: "2026-03-01" },
+        { price: 900,  from: "2026-05-01" },
+      ],
+    });
+    expect(priceAt(p, "2026-01-15")).toBe(1200);
+    expect(priceAt(p, "2026-03-01")).toBe(1000);
+    expect(priceAt(p, "2026-04-30")).toBe(1000);
+    expect(priceAt(p, "2026-05-02")).toBe(900);
+  });
+
+  it("falls back to current price when no history", () => {
+    const p = makeProduct({ price: 1500 });
+    expect(priceAt(p, "2026-06-10")).toBe(1500);
+  });
+
+  it("buckets sales into (week × price) points using priceHistory", () => {
+    const p = makeProduct({
+      price: 900,
+      priceHistory: [
+        { price: 1200, from: "2026-01-01" },
+        { price: 900,  from: "2026-03-01" },
+      ],
+    });
+    const movements: StockMovement[] = [
+      makeSale("p1", "2026-02-10", 3),
+      makeSale("p1", "2026-02-12", 4),
+      makeSale("p1", "2026-03-15", 8),
+      makeSale("p1", "2026-03-17", 5),
+    ];
+    const points = recentSalesAsPoints(p, movements);
+    // Two distinct prices → at least two points.
+    const prices = points.map((x) => x.price);
+    expect(prices).toContain(1200);
+    expect(prices).toContain(900);
+    // Higher price → fewer units; lower price → more units (in this synthetic data).
+    const hi = points.find((x) => x.price === 1200)!;
+    const lo = points.find((x) => x.price === 900)!;
+    expect(lo.weeklyUnits).toBeGreaterThan(hi.weeklyUnits);
   });
 });

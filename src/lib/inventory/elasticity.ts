@@ -93,17 +93,50 @@ export function priceScenarios(
   ];
 }
 
-/** Convenience: build PricePoint[] for a product from movements.
- *  Today every sale uses the current product price, so this returns a single
- *  observation. Once a price-change-history table exists this gets richer. */
+/** Return the price effective on `date` based on the product's priceHistory.
+ *  Falls back to the current price when no history is recorded. */
+export function priceAt(product: Product, date: string): number {
+  const history = product.priceHistory && product.priceHistory.length > 0
+    ? product.priceHistory
+    : [{ price: product.price, from: product.createdAt }];
+  let current = history[0].price;
+  for (const h of history) {
+    if (h.from <= date) current = h.price;
+    else break;
+  }
+  return current;
+}
+
+/** ISO-week key for grouping. Mirrors `seasonality.weekOfYear` but inline so
+ *  this lib stays standalone. */
+function isoWeekKey(date: string): string {
+  const d = new Date(date);
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (target.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const fDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - fDayNum + 3);
+  const week = 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+  return `${target.getUTCFullYear()}-W${week}`;
+}
+
+/** Build PricePoint[] for a product, correlating each sale with the product's
+ *  price at the time. With a single price ever recorded, returns one point per
+ *  week; the elasticity fitter needs ≥3 distinct prices to converge. */
 export function recentSalesAsPoints(product: Product, movements: StockMovement[]): PricePoint[] {
   const sales = movements.filter((m) => m.type === "sale" && m.productId === product.id);
   if (sales.length === 0) return [];
-  // Bucket by ISO week to approximate weekly_units at this single price point.
-  const byWeek = new Map<string, number>();
+  // Bucket by (week, price-at-week) — sum units per bucket.
+  const buckets = new Map<string, { price: number; units: number }>();
   for (const m of sales) {
-    const week = m.createdAt.slice(0, 10);
-    byWeek.set(week, (byWeek.get(week) ?? 0) + Math.abs(m.qtyDelta));
+    const date = m.createdAt.slice(0, 10);
+    const price = priceAt(product, date);
+    if (price <= 0) continue;
+    const key = `${isoWeekKey(date)}@${price}`;
+    const b = buckets.get(key) ?? { price, units: 0 };
+    b.units += Math.abs(m.qtyDelta);
+    buckets.set(key, b);
   }
-  return [...byWeek.values()].map((units) => ({ price: product.price, weeklyUnits: units }));
+  return [...buckets.values()].map((b) => ({ price: b.price, weeklyUnits: b.units }));
 }

@@ -186,15 +186,32 @@ function applyStockDelta(product: Product, locationId: string, delta: number): P
 function reducer(state: InventoryState, action: InventoryAction): InventoryState {
   switch (action.type) {
     // ── Products ──────────────────────────────────────────────────────────────
-    case "ADD_PRODUCT":
-      return { ...state, products: [action.product, ...state.products] };
+    case "ADD_PRODUCT": {
+      const today = new Date().toISOString().split("T")[0];
+      const seeded: Product = action.product.priceHistory || action.product.price <= 0
+        ? action.product
+        : { ...action.product, priceHistory: [{ price: action.product.price, from: today }] };
+      return { ...state, products: [seeded, ...state.products] };
+    }
 
     case "UPDATE_PRODUCT":
       return {
         ...state,
-        products: state.products.map((p) =>
-          p.id === action.id ? { ...p, ...action.patch, updatedAt: new Date().toISOString().split("T")[0] } : p,
-        ),
+        products: state.products.map((p) => {
+          if (p.id !== action.id) return p;
+          const today = new Date().toISOString().split("T")[0];
+          const next = { ...p, ...action.patch, updatedAt: today };
+          // Capture price changes for the elasticity engine.
+          if (action.patch.price !== undefined && action.patch.price !== p.price && action.patch.price > 0) {
+            const history = p.priceHistory ?? (p.price > 0 ? [{ price: p.price, from: p.createdAt }] : []);
+            const last = history[history.length - 1];
+            // Replace a same-day entry (intra-day adjustments), else append.
+            next.priceHistory = last && last.from === today
+              ? [...history.slice(0, -1), { price: action.patch.price, from: today }]
+              : [...history, { price: action.patch.price, from: today }];
+          }
+          return next;
+        }),
       };
 
     case "DELETE_PRODUCT":
@@ -502,7 +519,17 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
             reason: `Себестоимость: ${p.costPrice} → ${newCost}`,
           });
         }
-        return { ...p, price: newPrice, costPrice: newCost, margin, updatedAt: now.split("T")[0] };
+        const today = now.split("T")[0];
+        // Capture price changes for the elasticity engine.
+        let priceHistory = p.priceHistory;
+        if (upd.price !== undefined && upd.price !== p.price && upd.price > 0) {
+          const history = priceHistory ?? (p.price > 0 ? [{ price: p.price, from: p.createdAt }] : []);
+          const last = history[history.length - 1];
+          priceHistory = last && last.from === today
+            ? [...history.slice(0, -1), { price: upd.price, from: today }]
+            : [...history, { price: upd.price, from: today }];
+        }
+        return { ...p, price: newPrice, costPrice: newCost, margin, updatedAt: today, priceHistory };
       });
       return {
         ...state,

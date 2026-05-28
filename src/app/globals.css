@@ -1,14 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --c-bg: #0c0e0f;
-  --c-bg2: #141618;
-  --c-bg3: #1c1f21;
-  --c-border: rgba(255,255,255,0.07);
-  --c-border2: rgba(255,255,255,0.13);
-  --c-text: #f0ede8;
-  --c-text2: #9a9690;
-  --c-text3: #5a5754;
+  /* Dark theme — softer slate base with lifted contrast so cards, borders and
+   * muted text stay readable. The previous near-black palette made everything
+   * blend together; this raises bg by ~5 lightness steps and roughly doubles
+   * the visibility of borders and tertiary text. */
+  --c-bg: #12161b;
+  --c-bg2: #1a1f25;
+  --c-bg3: #242a32;
+  --c-border: rgba(255,255,255,0.10);
+  --c-border2: rgba(255,255,255,0.18);
+  --c-text: #ecedef;
+  --c-text2: #b3b7bd;
+  --c-text3: #7b8088;
   --c-green: #1fd183;
   --c-green-dim: rgba(31,209,131,0.10);
   --c-amber: #f5a623;

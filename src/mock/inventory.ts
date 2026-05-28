@@ -24,6 +24,10 @@ export interface Product {
   sku: string; barcode?: string; internalBarcode?: string;
   hasVariants: boolean; variants: ProductVariant[];
   price: number; costPrice: number; compareAtPrice?: number; taxExempt?: boolean; packagingCost?: number;
+  /** Append-only log of price changes. Each entry is the price effective FROM
+   *  that date. Used by the elasticity engine to correlate sales with the
+   *  price at the time. */
+  priceHistory?: { price: number; from: string }[];
   deliveryCost?: number; channelCommission?: number; margin?: number;
   supplierId?: string; channels: SalesChannel[]; tags: string[];
   channelAllocation?: Partial<Record<SalesChannel, number>>;
