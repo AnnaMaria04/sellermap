@@ -71,20 +71,20 @@ function buildCombinations(options: OptionRow[]): string[] {
 // ── Presentational helpers ──────────────────────────────────────────────────
 
 const inputCls =
-  "h-9 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]";
+  "h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]";
 
 function Card({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-      {title && <h2 className="mb-3 text-sm font-semibold text-[var(--c-text)]">{title}</h2>}
-      <div className="space-y-3">{children}</div>
+    <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+      {title && <h2 className="mb-4 text-sm font-semibold text-[var(--c-text)]">{title}</h2>}
+      <div className="space-y-4">{children}</div>
     </div>
   );
 }
 
 function Lbl({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="mb-1 block text-xs font-medium text-[var(--c-text2)]">
+    <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
       {children} {required && <span className="text-[var(--c-red)]">*</span>}
     </label>
   );
@@ -290,10 +290,10 @@ export default function NewProductPage() {
   return (
     <InventoryShell title="Новый товар">
       <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl pb-24">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
           {/* ── Main column ─────────────────────────────────────────────── */}
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-5 lg:col-span-2">
 
             <Card>
               <div>
@@ -437,7 +437,7 @@ export default function NewProductPage() {
                       <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
                         placeholder="0.0" className={`${inputCls} tabular w-40`} />
                       <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as "кг" | "г")}
-                        className="h-9 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]">
+                        className="h-10 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]">
                         <option value="кг">кг</option>
                         <option value="г">г</option>
                       </select>
@@ -533,7 +533,7 @@ export default function NewProductPage() {
           </div>
 
           {/* ── Sidebar column ──────────────────────────────────────────── */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Card title="Статус">
               <select {...register("status")} className={inputCls}>
                 <option value="active">Активный</option>

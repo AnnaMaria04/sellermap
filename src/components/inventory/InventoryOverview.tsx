@@ -230,10 +230,10 @@ export function InventoryOverview() {
     <div className="space-y-4">
 
       {/* ── Today hero — "сколько я заработал сегодня" ─────────────────────── */}
-      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5 sm:p-6">
+      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
         <p className="text-xs font-medium uppercase tracking-wider text-[var(--c-text3)]">Заработано сегодня</p>
         <p className={cn(
-          "mt-1 text-4xl font-bold tabular sm:text-5xl",
+          "mt-1 text-2xl font-bold tabular sm:text-3xl",
           today.profit >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]",
         )}>
           {today.profit < 0 ? "−" : ""}{formatRUB(Math.abs(today.profit))}

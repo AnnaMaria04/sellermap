@@ -49,6 +49,13 @@
   --font-mono: "Geologica", ui-monospace, monospace;
 }
 
+/* Global UI density — scales all rem-based sizing (text, spacing, control
+ * heights) down ~6% for a compact, Shopify-like feel. Mobile inputs stay 16px
+ * via the rule below so iOS doesn't auto-zoom. */
+html {
+  font-size: 15px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
