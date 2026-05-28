@@ -12,7 +12,6 @@ import { useSeenAlerts } from "@/hooks/useSeenAlerts";
 import { useTheme } from "@/components/ui/ThemeProvider";
 import {
   Package,
-  ArrowLeftRight,
   BarChart3,
   History,
   Truck,
@@ -27,12 +26,10 @@ import {
   Wallet,
   Users,
   Building2,
-  ClipboardList,
   RotateCcw,
   FileText,
   Map,
   ShoppingCart,
-  MessageSquare,
   Calculator,
 } from "lucide-react";
 
@@ -59,12 +56,13 @@ const NAV: NavSection[] = [
         label: "Товары",         href: "/inventory/products", icon: Package,
         children: [{ label: "Комплекты", href: "/inventory/bundles" }],
       },
-      { label: "Инвентаризация", href: "/inventory/stocktake", icon: ClipboardList },
       {
         label: "Клиенты",        href: "/inventory/customers", icon: Users,
-        children: [{ label: "Акции и промо", href: "/inventory/promotions" }],
+        children: [
+          { label: "Акции и промо", href: "/inventory/promotions" },
+          { label: "Отзывы",        href: "/inventory/feedbacks" },
+        ],
       },
-      { label: "Отзывы",         href: "/inventory/feedbacks", icon: MessageSquare },
     ],
   },
   {
@@ -74,8 +72,13 @@ const NAV: NavSection[] = [
         label: "Закупки",     href: "/inventory/purchase-orders", icon: Truck,
         children: [{ label: "Поставщики", href: "/inventory/suppliers" }],
       },
-      { label: "Перемещения", href: "/inventory/transfers",       icon: ArrowLeftRight },
-      { label: "Склады",      href: "/inventory/locations",       icon: Building2 },
+      {
+        label: "Склады",      href: "/inventory/locations",       icon: Building2,
+        children: [
+          { label: "Перемещения",    href: "/inventory/transfers" },
+          { label: "Инвентаризация", href: "/inventory/stocktake" },
+        ],
+      },
       { label: "Возвраты",    href: "/inventory/returns",         icon: RotateCcw },
       { label: "История",     href: "/inventory/history",         icon: History },
     ],
