@@ -17,6 +17,7 @@ import { SupplierPanel } from "@/components/result/SupplierPanel";
 import { PageSection } from "@/components/sellermap/section";
 import { demoResult } from "@/lib/data/demoResult";
 import type { ProductResult } from "@/lib/analysis/types";
+import type { MarketAggregates } from "@/lib/analysis/marketAggregates";
 
 interface SavedReport {
   id: string;
@@ -38,6 +39,39 @@ function ResultPageInner() {
 
   // Read sessionStorage form input to pre-populate simulator
   const [analysisInput, setAnalysisInput] = useState<Record<string, unknown> | null>(null);
+
+  // Market aggregates loaded from the daily_market_metrics / analysis_competitors tables.
+  const [aggregates, setAggregates] = useState<MarketAggregates | null | undefined>(undefined);
+  const [aggregatesError, setAggregatesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setAggregates(undefined);
+      setAggregatesError(null);
+      try {
+        const params = new URLSearchParams();
+        // Best-effort keyword/category from the analysed product.
+        if (result.title) params.set("keyword", result.title);
+        if (result.category) params.set("category", result.category);
+        const res = await fetch(`/api/analysis/market-aggregates?${params.toString()}`);
+        const d = await res.json() as { ok: boolean; aggregates?: MarketAggregates | null; message?: string };
+        if (cancelled) return;
+        if (!d.ok) {
+          setAggregatesError(d.message ?? "ошибка загрузки");
+          setAggregates(null);
+        } else {
+          setAggregates(d.aggregates ?? null);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setAggregatesError(e instanceof Error ? e.message : "ошибка сети");
+        setAggregates(null);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [result.title, result.category]);
 
   const loadData = useCallback(() => {
     // If a saved report ID is in the URL, load from localStorage
@@ -82,7 +116,12 @@ function ResultPageInner() {
             savedReportDate={savedReport?.created_at}
           />
           <ScoreBreakdown result={result} />
-          <MarketMap result={result} />
+          <MarketMap
+            result={result}
+            aggregates={aggregates ?? null}
+            loading={aggregates === undefined}
+            error={aggregatesError}
+          />
           <MarginSimulator result={result} analysisInput={analysisInput} />
           <CompetitorCards result={result} />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.9fr]">

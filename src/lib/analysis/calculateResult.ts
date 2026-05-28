@@ -269,16 +269,6 @@ export function calculateResult(input: RawResultInput): ProductResult {
     dataSources: input.dataSources,
     scoreBreakdown,
     competitors: input.competitors.slice(0, 5),
-    marketMap: {
-      xLabel: "Уровень цены: низкая → высокая",
-      yLabel: "Сила отзывов / спроса: низкая → высокая",
-      legend: [
-        { label: "Окно возможности", riskLevel: "low", className: "bg-[var(--c-green)]" },
-        { label: "Плотная зона", riskLevel: "medium", className: "bg-[var(--c-amber)]" },
-        { label: "Риск позиции", riskLevel: "high", className: "bg-[var(--c-red)]" },
-        { label: "Ваш товар", riskLevel: "user", className: "bg-[var(--c-text)]" },
-      ],
-    },
     margin,
     packaging,
     cardAudit,

@@ -156,11 +156,6 @@ export type ProductResult = {
   dataSources: DataSourceStatus[];
   scoreBreakdown: ScoreBreakdownItem[];
   competitors: Competitor[];
-  marketMap: {
-    xLabel: string;
-    yLabel: string;
-    legend: Array<{ label: string; riskLevel: RiskLevel | "user"; className: string }>;
-  };
   margin: MarginAnalysis;
   packaging: PackagingAnalysis;
   cardAudit: CardAuditItem[];
