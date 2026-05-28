@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
@@ -55,38 +55,58 @@ const CHESTNY_ZNAK_GROUPS = [
 ];
 
 function parseValues(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
+  return raw.split(",").map((v) => v.trim()).filter(Boolean);
 }
 
 function buildCombinations(options: OptionRow[]): string[] {
-  const validOptions = options.filter(
-    (o) => o.name.trim() && o.values.trim()
-  );
+  const validOptions = options.filter((o) => o.name.trim() && o.values.trim());
   if (validOptions.length === 0) return [];
-
   const parsed = validOptions.map((o) => parseValues(o.values));
   if (parsed.length === 1) return parsed[0].map((v) => v);
-
-  // Cross-product of first two option value arrays
   const combos: string[] = [];
-  for (const v1 of parsed[0]) {
-    for (const v2 of parsed[1]) {
-      combos.push(`${v1} / ${v2}`);
-    }
-  }
+  for (const v1 of parsed[0]) for (const v2 of parsed[1]) combos.push(`${v1} / ${v2}`);
   return combos;
+}
+
+// ── Presentational helpers ──────────────────────────────────────────────────
+
+const inputCls =
+  "h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]";
+
+function Card({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+      {title && <h2 className="mb-4 text-sm font-semibold text-[var(--c-text)]">{title}</h2>}
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function Lbl({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
+      {children} {required && <span className="text-[var(--c-red)]">*</span>}
+    </label>
+  );
+}
+
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition ${value ? "bg-[var(--c-green)]" : "bg-[var(--c-border2)]"}`}
+    >
+      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${value ? "left-6" : "left-1"}`} />
+    </button>
+  );
 }
 
 export default function NewProductPage() {
   const router = useRouter();
   const { products, suppliers, locations, actions } = useInventory();
 
-  // Derive unique categories from existing products
   const categories = Array.from(new Set(products.map((p) => p.category))).sort();
-
   const skuTouchedRef = useRef(false);
 
   const {
@@ -98,30 +118,21 @@ export default function NewProductPage() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
-      sku: "",
-      barcode: "",
-      imageUrl: "",
-      category: "",
-      productType: "product",
-      price: 0,
-      costPrice: 0,
-      description: "",
-      status: "active",
+      name: "", sku: "", barcode: "", imageUrl: "", category: "",
+      productType: "product", price: 0, costPrice: 0, description: "", status: "active",
     },
   });
 
-  const nameValue = watch("name");
   const imageUrlValue = watch("imageUrl");
   const skuValue = watch("sku");
+  const priceValue = watch("price");
+  const costValue = watch("costPrice");
 
-  // Variant builder state
+  // Variant builder
   const [variantEnabled, setVariantEnabled] = useState(false);
-  const [options, setOptions] = useState<OptionRow[]>([
-    { name: "", values: "" },
-  ]);
+  const [options, setOptions] = useState<OptionRow[]>([{ name: "", values: "" }]);
 
-  // Priority-3 field state
+  // Extra field state
   const [stockByLocation, setStockByLocation] = useState<Record<string, number>>({});
   const [supplierId, setSupplierId] = useState("");
   const [channels, setChannels] = useState<SalesChannel[]>([]);
@@ -130,37 +141,25 @@ export default function NewProductPage() {
   const [requiresLabeling, setRequiresLabeling] = useState(false);
   const [markingGroup, setMarkingGroup] = useState("");
   const [gtin, setGtin] = useState("");
+  const [physical, setPhysical] = useState(true);
+  const [weight, setWeight] = useState("");
 
-  const toggleChannel = (ch: SalesChannel) => {
-    setChannels((prev) =>
-      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]
-    );
-  };
+  const toggleChannel = (ch: SalesChannel) =>
+    setChannels((prev) => (prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]));
 
   const addTag = () => {
     const t = tagInput.trim().replace(/,$/, "").trim();
-    if (t && !tags.includes(t)) {
-      setTags((prev) => [...prev, t]);
-    }
+    if (t && !tags.includes(t)) setTags((prev) => [...prev, t]);
     setTagInput("");
   };
-
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag();
-    }
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); }
   };
-
-  const removeTag = (t: string) => {
-    setTags((prev) => prev.filter((x) => x !== t));
-  };
-
-  const setLocationStock = (locationId: string, value: number) => {
+  const removeTag = (t: string) => setTags((prev) => prev.filter((x) => x !== t));
+  const setLocationStock = (locationId: string, value: number) =>
     setStockByLocation((prev) => ({ ...prev, [locationId]: value }));
-  };
 
-  // Prefill from sessionStorage if navigated from /result "Добавить в склад"
+  // Prefill from sessionStorage (navigated from /result "Добавить в склад")
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("prefill_product");
@@ -169,40 +168,32 @@ export default function NewProductPage() {
         if (data.name) setValue("name", data.name, { shouldValidate: false });
         if (typeof data.sellPrice === "number") setValue("price", data.sellPrice, { shouldValidate: false });
         if (typeof data.buyPrice === "number") setValue("costPrice", data.buyPrice, { shouldValidate: false });
-        // Auto-generate SKU from prefilled name
-        if (data.name) {
-          setValue("sku", generateSku(data.name), { shouldValidate: false });
-        }
+        if (data.name) setValue("sku", generateSku(data.name), { shouldValidate: false });
         sessionStorage.removeItem("prefill_product");
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [setValue]);
 
-  // Auto-generate SKU from name when name changes and SKU hasn't been manually edited
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
-    if (!skuTouchedRef.current && newName) {
-      setValue("sku", generateSku(newName), { shouldValidate: false });
-    }
+    if (!skuTouchedRef.current && newName) setValue("sku", generateSku(newName), { shouldValidate: false });
   };
 
   const combinations = buildCombinations(options);
   const tooManyCombos = combinations.length > 20;
   const displayedCombos = combinations.slice(0, 20);
 
+  // Live margin (Shopify shows margin/profit once cost is entered).
+  const margin = priceValue > 0 && costValue >= 0 ? Math.round(((priceValue - costValue) / priceValue) * 1000) / 10 : null;
+  const profit = priceValue > 0 ? priceValue - (costValue || 0) : null;
+
   const onSubmit = async (data: FormValues) => {
     const now = new Date().toISOString().split("T")[0];
     const id = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const margin =
-      data.price > 0
-        ? Math.round(((data.price - data.costPrice) / data.price) * 1000) / 10
-        : 0;
+    const marginVal = data.price > 0 ? Math.round(((data.price - data.costPrice) / data.price) * 1000) / 10 : 0;
 
     let hasVariants = false;
     let variants: ProductVariant[] = [];
-
     if (variantEnabled && combinations.length > 0 && !tooManyCombos) {
       hasVariants = true;
       variants = displayedCombos.map((combo, i) => ({
@@ -215,15 +206,11 @@ export default function NewProductPage() {
       }));
     }
 
-    // Initial stock by location — keep only positive quantities
     const initialStock: Record<string, number> = {};
     let totalPhysical = 0;
     for (const loc of locations) {
       const qty = stockByLocation[loc.id] ?? 0;
-      if (qty > 0) {
-        initialStock[loc.id] = qty;
-        totalPhysical += qty;
-      }
+      if (qty > 0) { initialStock[loc.id] = qty; totalPhysical += qty; }
     }
 
     const newProduct: Product = {
@@ -238,16 +225,15 @@ export default function NewProductPage() {
       description: data.description || undefined,
       price: data.price,
       costPrice: data.costPrice,
-      margin,
+      margin: marginVal,
       hasVariants,
       variants,
       supplierId: supplierId || undefined,
       channels,
       tags: requiresLabeling && markingGroup ? [...tags, `ЧЗ: ${markingGroup}`] : tags,
       requiresLabeling,
-      ...(requiresLabeling
-        ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined }
-        : {}),
+      weight: weight ? parseFloat(weight) : undefined,
+      ...(requiresLabeling ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined } : {}),
       stockByLocation: initialStock,
       reservedUnits: 0,
       damagedUnits: 0,
@@ -258,505 +244,302 @@ export default function NewProductPage() {
     };
 
     actions.addProduct(newProduct);
-
-    // Record initial stock as adjustment movements per location
     for (const loc of locations) {
       const qty = stockByLocation[loc.id] ?? 0;
-      if (qty > 0) {
-        actions.adjustStock(newProduct.id, loc.id, qty, "adjustment", "Начальный остаток");
-      }
+      if (qty > 0) actions.adjustStock(newProduct.id, loc.id, qty, "adjustment", "Начальный остаток");
     }
-
     toast.success("Товар создан");
     router.push("/inventory/products/" + newProduct.id);
   };
 
   return (
-    <InventoryShell title="Новый товар" subtitle="Заполните данные о товаре">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="max-w-2xl space-y-6">
+    <InventoryShell title="Новый товар">
+      <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl pb-24">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Название <span className="text-[var(--c-red)]">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("name")}
-              onChange={(e) => {
-                register("name").onChange(e);
-                handleNameChange(e);
-              }}
-              placeholder="Например: Футболка оверсайз"
-              className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)] ${
-                errors.name ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-              }`}
-            />
-            {errors.name && (
-              <p className="mt-1 text-xs text-[var(--c-red)]">{errors.name.message}</p>
-            )}
-          </div>
+          {/* ── Main column ─────────────────────────────────────────────── */}
+          <div className="space-y-5 lg:col-span-2">
 
-          {/* SKU */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Артикул (SKU) <span className="text-[var(--c-red)]">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("sku")}
-              onFocus={() => { skuTouchedRef.current = true; }}
-              placeholder="Например: TSH-OV-001"
-              className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)] ${
-                errors.sku ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-              }`}
-            />
-            {errors.sku && (
-              <p className="mt-1 text-xs text-[var(--c-red)]">{errors.sku.message}</p>
-            )}
-          </div>
-
-          {/* Barcode */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Штрихкод
-            </label>
-            <input
-              type="text"
-              {...register("barcode")}
-              placeholder="EAN-13 или другой"
-              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-            />
-          </div>
-
-          {/* Image URL */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Изображение (URL)
-            </label>
-            <input
-              type="text"
-              {...register("imageUrl")}
-              placeholder="https://example.com/image.jpg"
-              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-            />
-            {imageUrlValue && (
-              <div className="mt-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imageUrlValue}
-                  alt="Превью"
-                  className="max-h-20 w-20 rounded-lg border border-[var(--c-border)] object-cover"
+            <Card>
+              <div>
+                <Lbl required>Название</Lbl>
+                <input
+                  type="text"
+                  {...register("name")}
+                  onChange={(e) => { register("name").onChange(e); handleNameChange(e); }}
+                  placeholder="Например: Футболка оверсайз"
+                  className={`${inputCls} ${errors.name ? "border-[var(--c-red)]" : ""}`}
+                />
+                {errors.name && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.name.message}</p>}
+              </div>
+              <div>
+                <Lbl>Описание</Lbl>
+                <textarea
+                  {...register("description")}
+                  rows={5}
+                  placeholder="Опишите товар…"
+                  className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
                 />
               </div>
-            )}
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Категория <span className="text-[var(--c-red)]">*</span>
-            </label>
-            <input
-              type="text"
-              list="categories-list"
-              {...register("category")}
-              placeholder="Выберите или введите категорию"
-              className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)] ${
-                errors.category ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-              }`}
-            />
-            <datalist id="categories-list">
-              {categories.map((cat) => (
-                <option key={cat} value={cat} />
-              ))}
-            </datalist>
-            {errors.category && (
-              <p className="mt-1 text-xs text-[var(--c-red)]">{errors.category.message}</p>
-            )}
-          </div>
-
-          {/* Product Type */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Тип товара <span className="text-[var(--c-red)]">*</span>
-            </label>
-            <select
-              {...register("productType")}
-              className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)] ${
-                errors.productType ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-              }`}
-            >
-              {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            {errors.productType && (
-              <p className="mt-1 text-xs text-[var(--c-red)]">{errors.productType.message}</p>
-            )}
-          </div>
-
-          {/* Price + Cost */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-                Цена продажи, ₽ <span className="text-[var(--c-red)]">*</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                {...register("price", { valueAsNumber: true })}
-                className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] tabular outline-none transition focus:border-[var(--c-green)] ${
-                  errors.price ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-                }`}
-              />
-              {errors.price && (
-                <p className="mt-1 text-xs text-[var(--c-red)]">{errors.price.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-                Себестоимость, ₽ <span className="text-[var(--c-red)]">*</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                {...register("costPrice", { valueAsNumber: true })}
-                className={`h-10 w-full rounded-lg border bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] tabular outline-none transition focus:border-[var(--c-green)] ${
-                  errors.costPrice ? "border-[var(--c-red)]" : "border-[var(--c-border2)]"
-                }`}
-              />
-              {errors.costPrice && (
-                <p className="mt-1 text-xs text-[var(--c-red)]">{errors.costPrice.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Описание
-            </label>
-            <textarea
-              {...register("description")}
-              rows={4}
-              placeholder="Опишите товар..."
-              className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-            />
-          </div>
-
-          {/* Variant Builder */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <button
-              type="button"
-              onClick={() => setVariantEnabled((v) => !v)}
-              className="flex w-full items-center justify-between text-left"
-            >
-              <span className="text-sm font-medium text-[var(--c-text)]">
-                Добавить варианты (размер, цвет, и т.д.)
-              </span>
-              {variantEnabled ? (
-                <ChevronUp size={16} className="text-[var(--c-text2)]" />
-              ) : (
-                <ChevronDown size={16} className="text-[var(--c-text2)]" />
-              )}
-            </button>
-
-            {variantEnabled && (
-              <div className="mt-4 space-y-4">
-                <p className="text-xs font-medium text-[var(--c-text2)]">Опции товара</p>
-
-                {options.map((opt, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={opt.name}
-                      onChange={(e) => {
-                        const next = [...options];
-                        next[idx] = { ...next[idx], name: e.target.value };
-                        setOptions(next);
-                      }}
-                      placeholder={idx === 0 ? "Размер" : "Цвет"}
-                      className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-                    />
-                    <input
-                      type="text"
-                      value={opt.values}
-                      onChange={(e) => {
-                        const next = [...options];
-                        next[idx] = { ...next[idx], values: e.target.value };
-                        setOptions(next);
-                      }}
-                      placeholder={idx === 0 ? "S, M, L, XL" : "Красный, Синий"}
-                      className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-                    />
-                  </div>
-                ))}
-
-                {options.length < 2 && (
-                  <button
-                    type="button"
-                    onClick={() => setOptions([...options, { name: "", values: "" }])}
-                    className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--c-border2)] px-3 text-xs font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
-                  >
-                    <Plus size={12} />
-                    Добавить опцию
-                  </button>
-                )}
-
-                {/* Combination preview */}
-                {combinations.length > 0 && (
-                  <div className="mt-2">
-                    <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">
-                      Варианты товара ({combinations.length})
-                    </p>
-
-                    {tooManyCombos && (
-                      <p className="mb-2 text-xs text-[var(--c-red)]">
-                        Слишком много комбинаций. Максимум 20.
-                      </p>
-                    )}
-
-                    {!tooManyCombos && (
-                      <div className="overflow-hidden rounded-lg border border-[var(--c-border)]">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-[var(--c-border)] bg-[var(--c-bg)]">
-                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
-                                Название
-                              </th>
-                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
-                                SKU
-                              </th>
-                              <th className="px-3 py-2 text-left font-medium text-[var(--c-text2)]">
-                                Примечание
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {displayedCombos.map((combo, i) => {
-                              const varSku = skuValue
-                                ? `${skuValue}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`
-                                : "—";
-                              return (
-                                <tr
-                                  key={i}
-                                  className="border-b border-[var(--c-border)] last:border-0"
-                                >
-                                  <td className="px-3 py-2 text-[var(--c-text)]">{combo}</td>
-                                  <td className="px-3 py-2 font-mono text-[var(--c-text2)]">
-                                    {varSku}
-                                  </td>
-                                  <td className="px-3 py-2 text-[var(--c-text3)]">
-                                    SKU и цену можно отредактировать после сохранения
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+              <div>
+                <Lbl>Изображение (URL)</Lbl>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg3)]">
+                    {imageUrlValue ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imageUrlValue} alt="Превью" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImagePlus size={18} className="text-[var(--c-text3)]" />
                     )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Initial stock by location */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <p className="mb-4 text-sm font-medium text-[var(--c-text)]">
-              Начальный остаток по локациям
-            </p>
-            <div className="space-y-3">
-              {locations.map((loc) => (
-                <div key={loc.id} className="flex items-center gap-3">
-                  <span className="flex-1 text-sm text-[var(--c-text)]">{loc.name}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={stockByLocation[loc.id] ?? 0}
-                    onChange={(e) =>
-                      setLocationStock(loc.id, Math.max(0, Number(e.target.value) || 0))
-                    }
-                    className="h-10 w-28 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] tabular outline-none transition focus:border-[var(--c-green)]"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Supplier */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Поставщик
-            </label>
-            <select
-              value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)]"
-            >
-              <option value="">Нет поставщика</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Channels */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <p className="mb-3 text-xs font-medium text-[var(--c-text2)]">
-              Каналы продаж
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
-                const active = channels.includes(ch);
-                return (
-                  <button
-                    key={ch}
-                    type="button"
-                    onClick={() => toggleChannel(ch)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                      active
-                        ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
-                        : "border border-[var(--c-border2)] text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]"
-                    }`}
-                  >
-                    {CHANNEL_LABELS[ch]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Теги
-            </label>
-            {tags.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className="flex items-center gap-1 rounded-full bg-[var(--c-green-dim)] px-3 py-1 text-xs font-medium text-[var(--c-green)]"
-                  >
-                    {t}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(t)}
-                      className="transition hover:opacity-70"
-                      aria-label={`Удалить тег ${t}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              onBlur={addTag}
-              placeholder="Введите тег и нажмите Enter"
-              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
-            />
-          </div>
-
-          {/* Честный Знак */}
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
-            <button
-              type="button"
-              onClick={() => setRequiresLabeling((v) => !v)}
-              className="flex w-full items-center justify-between text-left"
-            >
-              <span className="text-sm font-medium text-[var(--c-text)]">
-                Требует маркировки (Честный Знак)
-              </span>
-              <span
-                className={`flex h-5 w-9 items-center rounded-full px-0.5 transition ${
-                  requiresLabeling ? "bg-[var(--c-green)]" : "bg-[var(--c-border2)]"
-                }`}
-              >
-                <span
-                  className={`h-4 w-4 rounded-full bg-white transition ${
-                    requiresLabeling ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </span>
-            </button>
-            {requiresLabeling && (
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-                    Товарная группа
-                  </label>
-                  <select
-                    value={markingGroup}
-                    onChange={(e) => setMarkingGroup(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)]"
-                  >
-                    <option value="">— выберите товарную группу —</option>
-                    {CHESTNY_ZNAK_GROUPS.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-                    GTIN
-                  </label>
                   <input
                     type="text"
-                    value={gtin}
-                    onChange={(e) => setGtin(e.target.value)}
-                    placeholder="Например: 04606007384825"
-                    className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 font-mono text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]"
+                    {...register("imageUrl")}
+                    placeholder="https://example.com/image.jpg"
+                    className={inputCls}
                   />
                 </div>
               </div>
-            )}
+              <div>
+                <Lbl required>Категория</Lbl>
+                <input
+                  type="text"
+                  list="categories-list"
+                  {...register("category")}
+                  placeholder="Выберите или введите категорию"
+                  className={`${inputCls} ${errors.category ? "border-[var(--c-red)]" : ""}`}
+                />
+                <datalist id="categories-list">
+                  {categories.map((cat) => <option key={cat} value={cat} />)}
+                </datalist>
+                {errors.category && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.category.message}</p>}
+              </div>
+            </Card>
+
+            {/* Price */}
+            <Card title="Цена">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Lbl required>Цена продажи, ₽</Lbl>
+                  <input type="number" min={0} step="0.01" {...register("price", { valueAsNumber: true })}
+                    className={`${inputCls} tabular ${errors.price ? "border-[var(--c-red)]" : ""}`} />
+                  {errors.price && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.price.message}</p>}
+                </div>
+                <div>
+                  <Lbl required>Себестоимость, ₽</Lbl>
+                  <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
+                    className={`${inputCls} tabular ${errors.costPrice ? "border-[var(--c-red)]" : ""}`} />
+                  {errors.costPrice && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.costPrice.message}</p>}
+                </div>
+              </div>
+              {margin !== null && (
+                <div className="flex gap-6 rounded-lg bg-[var(--c-bg3)] px-4 py-3 text-sm">
+                  <div>
+                    <p className="text-xs text-[var(--c-text3)]">Маржа</p>
+                    <p className={`font-semibold tabular ${margin >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>{margin}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[var(--c-text3)]">Прибыль с единицы</p>
+                    <p className="font-semibold tabular text-[var(--c-text)]">{(profit ?? 0).toLocaleString("ru-RU")} ₽</p>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Inventory */}
+            <Card title="Запасы">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Lbl required>Артикул (SKU)</Lbl>
+                  <input type="text" {...register("sku")} onFocus={() => { skuTouchedRef.current = true; }}
+                    placeholder="TSH-OV-001"
+                    className={`${inputCls} font-mono ${errors.sku ? "border-[var(--c-red)]" : ""}`} />
+                  {errors.sku && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.sku.message}</p>}
+                </div>
+                <div>
+                  <Lbl>Штрихкод</Lbl>
+                  <input type="text" {...register("barcode")} placeholder="EAN-13" className={`${inputCls} font-mono`} />
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Начальный остаток по локациям</p>
+                <div className="space-y-2">
+                  {locations.map((loc) => (
+                    <div key={loc.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--c-border)] px-3 py-2">
+                      <span className="text-sm text-[var(--c-text)]">{loc.name}</span>
+                      <input type="number" min={0} value={stockByLocation[loc.id] ?? 0}
+                        onChange={(e) => setLocationStock(loc.id, Math.max(0, Number(e.target.value) || 0))}
+                        className="h-9 w-24 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-right text-sm tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Shipping */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--c-text)]">Доставка</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--c-text2)]">Физический товар</span>
+                  <Toggle value={physical} onChange={setPhysical} />
+                </div>
+              </div>
+              {physical && (
+                <div className="w-40">
+                  <Lbl>Вес, кг</Lbl>
+                  <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
+                    placeholder="0.0" className={`${inputCls} tabular`} />
+                </div>
+              )}
+            </Card>
+
+            {/* Variants */}
+            <Card title="Варианты">
+              {!variantEnabled ? (
+                <button type="button" onClick={() => setVariantEnabled(true)}
+                  className="flex items-center gap-2 text-sm font-medium text-[var(--c-green)] hover:opacity-80">
+                  <Plus size={15} /> Добавить опции: размер, цвет и т.п.
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  {options.map((opt, idx) => (
+                    <div key={idx} className="grid grid-cols-2 gap-2">
+                      <input type="text" value={opt.name}
+                        onChange={(e) => { const n = [...options]; n[idx] = { ...n[idx], name: e.target.value }; setOptions(n); }}
+                        placeholder={idx === 0 ? "Размер" : "Цвет"} className={inputCls} />
+                      <input type="text" value={opt.values}
+                        onChange={(e) => { const n = [...options]; n[idx] = { ...n[idx], values: e.target.value }; setOptions(n); }}
+                        placeholder={idx === 0 ? "S, M, L, XL" : "Красный, Синий"} className={inputCls} />
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-3">
+                    {options.length < 2 && (
+                      <button type="button" onClick={() => setOptions([...options, { name: "", values: "" }])}
+                        className="flex items-center gap-1.5 text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
+                        <Plus size={12} /> Добавить опцию
+                      </button>
+                    )}
+                    <button type="button" onClick={() => { setVariantEnabled(false); setOptions([{ name: "", values: "" }]); }}
+                      className="text-xs font-medium text-[var(--c-red)] hover:opacity-80">Убрать варианты</button>
+                  </div>
+                  {combinations.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Варианты ({combinations.length})</p>
+                      {tooManyCombos && <p className="mb-2 text-xs text-[var(--c-red)]">Слишком много комбинаций. Максимум 20.</p>}
+                      {!tooManyCombos && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {displayedCombos.map((c, i) => (
+                            <span key={i} className="rounded-md bg-[var(--c-bg3)] px-2 py-1 text-xs text-[var(--c-text2)]">{c}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* Честный Знак */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--c-text)]">Маркировка (Честный Знак)</h2>
+                <Toggle value={requiresLabeling} onChange={setRequiresLabeling} />
+              </div>
+              {requiresLabeling && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <Lbl>Товарная группа</Lbl>
+                    <select value={markingGroup} onChange={(e) => setMarkingGroup(e.target.value)} className={inputCls}>
+                      <option value="">— выберите группу —</option>
+                      {CHESTNY_ZNAK_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Lbl>GTIN</Lbl>
+                    <input type="text" value={gtin} onChange={(e) => setGtin(e.target.value)}
+                      placeholder="04606007384825" className={`${inputCls} font-mono`} />
+                  </div>
+                </div>
+              )}
+            </Card>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--c-text2)]">
-              Статус
-            </label>
-            <select
-              {...register("status")}
-              className="h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-green)]"
-            >
-              <option value="active">Активный</option>
-              <option value="draft">Черновик</option>
-            </select>
-          </div>
+          {/* ── Sidebar column ──────────────────────────────────────────── */}
+          <div className="space-y-5">
+            <Card title="Статус">
+              <select {...register("status")} className={inputCls}>
+                <option value="active">Активный</option>
+                <option value="draft">Черновик</option>
+              </select>
+            </Card>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex h-10 items-center rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
-            >
+            <Card title="Каналы продаж">
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
+                  const active = channels.includes(ch);
+                  return (
+                    <button key={ch} type="button" onClick={() => toggleChannel(ch)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                        active ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
+                          : "border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)]"
+                      }`}>
+                      {CHANNEL_LABELS[ch]}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card title="Организация">
+              <div>
+                <Lbl>Тип товара</Lbl>
+                <select {...register("productType")} className={inputCls}>
+                  {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Lbl>Поставщик</Lbl>
+                <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={inputCls}>
+                  <option value="">Нет поставщика</option>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Lbl>Теги</Lbl>
+                {tags.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {tags.map((t) => (
+                      <span key={t} className="flex items-center gap-1 rounded-full bg-[var(--c-green-dim)] px-3 py-1 text-xs font-medium text-[var(--c-green)]">
+                        {t}
+                        <button type="button" onClick={() => removeTag(t)} aria-label={`Удалить тег ${t}`} className="transition hover:opacity-70">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <input type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown} onBlur={addTag}
+                  placeholder="Введите тег и нажмите Enter" className={inputCls} />
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Sticky action bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-3 lg:pl-56">
+          <div className="mx-auto flex max-w-5xl items-center justify-end gap-3">
+            <button type="button" onClick={() => router.back()}
+              className="flex h-10 items-center rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]">
               Отмена
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={isSubmitting}
+              className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-60">
               {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-              {isSubmitting ? "Создание..." : "Создать товар"}
+              {isSubmitting ? "Создание…" : "Создать товар"}
             </button>
           </div>
         </div>
