@@ -153,13 +153,13 @@ export default function ProductDetailPage({ params }: Props) {
             <ArrowLeft size={14} />
             Назад
           </Link>
-          <button
-            onClick={() => setEditing(true)}
+          <Link
+            href={`/inventory/products/${product.id}/edit`}
             className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
           >
             <Edit3 size={14} />
             Редактировать
-          </button>
+          </Link>
           <Link
             href="/inventory/purchase-orders"
             className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
