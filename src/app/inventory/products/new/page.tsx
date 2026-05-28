@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, ChevronDown } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
@@ -14,7 +14,7 @@ import type { Product, ProductType, ProductStatus, ProductVariant, SalesChannel 
 
 const schema = z.object({
   name: z.string().min(1, "Название обязательно"),
-  sku: z.string().min(1, "Артикул обязателен"),
+  sku: z.string().optional(),
   barcode: z.string().optional(),
   imageUrl: z.string().optional(),
   category: z.string().min(1, "Выберите категорию"),
@@ -102,6 +102,29 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
+/** Collapsible "Подробнее" row: shows hint chips when closed, content when open. */
+function Collapsible({ open, onToggle, chips, children }: {
+  open: boolean; onToggle: () => void; chips: string[]; children: React.ReactNode;
+}) {
+  return (
+    <div className="-mx-5 mt-1 border-t border-[var(--c-border)] px-5 pt-3">
+      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-3">
+        {open ? (
+          <span className="text-sm font-medium text-[var(--c-text)]">Подробнее</span>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {chips.map((c) => (
+              <span key={c} className="rounded-md bg-[var(--c-bg3)] px-2 py-1 text-xs font-medium text-[var(--c-text2)]">{c}</span>
+            ))}
+          </div>
+        )}
+        <ChevronDown size={16} className={`shrink-0 text-[var(--c-text3)] transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="mt-4 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
 export default function NewProductPage() {
   const router = useRouter();
   const { products, suppliers, locations, actions } = useInventory();
@@ -143,6 +166,14 @@ export default function NewProductPage() {
   const [gtin, setGtin] = useState("");
   const [physical, setPhysical] = useState(true);
   const [weight, setWeight] = useState("");
+  const [weightUnit, setWeightUnit] = useState<"кг" | "г">("кг");
+  const [country, setCountry] = useState("");
+  const [hsCode, setHsCode] = useState("");
+
+  // Collapsible "Подробнее" sections (Shopify pattern)
+  const [priceMore, setPriceMore] = useState(false);
+  const [invMore, setInvMore] = useState(false);
+  const [shipMore, setShipMore] = useState(false);
 
   const toggleChannel = (ch: SalesChannel) =>
     setChannels((prev) => (prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]));
@@ -190,7 +221,9 @@ export default function NewProductPage() {
   const onSubmit = async (data: FormValues) => {
     const now = new Date().toISOString().split("T")[0];
     const id = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const sku = data.sku?.trim() || generateSku(data.name); // SKU optional — auto-generate
     const marginVal = data.price > 0 ? Math.round(((data.price - data.costPrice) / data.price) * 1000) / 10 : 0;
+    const weightKg = weight ? parseFloat(weight) / (weightUnit === "г" ? 1000 : 1) : undefined;
 
     let hasVariants = false;
     let variants: ProductVariant[] = [];
@@ -199,7 +232,7 @@ export default function NewProductPage() {
       variants = displayedCombos.map((combo, i) => ({
         id: `${id}-var-${i}`,
         name: combo,
-        sku: `${data.sku}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`,
+        sku: `${sku}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`,
         price: data.price,
         costPrice: data.costPrice,
         stock: {} as Record<string, number>,
@@ -216,7 +249,7 @@ export default function NewProductPage() {
     const newProduct: Product = {
       id,
       name: data.name,
-      sku: data.sku,
+      sku,
       barcode: data.barcode || undefined,
       imageUrl: data.imageUrl || undefined,
       category: data.category,
@@ -232,7 +265,9 @@ export default function NewProductPage() {
       channels,
       tags: requiresLabeling && markingGroup ? [...tags, `ЧЗ: ${markingGroup}`] : tags,
       requiresLabeling,
-      weight: weight ? parseFloat(weight) : undefined,
+      weight: weightKg,
+      countryOfOrigin: country.trim() || undefined,
+      hsCode: hsCode.trim() || undefined,
       ...(requiresLabeling ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined } : {}),
       stockByLocation: initialStock,
       reservedUnits: 0,
@@ -318,48 +353,44 @@ export default function NewProductPage() {
 
             {/* Price */}
             <Card title="Цена">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Lbl required>Цена продажи, ₽</Lbl>
-                  <input type="number" min={0} step="0.01" {...register("price", { valueAsNumber: true })}
-                    className={`${inputCls} tabular ${errors.price ? "border-[var(--c-red)]" : ""}`} />
-                  {errors.price && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.price.message}</p>}
-                </div>
-                <div>
-                  <Lbl required>Себестоимость, ₽</Lbl>
-                  <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
-                    className={`${inputCls} tabular ${errors.costPrice ? "border-[var(--c-red)]" : ""}`} />
-                  {errors.costPrice && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.costPrice.message}</p>}
-                </div>
+              <div className="w-1/2">
+                <Lbl required>Цена продажи, ₽</Lbl>
+                <input type="number" min={0} step="0.01" {...register("price", { valueAsNumber: true })}
+                  className={`${inputCls} tabular ${errors.price ? "border-[var(--c-red)]" : ""}`} />
+                {errors.price && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.price.message}</p>}
               </div>
-              {margin !== null && (
-                <div className="flex gap-6 rounded-lg bg-[var(--c-bg3)] px-4 py-3 text-sm">
-                  <div>
-                    <p className="text-xs text-[var(--c-text3)]">Маржа</p>
-                    <p className={`font-semibold tabular ${margin >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>{margin}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--c-text3)]">Прибыль с единицы</p>
-                    <p className="font-semibold tabular text-[var(--c-text)]">{(profit ?? 0).toLocaleString("ru-RU")} ₽</p>
-                  </div>
+
+              <Collapsible open={priceMore} onToggle={() => setPriceMore((v) => !v)} chips={["Себестоимость"]}>
+                <div className="w-1/2">
+                  <Lbl>Себестоимость, ₽</Lbl>
+                  <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
+                    className={`${inputCls} tabular`} />
+                  <p className="mt-1 text-xs text-[var(--c-text3)]">Закупочная цена — нужна для расчёта прибыли и P&amp;L.</p>
                 </div>
-              )}
+              </Collapsible>
+
+              {/* Cost / Profit / Margin chips (always visible, Shopify style) */}
+              <div className="-mx-5 flex flex-wrap gap-2 border-t border-[var(--c-border)] px-5 pt-3 text-sm">
+                <span className="flex items-center gap-1.5 rounded-md bg-[var(--c-bg3)] px-2.5 py-1">
+                  <span className="text-[var(--c-text3)]">Себест.</span>
+                  <span className="tabular text-[var(--c-text)]">{costValue > 0 ? `${costValue.toLocaleString("ru-RU")} ₽` : "—"}</span>
+                </span>
+                <span className="flex items-center gap-1.5 rounded-md bg-[var(--c-bg3)] px-2.5 py-1">
+                  <span className="text-[var(--c-text3)]">Прибыль</span>
+                  <span className="tabular text-[var(--c-text)]">{profit !== null ? `${profit.toLocaleString("ru-RU")} ₽` : "—"}</span>
+                </span>
+                <span className="flex items-center gap-1.5 rounded-md bg-[var(--c-bg3)] px-2.5 py-1">
+                  <span className="text-[var(--c-text3)]">Маржа</span>
+                  <span className={`tabular ${margin === null ? "text-[var(--c-text)]" : margin >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>{margin !== null ? `${margin}%` : "—"}</span>
+                </span>
+              </div>
             </Card>
 
             {/* Inventory */}
-            <Card title="Запасы">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Lbl required>Артикул (SKU)</Lbl>
-                  <input type="text" {...register("sku")} onFocus={() => { skuTouchedRef.current = true; }}
-                    placeholder="TSH-OV-001"
-                    className={`${inputCls} font-mono ${errors.sku ? "border-[var(--c-red)]" : ""}`} />
-                  {errors.sku && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.sku.message}</p>}
-                </div>
-                <div>
-                  <Lbl>Штрихкод</Lbl>
-                  <input type="text" {...register("barcode")} placeholder="EAN-13" className={`${inputCls} font-mono`} />
-                </div>
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--c-text)]">Запасы</h2>
+                <span className="text-xs text-[var(--c-text2)]">Учёт остатков включён</span>
               </div>
               <div>
                 <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Начальный остаток по локациям</p>
@@ -374,6 +405,19 @@ export default function NewProductPage() {
                   ))}
                 </div>
               </div>
+              <Collapsible open={invMore} onToggle={() => setInvMore((v) => !v)} chips={["SKU", "Штрихкод"]}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Lbl>Артикул (SKU)</Lbl>
+                    <input type="text" {...register("sku")} onFocus={() => { skuTouchedRef.current = true; }}
+                      placeholder="Сгенерируется автоматически" className={`${inputCls} font-mono`} />
+                  </div>
+                  <div>
+                    <Lbl>Штрихкод (EAN, UPC, GTIN)</Lbl>
+                    <input type="text" {...register("barcode")} placeholder="необязательно" className={`${inputCls} font-mono`} />
+                  </div>
+                </div>
+              </Collapsible>
             </Card>
 
             {/* Shipping */}
@@ -386,11 +430,34 @@ export default function NewProductPage() {
                 </div>
               </div>
               {physical && (
-                <div className="w-40">
-                  <Lbl>Вес, кг</Lbl>
-                  <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
-                    placeholder="0.0" className={`${inputCls} tabular`} />
-                </div>
+                <>
+                  <div>
+                    <Lbl>Вес товара</Lbl>
+                    <div className="flex gap-2">
+                      <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
+                        placeholder="0.0" className={`${inputCls} tabular w-40`} />
+                      <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as "кг" | "г")}
+                        className="h-10 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]">
+                        <option value="кг">кг</option>
+                        <option value="г">г</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Collapsible open={shipMore} onToggle={() => setShipMore((v) => !v)} chips={["Страна происхождения", "ТН ВЭД / HS"]}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <Lbl>Страна происхождения</Lbl>
+                        <input type="text" value={country} onChange={(e) => setCountry(e.target.value)}
+                          placeholder="Например: Россия" className={inputCls} />
+                      </div>
+                      <div>
+                        <Lbl>Код ТН ВЭД / HS</Lbl>
+                        <input type="text" value={hsCode} onChange={(e) => setHsCode(e.target.value)}
+                          placeholder="Например: 6109100000" className={`${inputCls} font-mono`} />
+                      </div>
+                    </div>
+                  </Collapsible>
+                </>
               )}
             </Card>
 
@@ -474,7 +541,12 @@ export default function NewProductPage() {
               </select>
             </Card>
 
-            <Card title="Каналы продаж">
+            <Card title="Публикация">
+              <p className="text-xs text-[var(--c-text2)]">
+                {channels.length === 0
+                  ? "Каналы не выбраны"
+                  : `Выбрано каналов: ${channels.length} — ${channels.map((c) => CHANNEL_LABELS[c]).join(", ")}`}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
                   const active = channels.includes(ch);
