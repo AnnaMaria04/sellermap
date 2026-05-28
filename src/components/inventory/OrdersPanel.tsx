@@ -274,12 +274,8 @@ export function OrdersPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--c-text)]">Заказы</h2>
-          <p className="text-sm text-[var(--c-text3)] mt-0.5">Обработка и отгрузка заказов с маркетплейсов и прямых каналов</p>
-        </div>
+      {/* Toolbar — page title comes from InventoryShell header */}
+      <div className="flex items-center justify-end gap-4">
         <button
           onClick={handleExport}
           className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-2 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"

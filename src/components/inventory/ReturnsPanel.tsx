@@ -207,12 +207,9 @@ export function ReturnsPanel() {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--c-text)]">Возвраты и рефанды</h2>
-          <p className="mt-0.5 text-xs text-[var(--c-text3)]">
-            Сумма возвратов: {formatRub(totalReturnValue)} · Среднее время обработки: {avgDays} дн.
-          </p>
-        </div>
+        <p className="text-xs text-[var(--c-text3)]">
+          Сумма возвратов: {formatRub(totalReturnValue)} · Среднее время обработки: {avgDays} дн.
+        </p>
         <button
           onClick={() => setShowForm(true)}
           className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
