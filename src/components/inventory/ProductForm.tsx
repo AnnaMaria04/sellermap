@@ -6,11 +6,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle, Settings2, Download, Check } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, Upload, ChevronDown, AlertTriangle, Settings2, Download, Check } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
 import type { Product, ProductType, ProductStatus, ProductVariant, SalesChannel } from "@/mock/inventory";
+import { createClient } from "@/lib/supabase/client";
+
+/** Max upload size — keep the data round-trip snappy. */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 const schema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -189,6 +193,41 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
 
   const [images, setImages] = useState<string[]>(initial?.images ?? (initial?.imageUrl ? [initial.imageUrl] : []));
   const [imgInput, setImgInput] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    const supabase = createClient();
+    if (!supabase) { setUploadError("Хранилище недоступно"); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploadError("Войдите, чтобы загружать изображения"); return; }
+
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_UPLOAD_BYTES) { setUploadError(`Файл слишком большой (>${MAX_UPLOAD_BYTES / 1024 / 1024} МБ): ${file.name}`); continue; }
+        if (!file.type.startsWith("image/")) { setUploadError(`Не изображение: ${file.name}`); continue; }
+        const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safeName}`;
+        const { error } = await supabase.storage.from("product-images").upload(path, file, {
+          cacheControl: "31536000", contentType: file.type, upsert: false,
+        });
+        if (error) { setUploadError(error.message); continue; }
+        const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+        if (data.publicUrl) uploaded.push(data.publicUrl);
+      }
+      if (uploaded.length > 0) setImages((prev) => [...prev, ...uploaded]);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Ошибка загрузки");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const [compareAt, setCompareAt] = useState<string>(initial?.compareAtPrice != null ? String(initial.compareAtPrice) : "");
   const [chargeTax, setChargeTax] = useState<boolean>(!(initial?.taxExempt ?? false));
@@ -512,31 +551,43 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="mb-2 flex items-center justify-center rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg3)] py-6 text-xs text-[var(--c-text3)]">
-                    <ImagePlus size={18} className="mr-2" /> Добавьте изображения по URL — первое будет главным
-                  </div>
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="mb-2 flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg3)] py-8 text-xs text-[var(--c-text3)] transition hover:border-[var(--c-green)] hover:text-[var(--c-text2)]">
+                    <ImagePlus size={20} />
+                    Перетащите файлы или нажмите, чтобы загрузить
+                  </button>
                 )}
-                <div className="flex gap-2">
-                  <input type="text" value={imgInput} onChange={(e) => setImgInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
+                <input ref={fileInputRef} type="file" accept="image/*" multiple
+                  onChange={(e) => handleFileUpload(e.target.files)} className="hidden" />
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    className="flex h-10 items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:opacity-50">
+                    {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {uploading ? "Загрузка…" : "Загрузить файл"}
+                  </button>
+                  <div className="flex flex-1 gap-2 min-w-[200px]">
+                    <input type="text" value={imgInput} onChange={(e) => setImgInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const v = imgInput.trim();
+                          if (v && !images.includes(v)) setImages((prev) => [...prev, v]);
+                          setImgInput("");
+                        }
+                      }}
+                      placeholder="…или вставьте URL изображения" className={inputCls} />
+                    <button type="button" onClick={() => {
                         const v = imgInput.trim();
                         if (v && !images.includes(v)) setImages((prev) => [...prev, v]);
                         setImgInput("");
-                      }
-                    }}
-                    placeholder="https://example.com/image.jpg" className={inputCls} />
-                  <button type="button" onClick={() => {
-                      const v = imgInput.trim();
-                      if (v && !images.includes(v)) setImages((prev) => [...prev, v]);
-                      setImgInput("");
-                    }} disabled={!imgInput.trim()}
-                    className="shrink-0 rounded-lg border border-[var(--c-border2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:opacity-50">
-                    Добавить
-                  </button>
+                      }} disabled={!imgInput.trim()}
+                      className="shrink-0 rounded-lg border border-[var(--c-border2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:opacity-50">
+                      По URL
+                    </button>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-[var(--c-text3)]">Загрузка файлов появится после подключения хранилища — пока добавляйте по URL.</p>
+                {uploadError && <p className="mt-1 text-xs text-[var(--c-red)]">{uploadError}</p>}
+                <p className="mt-1 text-xs text-[var(--c-text3)]">Поддерживаются изображения до 8 МБ. Первое — главное.</p>
               </div>
               <div>
                 <Lbl required>Категория</Lbl>
