@@ -31,6 +31,7 @@ import {
 import { useInventory } from "@/contexts/InventoryContext";
 import { StockStatusBadge, POStatusBadge } from "./StockStatusBadge";
 import { cn, formatRUB } from "@/lib/utils";
+import { InsightsPanel } from "@/components/inventory/InsightsPanel";
 import { computePnL, costLookupFromProducts } from "@/lib/inventory/finance";
 import { computeAlerts } from "@/lib/inventory/alerts";
 
@@ -251,6 +252,9 @@ export function InventoryOverview() {
           </span>
         </div>
       </div>
+
+      {/* ── AI insights ─────────────────────────────────────────────────── */}
+      <InsightsPanel />
 
       {/* ── Quick actions (mobile only — desktop uses shell top bar) ────────── */}
       <div className="flex flex-wrap gap-2 lg:hidden">

@@ -219,3 +219,27 @@ html, body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+/* TipTap (rich-text editor) content — keeps headings/lists/quotes legible. */
+.tiptap { line-height: 1.5; }
+.tiptap:focus { outline: none; }
+.tiptap > * + * { margin-top: 0.5rem; }
+.tiptap h1 { font-size: 1.25rem; font-weight: 700; }
+.tiptap h2 { font-size: 1.05rem; font-weight: 700; }
+.tiptap h3 { font-size: 0.95rem; font-weight: 600; }
+.tiptap ul, .tiptap ol { padding-left: 1.25rem; }
+.tiptap ul { list-style: disc; }
+.tiptap ol { list-style: decimal; }
+.tiptap blockquote {
+  border-left: 3px solid var(--c-border2);
+  padding-left: 0.75rem;
+  color: var(--c-text2);
+}
+.tiptap code {
+  background: var(--c-bg2);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 0.9em;
+}
+.tiptap p:empty::before { content: ""; }

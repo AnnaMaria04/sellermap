@@ -38,6 +38,7 @@ import { useInventory } from "@/contexts/InventoryContext";
 import { STOCK_TERMS } from "@/components/inventory/ui/StockTerms";
 import { cn } from "@/lib/utils";
 import { computeProductMetrics, type ABCClass } from "@/lib/inventory/analytics";
+import { ElasticityPanel } from "@/components/inventory/ElasticityPanel";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -375,6 +376,9 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             </div>
           )}
+
+          {/* Price elasticity */}
+          <ElasticityPanel product={product} movements={allMovements} />
 
           {/* Movement history */}
           {movements.length > 0 && (

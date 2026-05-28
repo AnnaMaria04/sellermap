@@ -6,13 +6,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus, Upload, ChevronDown, AlertTriangle, Settings2, Download, Check } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, Upload, ChevronDown, AlertTriangle, Settings2, Download, Check, GripVertical } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
 import type { Product, ProductType, ProductStatus, ProductVariant, SalesChannel } from "@/mock/inventory";
 import { createClient } from "@/lib/supabase/client";
 import { usePackages } from "@/hooks/usePackages";
+import { RichTextEditor } from "@/components/inventory/RichTextEditor";
 
 /** Max upload size — keep the data round-trip snappy. */
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -201,6 +202,15 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
     setOptions((arr) => arr.length < MAX_OPTIONS
       ? [...arr.map((o) => ({ ...o, editing: false })), newOption()]
       : arr);
+  const reorderOptions = (from: number, to: number) =>
+    setOptions((arr) => {
+      if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
+      const next = arr.slice();
+      const [m] = next.splice(from, 1);
+      next.splice(to, 0, m);
+      return next;
+    });
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [existingVariants, setExistingVariants] = useState<ProductVariant[]>(initial?.variants ?? []);
 
   // Extra field state, seeded from initial when editing
@@ -591,8 +601,11 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
               </div>
               <div>
                 <Lbl>Описание</Lbl>
-                <textarea {...register("description")} rows={5} placeholder="Опишите товар…"
-                  className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]" />
+                <RichTextEditor
+                  value={watch("description") ?? ""}
+                  onChange={(html) => setValue("description", html, { shouldDirty: true })}
+                  placeholder="Опишите товар…"
+                />
               </div>
               <div>
                 <Lbl>Медиа</Lbl>
@@ -888,7 +901,19 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
               ) : (
                 <div className="space-y-3">
                   {options.map((opt, idx) => (
-                    <div key={opt.id} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                    <div key={opt.id}
+                      draggable={options.length > 1}
+                      onDragStart={() => setDragIdx(idx)}
+                      onDragOver={(e) => { e.preventDefault(); }}
+                      onDrop={() => { if (dragIdx !== null) reorderOptions(dragIdx, idx); setDragIdx(null); }}
+                      onDragEnd={() => setDragIdx(null)}
+                      className={`flex items-stretch rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] ${dragIdx === idx ? "opacity-50" : ""}`}>
+                      {options.length > 1 && (
+                        <div className="flex shrink-0 cursor-grab items-center justify-center px-1 text-[var(--c-text3)] hover:text-[var(--c-text2)] active:cursor-grabbing" title="Перетащите для сортировки">
+                          <GripVertical size={14} />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
                       {opt.editing ? (
                         <div className="space-y-3 p-4">
                           <div>
@@ -950,6 +975,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                           </div>
                         </button>
                       )}
+                      </div>
                     </div>
                   ))}
                   <div className="flex items-center gap-3">
