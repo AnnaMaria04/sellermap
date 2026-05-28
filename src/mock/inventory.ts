@@ -22,10 +22,13 @@ export interface Product {
   category: string; productType: ProductType; status: ProductStatus;
   sku: string; barcode?: string; internalBarcode?: string;
   hasVariants: boolean; variants: ProductVariant[];
-  price: number; costPrice: number; packagingCost?: number;
+  price: number; costPrice: number; compareAtPrice?: number; taxExempt?: boolean; packagingCost?: number;
   deliveryCost?: number; channelCommission?: number; margin?: number;
   supplierId?: string; channels: SalesChannel[]; tags: string[];
   channelAllocation?: Partial<Record<SalesChannel, number>>;
+  images?: string[];
+  sellWhenOOS?: boolean; posExcluded?: boolean;
+  seoTitle?: string; seoDescription?: string; slug?: string;
   requiresLabeling: boolean; labelingType?: "chestny_znak" | "egais" | "mercury";
   dataMatrixCode?: string; gtin?: string; batchNumber?: string; expiryDate?: string;
   weight?: number; dimensions?: { length: number; width: number; height: number };

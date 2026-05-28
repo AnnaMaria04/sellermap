@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle, Settings2 } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
@@ -22,8 +22,19 @@ const schema = z.object({
   price: z.number({ error: "Укажите цену" }).min(0),
   costPrice: z.number({ error: "Укажите себестоимость" }).min(0),
   description: z.string().optional(),
-  status: z.enum(["active", "draft"]),
+  status: z.enum(["active", "draft", "archived"]),
 });
+
+/** Latin-ish slug from a (possibly Cyrillic) product name. */
+const TRANSLIT: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "y",
+  к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f",
+  х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+};
+function slugify(s: string): string {
+  return s.toLowerCase().split("").map((c) => TRANSLIT[c] ?? c).join("")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
 
 type FormValues = z.infer<typeof schema>;
 
@@ -155,7 +166,6 @@ export default function NewProductPage() {
     },
   });
 
-  const imageUrlValue = watch("imageUrl");
   const skuValue = watch("sku");
   const priceValue = watch("price");
   const costValue = watch("costPrice");
@@ -179,10 +189,36 @@ export default function NewProductPage() {
   const [country, setCountry] = useState("");
   const [hsCode, setHsCode] = useState("");
 
+  // Media (multi-image): images[0] is primary. Real upload would go to Supabase
+  // Storage; for now we accept URLs and persist them in the product.
+  const [images, setImages] = useState<string[]>([]);
+  const [imgInput, setImgInput] = useState("");
+
+  // Price extras
+  const [compareAt, setCompareAt] = useState("");
+  const [chargeTax, setChargeTax] = useState(true);
+
+  // Inventory extras
+  const [sellWhenOOS, setSellWhenOOS] = useState(false);
+  const [posExcluded, setPosExcluded] = useState(false);
+
+  // Variant overrides keyed by combo string
+  const [variantOverrides, setVariantOverrides] = useState<Record<string, { sku?: string; price?: number; stock?: number }>>({});
+
+  // SEO
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [slugDraft, setSlugDraft] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  // Publishing modal
+  const [pubModalOpen, setPubModalOpen] = useState(false);
+
   // Collapsible "Подробнее" sections (Shopify pattern)
   const [priceMore, setPriceMore] = useState(false);
   const [invMore, setInvMore] = useState(false);
   const [shipMore, setShipMore] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(false);
 
   const toggleChannel = (ch: SalesChannel) =>
     setChannels((prev) => (prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]));
@@ -217,24 +253,28 @@ export default function NewProductPage() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     if (!skuTouchedRef.current && newName) setValue("sku", generateSku(newName), { shouldValidate: false });
+    if (!slugTouched && newName) setSlugDraft(slugify(newName));
   };
 
   // Unsaved-changes guard (RHF fields + the extra non-RHF state).
   const dirty = isDirty || channels.length > 0 || tags.length > 0 || requiresLabeling ||
-    variantEnabled || !!weight || !!supplierId || Object.values(stockByLocation).some((v) => v > 0);
+    variantEnabled || !!weight || !!supplierId || images.length > 0 ||
+    !!compareAt || !!seoTitle || !!seoDescription || !!slugDraft ||
+    Object.values(stockByLocation).some((v) => v > 0);
 
   const handleDiscard = () => {
     if (dirty && !window.confirm("Несохранённые изменения будут потеряны. Закрыть страницу?")) return;
     router.back();
   };
 
-  // Cmd/Ctrl+S saves.
+  // Cmd/Ctrl+S saves; Escape closes the publishing modal.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         formRef.current?.requestSubmit();
       }
+      if (e.key === "Escape") setPubModalOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -259,14 +299,18 @@ export default function NewProductPage() {
     let variants: ProductVariant[] = [];
     if (variantEnabled && combinations.length > 0 && !tooManyCombos) {
       hasVariants = true;
-      variants = displayedCombos.map((combo, i) => ({
-        id: `${id}-var-${i}`,
-        name: combo,
-        sku: `${sku}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`,
-        price: data.price,
-        costPrice: data.costPrice,
-        stock: {} as Record<string, number>,
-      }));
+      const defaultLoc = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? "loc-main";
+      variants = displayedCombos.map((combo, i) => {
+        const ov = variantOverrides[combo] ?? {};
+        return {
+          id: `${id}-var-${i}`,
+          name: combo,
+          sku: (ov.sku && ov.sku.trim()) || `${sku}-${combo.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}`,
+          price: ov.price ?? data.price,
+          costPrice: data.costPrice,
+          stock: ov.stock != null && ov.stock > 0 ? { [defaultLoc]: ov.stock } : {},
+        };
+      });
     }
 
     const initialStock: Record<string, number> = {};
@@ -276,18 +320,23 @@ export default function NewProductPage() {
       if (qty > 0) { initialStock[loc.id] = qty; totalPhysical += qty; }
     }
 
+    const primaryImage = images[0] || data.imageUrl || undefined;
+    const compareAtNum = compareAt ? Number(compareAt) : undefined;
     const newProduct: Product = {
       id,
       name: data.name,
       sku,
       barcode: data.barcode || undefined,
-      imageUrl: data.imageUrl || undefined,
+      imageUrl: primaryImage,
+      images: images.length > 0 ? images : undefined,
       category: data.category,
       productType: data.productType as ProductType,
       status: data.status as ProductStatus,
       description: data.description || undefined,
       price: data.price,
       costPrice: data.costPrice,
+      compareAtPrice: compareAtNum && compareAtNum > 0 ? compareAtNum : undefined,
+      taxExempt: !chargeTax,
       margin: marginVal,
       hasVariants,
       variants,
@@ -298,6 +347,11 @@ export default function NewProductPage() {
       weight: weightKg,
       countryOfOrigin: country.trim() || undefined,
       hsCode: hsCode.trim() || undefined,
+      sellWhenOOS: sellWhenOOS || undefined,
+      posExcluded: posExcluded || undefined,
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      slug: slugDraft.trim() || slugify(data.name) || undefined,
       ...(requiresLabeling ? { labelingType: "chestny_znak" as const, gtin: gtin || undefined } : {}),
       stockByLocation: initialStock,
       reservedUnits: 0,
@@ -360,23 +414,62 @@ export default function NewProductPage() {
                 />
               </div>
               <div>
-                <Lbl>Изображение (URL)</Lbl>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg3)]">
-                    {imageUrlValue ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={imageUrlValue} alt="Превью" className="h-full w-full object-cover" />
-                    ) : (
-                      <ImagePlus size={18} className="text-[var(--c-text3)]" />
-                    )}
+                <Lbl>Медиа</Lbl>
+                {images.length > 0 ? (
+                  <div className="mb-2 grid grid-cols-4 gap-2 sm:grid-cols-5">
+                    {images.map((url, i) => (
+                      <div key={url + i} className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Изображение ${i + 1}`} className="h-full w-full object-cover" />
+                        {i === 0 && (
+                          <span className="absolute left-1 top-1 rounded bg-[var(--c-bg)]/80 px-1.5 py-0.5 text-[10px] font-medium text-[var(--c-text)]">Главное</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                          aria-label="Удалить"
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div className="mb-2 flex items-center justify-center rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg3)] py-6 text-xs text-[var(--c-text3)]">
+                    <ImagePlus size={18} className="mr-2" /> Добавьте изображения по URL — первое будет главным
+                  </div>
+                )}
+                <div className="flex gap-2">
                   <input
                     type="text"
-                    {...register("imageUrl")}
+                    value={imgInput}
+                    onChange={(e) => setImgInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const v = imgInput.trim();
+                        if (v && !images.includes(v)) setImages((prev) => [...prev, v]);
+                        setImgInput("");
+                      }
+                    }}
                     placeholder="https://example.com/image.jpg"
                     className={inputCls}
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const v = imgInput.trim();
+                      if (v && !images.includes(v)) setImages((prev) => [...prev, v]);
+                      setImgInput("");
+                    }}
+                    disabled={!imgInput.trim()}
+                    className="shrink-0 rounded-lg border border-[var(--c-border2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)] disabled:opacity-50"
+                  >
+                    Добавить
+                  </button>
                 </div>
+                <p className="mt-1 text-xs text-[var(--c-text3)]">Загрузка файлов появится после подключения хранилища — пока добавляйте по URL.</p>
               </div>
               <div>
                 <Lbl required>Категория</Lbl>
@@ -403,13 +496,26 @@ export default function NewProductPage() {
                 {errors.price && <p className="mt-1 text-xs text-[var(--c-red)]">{errors.price.message}</p>}
               </div>
 
-              <Collapsible open={priceMore} onToggle={() => setPriceMore((v) => !v)} chips={["Себестоимость"]}>
-                <div className="w-1/2">
-                  <Lbl>Себестоимость, ₽</Lbl>
-                  <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
-                    title="Покупатели этого не видят" className={`${inputCls} tabular`} />
-                  <p className="mt-1 text-xs text-[var(--c-text3)]">Покупатели этого не видят — нужно для расчёта прибыли и P&amp;L.</p>
+              <Collapsible open={priceMore} onToggle={() => setPriceMore((v) => !v)} chips={["Себестоимость", "Старая цена", "Налог"]}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <Lbl>Себестоимость, ₽</Lbl>
+                    <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
+                      title="Покупатели этого не видят" className={`${inputCls} tabular`} />
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">Покупатели этого не видят — нужно для расчёта прибыли и P&amp;L.</p>
+                  </div>
+                  <div>
+                    <Lbl>Старая цена (зачёркнутая), ₽</Lbl>
+                    <input type="number" min={0} step="0.01" value={compareAt} onChange={(e) => setCompareAt(e.target.value)}
+                      placeholder="0.00" className={`${inputCls} tabular`} />
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">Показывается со зачёркиванием рядом с ценой. Для акций.</p>
+                  </div>
                 </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--c-text2)]">
+                  <input type="checkbox" checked={chargeTax} onChange={(e) => setChargeTax(e.target.checked)}
+                    className="h-4 w-4 rounded border-[var(--c-border2)] accent-[var(--c-green)]" />
+                  Облагается налогом
+                </label>
               </Collapsible>
 
               {/* Cost / Profit / Margin chips (always visible, Shopify style) */}
@@ -451,7 +557,7 @@ export default function NewProductPage() {
                   ))}
                 </div>
               </div>
-              <Collapsible open={invMore} onToggle={() => setInvMore((v) => !v)} chips={["SKU", "Штрихкод"]}>
+              <Collapsible open={invMore} onToggle={() => setInvMore((v) => !v)} chips={["SKU", "Штрихкод", "Продавать без остатка", "Скрыть из кассы"]}>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Lbl>Артикул (SKU)</Lbl>
@@ -463,6 +569,17 @@ export default function NewProductPage() {
                     <input type="text" {...register("barcode")} placeholder="необязательно" className={`${inputCls} font-mono`} />
                   </div>
                 </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--c-text2)]">
+                  <input type="checkbox" checked={sellWhenOOS} onChange={(e) => setSellWhenOOS(e.target.checked)}
+                    className="h-4 w-4 rounded border-[var(--c-border2)] accent-[var(--c-green)]" />
+                  Продавать при отсутствии на складе
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--c-text2)]">
+                  <input type="checkbox" checked={posExcluded} onChange={(e) => setPosExcluded(e.target.checked)}
+                    className="h-4 w-4 rounded border-[var(--c-border2)] accent-[var(--c-green)]" />
+                  Скрыть из кассы (POS)
+                  <span className="text-xs text-[var(--c-text3)]">— товар не появится в сетке POS</span>
+                </label>
               </Collapsible>
             </Card>
 
@@ -541,14 +658,95 @@ export default function NewProductPage() {
                       <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Варианты ({combinations.length})</p>
                       {tooManyCombos && <p className="mb-2 text-xs text-[var(--c-red)]">Слишком много комбинаций. Максимум 20.</p>}
                       {!tooManyCombos && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {displayedCombos.map((c, i) => (
-                            <span key={i} className="rounded-md bg-[var(--c-bg3)] px-2 py-1 text-xs text-[var(--c-text2)]">{c}</span>
-                          ))}
+                        <div className="overflow-x-auto rounded-lg border border-[var(--c-border)]">
+                          <table className="w-full min-w-[480px] text-sm">
+                            <thead className="bg-[var(--c-bg3)] text-left text-xs text-[var(--c-text3)]">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">Вариант</th>
+                                <th className="px-3 py-2 font-medium">SKU</th>
+                                <th className="px-3 py-2 text-right font-medium">Цена, ₽</th>
+                                <th className="px-3 py-2 text-right font-medium">Остаток</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {displayedCombos.map((c) => {
+                                const ov = variantOverrides[c] ?? {};
+                                const update = (patch: Partial<{ sku: string; price: number; stock: number }>) =>
+                                  setVariantOverrides((prev) => ({ ...prev, [c]: { ...(prev[c] ?? {}), ...patch } }));
+                                return (
+                                  <tr key={c} className="border-t border-[var(--c-border)]">
+                                    <td className="px-3 py-2 text-[var(--c-text)]">{c}</td>
+                                    <td className="px-3 py-2">
+                                      <input type="text" value={ov.sku ?? ""}
+                                        onChange={(e) => update({ sku: e.target.value })}
+                                        placeholder={skuValue ? `${skuValue}-${c.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}` : "авто"}
+                                        className="h-8 w-full rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 font-mono text-xs text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                      <input type="number" min={0} step="0.01" value={ov.price ?? ""}
+                                        onChange={(e) => update({ price: e.target.value ? Number(e.target.value) : undefined as unknown as number })}
+                                        placeholder={String(priceValue || 0)}
+                                        className="h-8 w-24 rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 text-right text-xs tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                      <input type="number" min={0} value={ov.stock ?? 0}
+                                        onChange={(e) => update({ stock: Math.max(0, Number(e.target.value) || 0) })}
+                                        className="h-8 w-20 rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 text-right text-xs tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
                   )}
+                </div>
+              )}
+            </Card>
+
+            {/* SEO */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--c-text)]">Сниппет в поиске</h2>
+                <button type="button" onClick={() => setSeoOpen((v) => !v)}
+                  className="text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
+                  {seoOpen ? "Свернуть" : "Изменить"}
+                </button>
+              </div>
+              {!seoOpen ? (
+                <p className="text-xs text-[var(--c-text3)]">
+                  Заполните заголовок и описание, чтобы увидеть, как товар появится в поиске.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <Lbl>Заголовок страницы</Lbl>
+                    <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)}
+                      placeholder="По умолчанию — название товара" className={inputCls} />
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">{seoTitle.length}/70</p>
+                  </div>
+                  <div>
+                    <Lbl>Мета-описание</Lbl>
+                    <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={3}
+                      placeholder="Короткое описание для поисковых систем"
+                      className="w-full resize-none rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">{seoDescription.length}/160</p>
+                  </div>
+                  <div>
+                    <Lbl>URL и slug</Lbl>
+                    <input type="text" value={slugDraft}
+                      onChange={(e) => { setSlugDraft(e.target.value); setSlugTouched(true); }}
+                      placeholder="auto-generated-from-name" className={`${inputCls} font-mono`} />
+                    <p className="mt-1 text-xs text-[var(--c-text3)]">/products/{slugDraft || "—"}</p>
+                  </div>
+                  {/* Google preview */}
+                  <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
+                    <p className="truncate text-[13px] text-[var(--c-blue)]">{(seoTitle || watch("name") || "Название товара")}</p>
+                    <p className="truncate text-xs text-[var(--c-green)]">sellermap.ru/products/{slugDraft || "товар"}</p>
+                    <p className="line-clamp-2 text-xs text-[var(--c-text2)]">{seoDescription || watch("description") || "Описание появится здесь…"}</p>
+                  </div>
                 </div>
               )}
             </Card>
@@ -584,29 +782,26 @@ export default function NewProductPage() {
               <select {...register("status")} className={inputCls}>
                 <option value="active">Активный</option>
                 <option value="draft">Черновик</option>
+                <option value="archived">В архиве</option>
               </select>
             </Card>
 
-            <Card title="Публикация">
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--c-text)]">Публикация</h2>
+                <button type="button" onClick={() => setPubModalOpen(true)}
+                  aria-label="Управление каналами"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]">
+                  <Settings2 size={15} />
+                </button>
+              </div>
               <p className="text-xs text-[var(--c-text2)]">
                 {channels.length === 0
                   ? "Каналы не выбраны"
-                  : `Выбрано каналов: ${channels.length} — ${channels.map((c) => CHANNEL_LABELS[c]).join(", ")}`}
+                  : channels.length === Object.keys(CHANNEL_LABELS).length
+                    ? "Все каналы"
+                    : `${channels.length} канала: ${channels.map((c) => CHANNEL_LABELS[c]).join(", ")}`}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
-                  const active = channels.includes(ch);
-                  return (
-                    <button key={ch} type="button" onClick={() => toggleChannel(ch)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                        active ? "bg-[var(--c-green-dim)] text-[var(--c-green)]"
-                          : "border border-[var(--c-border2)] text-[var(--c-text2)] hover:text-[var(--c-text)]"
-                      }`}>
-                      {CHANNEL_LABELS[ch]}
-                    </button>
-                  );
-                })}
-              </div>
             </Card>
 
             <Card title="Организация">
@@ -656,6 +851,39 @@ export default function NewProductPage() {
             </Card>
           </div>
         </div>
+
+        {/* Manage publishing modal */}
+        {pubModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPubModalOpen(false)}>
+            <div className="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-[var(--c-border)] px-5 py-4">
+                <h3 className="text-base font-semibold text-[var(--c-text)]">Управление каналами</h3>
+                <button type="button" onClick={() => setPubModalOpen(false)} aria-label="Закрыть"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="space-y-2 p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-[var(--c-text3)]">Каналы продаж</p>
+                {(Object.keys(CHANNEL_LABELS) as SalesChannel[]).map((ch) => {
+                  const on = channels.includes(ch);
+                  return (
+                    <label key={ch} className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-2.5 transition hover:border-[var(--c-border2)]">
+                      <span className="text-sm text-[var(--c-text)]">{CHANNEL_LABELS[ch]}</span>
+                      <Toggle value={on} onChange={() => toggleChannel(ch)} />
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-[var(--c-border)] bg-[var(--c-bg)] px-5 py-3">
+                <button type="button" onClick={() => setPubModalOpen(false)}
+                  className="rounded-lg border border-[var(--c-border2)] px-4 py-1.5 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
+                  Готово
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sticky action bar */}
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-3 lg:pl-56">
