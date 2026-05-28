@@ -160,7 +160,10 @@ export async function GET(req: NextRequest) {
 
   for (const intg of (integrations as IntegrationRow[] | null) ?? []) {
     const creds = (intg.credentials ?? {}) as Json;
-    const autoSync = (creds._meta_auto_sync as boolean | undefined) !== false;
+    // `_meta_auto_sync` is persisted as a string ("true"/"false") by
+    // integrations-store, but defensively support a real boolean too.
+    const autoSyncFlag = creds._meta_auto_sync;
+    const autoSync = autoSyncFlag !== false && autoSyncFlag !== "false";
     if (!autoSync) {
       results.push({ kind: intg.kind, owner: intg.owner_id, status: "skipped", reason: "auto-sync off" });
       continue;
