@@ -105,8 +105,8 @@ export function InsightsPanel() {
         <div className="flex items-start gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3 text-xs text-[var(--c-text2)]">
           <Info size={14} className="mt-0.5 shrink-0 text-[var(--c-text3)]" />
           <div>
-            Подключите YandexGPT в переменных окружения (<code className="font-mono">YANDEX_AI_API_KEY</code>{" "}
-            и <code className="font-mono">YANDEX_FOLDER_ID</code>), чтобы получать автоматические рекомендации по выручке, остаткам, ценам и сезонности.
+            AI-анализ пока недоступен. Как только модель будет подключена, здесь появятся рекомендации
+            по выручке, остаткам, ценам и сезонности.
           </div>
         </div>
       )}
