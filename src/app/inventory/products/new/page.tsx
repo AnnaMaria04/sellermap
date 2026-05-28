@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus, ChevronDown } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
@@ -56,6 +56,14 @@ const CHESTNY_ZNAK_GROUPS = [
 
 function parseValues(raw: string): string[] {
   return raw.split(",").map((v) => v.trim()).filter(Boolean);
+}
+
+/** Margin quality label + color (SellerMap addition: instant pricing feedback). */
+function marginQuality(m: number): { label: string; cls: string } {
+  if (m < 20) return { label: "Низкая маржа", cls: "text-[var(--c-red)]" };
+  if (m < 40) return { label: "Средняя маржа", cls: "text-[var(--c-amber)]" };
+  if (m < 60) return { label: "Хорошая маржа", cls: "text-[var(--c-green)]" };
+  return { label: "Отличная маржа", cls: "text-[var(--c-green)]" };
 }
 
 function buildCombinations(options: OptionRow[]): string[] {
@@ -131,13 +139,14 @@ export default function NewProductPage() {
 
   const categories = Array.from(new Set(products.map((p) => p.category))).sort();
   const skuTouchedRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -209,6 +218,27 @@ export default function NewProductPage() {
     const newName = e.target.value;
     if (!skuTouchedRef.current && newName) setValue("sku", generateSku(newName), { shouldValidate: false });
   };
+
+  // Unsaved-changes guard (RHF fields + the extra non-RHF state).
+  const dirty = isDirty || channels.length > 0 || tags.length > 0 || requiresLabeling ||
+    variantEnabled || !!weight || !!supplierId || Object.values(stockByLocation).some((v) => v > 0);
+
+  const handleDiscard = () => {
+    if (dirty && !window.confirm("Несохранённые изменения будут потеряны. Закрыть страницу?")) return;
+    router.back();
+  };
+
+  // Cmd/Ctrl+S saves.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const combinations = buildCombinations(options);
   const tooManyCombos = combinations.length > 20;
@@ -289,7 +319,20 @@ export default function NewProductPage() {
 
   return (
     <InventoryShell title="Новый товар">
-      <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl pb-24">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl pb-24">
+        {Object.keys(errors).length > 0 && (
+          <div className="mb-4 rounded-xl border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.1)] px-4 py-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[var(--c-red)]">
+              <AlertTriangle size={15} /> Найдены ошибки ({Object.keys(errors).length}):
+            </p>
+            <ul className="mt-1 list-disc pl-8 text-sm text-[var(--c-text2)]">
+              {errors.name && <li>{errors.name.message}</li>}
+              {errors.category && <li>{errors.category.message}</li>}
+              {errors.price && <li>{errors.price.message}</li>}
+              {errors.costPrice && <li>{errors.costPrice.message}</li>}
+            </ul>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
           {/* ── Main column ─────────────────────────────────────────────── */}
@@ -364,8 +407,8 @@ export default function NewProductPage() {
                 <div className="w-1/2">
                   <Lbl>Себестоимость, ₽</Lbl>
                   <input type="number" min={0} step="0.01" {...register("costPrice", { valueAsNumber: true })}
-                    className={`${inputCls} tabular`} />
-                  <p className="mt-1 text-xs text-[var(--c-text3)]">Закупочная цена — нужна для расчёта прибыли и P&amp;L.</p>
+                    title="Покупатели этого не видят" className={`${inputCls} tabular`} />
+                  <p className="mt-1 text-xs text-[var(--c-text3)]">Покупатели этого не видят — нужно для расчёта прибыли и P&amp;L.</p>
                 </div>
               </Collapsible>
 
@@ -381,8 +424,11 @@ export default function NewProductPage() {
                 </span>
                 <span className="flex items-center gap-1.5 rounded-md bg-[var(--c-bg3)] px-2.5 py-1">
                   <span className="text-[var(--c-text3)]">Маржа</span>
-                  <span className={`tabular ${margin === null ? "text-[var(--c-text)]" : margin >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>{margin !== null ? `${margin}%` : "—"}</span>
+                  <span className={`tabular ${margin === null ? "text-[var(--c-text)]" : marginQuality(margin).cls}`}>{margin !== null ? `${margin}%` : "—"}</span>
                 </span>
+                {margin !== null && margin >= 0 && (
+                  <span className={`flex items-center px-1 text-xs font-medium ${marginQuality(margin).cls}`}>{marginQuality(margin).label}</span>
+                )}
               </div>
             </Card>
 
@@ -578,6 +624,16 @@ export default function NewProductPage() {
                   <option value="">Нет поставщика</option>
                   {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+                {(() => {
+                  const s = suppliers.find((x) => x.id === supplierId);
+                  if (!s) return null;
+                  return (
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 rounded-lg bg-[var(--c-bg3)] px-3 py-2 text-xs text-[var(--c-text2)]">
+                      <span>Срок поставки: <span className="text-[var(--c-text)]">{s.leadTimeDays} дн.</span></span>
+                      {s.minOrderQty != null && <span>Мин. заказ: <span className="text-[var(--c-text)]">{s.minOrderQty} шт.</span></span>}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <Lbl>Теги</Lbl>
@@ -604,7 +660,7 @@ export default function NewProductPage() {
         {/* Sticky action bar */}
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-3 lg:pl-56">
           <div className="mx-auto flex max-w-5xl items-center justify-end gap-3">
-            <button type="button" onClick={() => router.back()}
+            <button type="button" onClick={handleDiscard}
               className="flex h-10 items-center rounded-lg border border-[var(--c-border2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]">
               Отмена
             </button>
