@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -95,8 +95,11 @@ function buildCombinations(options: OptionDim[]): string[] {
   return combos;
 }
 
+// Inputs use the page background (whitest in light mode) for crisp Shopify-like
+// contrast against the bg2 cards, with a focused green ring instead of just a
+// border swap.
 const inputCls =
-  "h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)]";
+  "h-10 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none transition focus:border-[var(--c-green)] focus:ring-1 focus:ring-[var(--c-green)]";
 
 function Card({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
@@ -306,7 +309,37 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
   const [sellWhenOOS, setSellWhenOOS] = useState<boolean>(initial?.sellWhenOOS ?? false);
   const [posExcluded, setPosExcluded] = useState<boolean>(initial?.posExcluded ?? false);
 
-  const [variantOverrides, setVariantOverrides] = useState<Record<string, { sku?: string; price?: number; stock?: number }>>({});
+  const [variantOverrides, setVariantOverrides] = useState<Record<string, { sku?: string; price?: number; stock?: number; imageUrl?: string }>>({});
+  const [groupBy, setGroupBy] = useState<string>("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // Hidden file input shared by all per-variant image pickers.
+  const variantFileRef = useRef<HTMLInputElement>(null);
+  const pendingVariantUploadRef = useRef<string | null>(null);
+
+  async function uploadVariantImage(combo: string, file: File) {
+    setUploadError(null);
+    const supabase = createClient();
+    if (!supabase) { setUploadError("Хранилище недоступно"); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploadError("Войдите, чтобы загружать изображения"); return; }
+    if (file.size > MAX_UPLOAD_BYTES) { setUploadError(`Файл слишком большой (>${MAX_UPLOAD_BYTES / 1024 / 1024} МБ)`); return; }
+    if (!file.type.startsWith("image/")) { setUploadError("Не изображение"); return; }
+    setUploading(true);
+    try {
+      const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
+      const path = `${user.id}/variants/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safeName}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, file, {
+        cacheControl: "31536000", contentType: file.type, upsert: false,
+      });
+      if (error) { setUploadError(error.message); return; }
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      if (data.publicUrl) {
+        setVariantOverrides((prev) => ({ ...prev, [combo]: { ...(prev[combo] ?? {}), imageUrl: data.publicUrl } }));
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const [seoTitle, setSeoTitle] = useState<string>(initial?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState<string>(initial?.seoDescription ?? "");
@@ -419,6 +452,13 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
 
   const combinations = buildCombinations(options);
   const tooManyCombos = combinations.length > 20;
+
+  // Default the group-by axis to the first option dimension.
+  useEffect(() => {
+    const validNames = options.map((o) => o.name.trim()).filter(Boolean);
+    if (validNames.length === 0) return;
+    if (!groupBy || !validNames.includes(groupBy)) setGroupBy(validNames[0]);
+  }, [options, groupBy]);
   const displayedCombos = combinations.slice(0, 20);
 
   const margin = priceValue > 0 && costValue >= 0 ? Math.round(((priceValue - costValue) / priceValue) * 1000) / 10 : null;
@@ -452,6 +492,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
           price: ov.price ?? data.price,
           costPrice: data.costPrice,
           stock: ov.stock != null && ov.stock > 0 ? { [defaultLoc]: ov.stock } : {},
+          imageUrl: ov.imageUrl,
         };
       });
     } else {
@@ -789,9 +830,10 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
               </div>
               {physical && (
                 <>
-                  <div>
-                    <Lbl>Упаковка</Lbl>
-                    <div className="flex gap-2">
+                  {/* Package + weight in a single Shopify-style row */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
+                    <div>
+                      <Lbl>Упаковка</Lbl>
                       <select value={packageId} onChange={(e) => {
                           if (e.target.value === "__add__") { setPkgModalOpen(true); return; }
                           setPackageId(e.target.value);
@@ -805,28 +847,28 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                         ))}
                         <option value="__add__">＋ Добавить упаковку…</option>
                       </select>
+                      {packageId && (() => {
+                        const p = packages.find((x) => x.id === packageId);
+                        if (!p) return null;
+                        const dims = p.length && p.width && p.height ? `${p.length} × ${p.width} × ${p.height} см` : null;
+                        return (
+                          <p className="mt-1 text-xs text-[var(--c-text3)]">
+                            {dims ?? "Размеры не указаны"}{p.weight ? ` · вес упаковки ${p.weight} кг` : ""}
+                          </p>
+                        );
+                      })()}
                     </div>
-                    {packageId && (() => {
-                      const p = packages.find((x) => x.id === packageId);
-                      if (!p) return null;
-                      const dims = p.length && p.width && p.height ? `${p.length} × ${p.width} × ${p.height} см` : null;
-                      return (
-                        <p className="mt-1 text-xs text-[var(--c-text3)]">
-                          {dims ?? "Размеры не указаны"}{p.weight ? ` · вес упаковки ${p.weight} кг` : ""}
-                        </p>
-                      );
-                    })()}
-                  </div>
-                  <div>
-                    <Lbl>Вес товара</Lbl>
-                    <div className="flex gap-2">
-                      <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
-                        placeholder="0.0" className={`${inputCls} tabular w-40`} />
-                      <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as "кг" | "г")}
-                        className="h-10 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]">
-                        <option value="кг">кг</option>
-                        <option value="г">г</option>
-                      </select>
+                    <div>
+                      <Lbl>Вес товара</Lbl>
+                      <div className="flex gap-1">
+                        <input type="number" min={0} step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)}
+                          placeholder="0.0" className={`${inputCls} tabular w-28`} />
+                        <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as "кг" | "г")}
+                          className="h-10 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)] focus:ring-1 focus:ring-[var(--c-green)]">
+                          <option value="кг">кг</option>
+                          <option value="г">г</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                   <Collapsible open={shipMore} onToggle={() => setShipMore((v) => !v)} chips={["Страна происхождения", "ТН ВЭД / HS"]}>
@@ -929,14 +971,20 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                               {opt.values.map((val, vidx) => (
                                 <div key={vidx} className="flex items-center gap-2">
                                   <input type="text" value={val}
+                                    data-opt={opt.id} data-vidx={vidx}
                                     onChange={(e) => updateValue(opt.id, vidx, e.target.value)}
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter" && val.trim()) {
-                                        e.preventDefault();
-                                        if (vidx === opt.values.length - 1) {
-                                          updateOption(opt.id, { values: [...opt.values, ""] });
-                                        }
-                                      }
+                                      if (e.key !== "Enter" || !val.trim()) return;
+                                      e.preventDefault();
+                                      const isLast = vidx === opt.values.length - 1;
+                                      if (isLast) updateOption(opt.id, { values: [...opt.values, ""] });
+                                      // Focus the next input after React reconciles.
+                                      requestAnimationFrame(() => {
+                                        const next = document.querySelector<HTMLInputElement>(
+                                          `input[data-opt="${opt.id}"][data-vidx="${vidx + 1}"]`,
+                                        );
+                                        next?.focus();
+                                      });
                                     }}
                                     placeholder={vidx === opt.values.length - 1 ? "Добавить значение" : ""}
                                     className={inputCls} />
@@ -988,54 +1036,156 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                     <button type="button" onClick={() => { setVariantEnabled(false); setOptions([]); }}
                       className="text-xs font-medium text-[var(--c-text3)] hover:text-[var(--c-red)]">Убрать варианты</button>
                   </div>
-                  {combinations.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-xs font-medium text-[var(--c-text2)]">Варианты ({combinations.length})</p>
-                      {tooManyCombos && <p className="mb-2 text-xs text-[var(--c-red)]">Слишком много комбинаций. Максимум 20.</p>}
-                      {!tooManyCombos && (
-                        <div className="overflow-x-auto rounded-lg border border-[var(--c-border)]">
-                          <table className="w-full min-w-[480px] text-sm">
+                  {combinations.length > 0 && (() => {
+                    if (tooManyCombos) {
+                      return <p className="text-xs text-[var(--c-red)]">Слишком много комбинаций. Максимум 20.</p>;
+                    }
+                    const validNames = options.map((o) => o.name.trim()).filter(Boolean);
+                    const groupIdx = Math.max(0, validNames.indexOf(groupBy));
+                    const groupable = validNames.length > 1;
+                    // Group combos by the chosen dimension's value.
+                    const groups = new Map<string, string[]>();
+                    if (groupable) {
+                      for (const c of displayedCombos) {
+                        const parts = c.split(" / ");
+                        const key = parts[groupIdx] ?? c;
+                        const arr = groups.get(key) ?? [];
+                        arr.push(c);
+                        groups.set(key, arr);
+                      }
+                    }
+                    const updateCombo = (c: string, patch: Partial<{ price: number; stock: number; imageUrl: string }>) =>
+                      setVariantOverrides((prev) => ({ ...prev, [c]: { ...(prev[c] ?? {}), ...patch } }));
+                    const triggerVariantUpload = (combo: string) => {
+                      pendingVariantUploadRef.current = combo;
+                      variantFileRef.current?.click();
+                    };
+
+                    const renderRow = (combo: string, label: string, sub = false) => {
+                      const ov = variantOverrides[combo] ?? {};
+                      const imgUrl = ov.imageUrl;
+                      return (
+                        <tr key={combo} className={`border-t border-[var(--c-border)] ${sub ? "bg-[var(--c-bg)]" : ""}`}>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-3">
+                              {sub && <span className="ml-3 text-[var(--c-text3)]">└</span>}
+                              <button type="button" onClick={() => triggerVariantUpload(combo)}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg)] text-[var(--c-text3)] transition hover:border-[var(--c-green)] hover:text-[var(--c-green)]">
+                                {imgUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={imgUrl} alt={label} className="h-full w-full object-cover" />
+                                ) : (
+                                  <ImagePlus size={14} />
+                                )}
+                              </button>
+                              <span className="text-sm text-[var(--c-text)]">{label}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <input type="number" min={0} step="0.01" value={ov.price ?? ""}
+                              onChange={(e) => updateCombo(combo, { price: e.target.value ? Number(e.target.value) : undefined as unknown as number })}
+                              placeholder={String(priceValue || 0)}
+                              className="h-9 w-28 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-2 text-right text-sm tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)] focus:ring-1 focus:ring-[var(--c-green)]" />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <input type="number" min={0} value={ov.stock ?? 0}
+                              onChange={(e) => updateCombo(combo, { stock: Math.max(0, Number(e.target.value) || 0) })}
+                              className="h-9 w-24 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-2 text-right text-sm tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)] focus:ring-1 focus:ring-[var(--c-green)]" />
+                          </td>
+                        </tr>
+                      );
+                    };
+
+                    return (
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium text-[var(--c-text2)]">Варианты ({combinations.length})</p>
+                          {groupable && (
+                            <div className="flex items-center gap-2 text-xs text-[var(--c-text2)]">
+                              <span>Группировать по</span>
+                              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}
+                                className="h-8 rounded-md border border-[var(--c-border2)] bg-[var(--c-bg)] px-2 text-xs text-[var(--c-text)] outline-none focus:border-[var(--c-green)]">
+                                {validNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                        <div className="overflow-hidden rounded-lg border border-[var(--c-border)]">
+                          <table className="w-full text-sm">
                             <thead className="bg-[var(--c-bg3)] text-left text-xs text-[var(--c-text3)]">
                               <tr>
                                 <th className="px-3 py-2 font-medium">Вариант</th>
-                                <th className="px-3 py-2 font-medium">SKU</th>
-                                <th className="px-3 py-2 text-right font-medium">Цена, ₽</th>
+                                <th className="px-3 py-2 text-right font-medium">Цена</th>
                                 <th className="px-3 py-2 text-right font-medium">Остаток</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {displayedCombos.map((c) => {
-                                const ov = variantOverrides[c] ?? {};
-                                const update = (patch: Partial<{ sku: string; price: number; stock: number }>) =>
-                                  setVariantOverrides((prev) => ({ ...prev, [c]: { ...(prev[c] ?? {}), ...patch } }));
+                              {!groupable && displayedCombos.map((c) => renderRow(c, c))}
+                              {groupable && [...groups.entries()].map(([key, items]) => {
+                                const isOpen = expandedGroups.has(key);
+                                const toggle = () => setExpandedGroups((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key); else next.add(key);
+                                  return next;
+                                });
+                                const groupStock = items.reduce((s, c) => s + (variantOverrides[c]?.stock ?? 0), 0);
+                                const firstOv = variantOverrides[items[0]] ?? {};
                                 return (
-                                  <tr key={c} className="border-t border-[var(--c-border)]">
-                                    <td className="px-3 py-2 text-[var(--c-text)]">{c}</td>
-                                    <td className="px-3 py-2">
-                                      <input type="text" value={ov.sku ?? ""} onChange={(e) => update({ sku: e.target.value })}
-                                        placeholder={skuValue ? `${skuValue}-${c.replace(/[^A-Za-z0-9]/g, "-").toUpperCase()}` : "авто"}
-                                        className="h-8 w-full rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 font-mono text-xs text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
-                                    </td>
-                                    <td className="px-3 py-2 text-right">
-                                      <input type="number" min={0} step="0.01" value={ov.price ?? ""}
-                                        onChange={(e) => update({ price: e.target.value ? Number(e.target.value) : undefined as unknown as number })}
-                                        placeholder={String(priceValue || 0)}
-                                        className="h-8 w-24 rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 text-right text-xs tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
-                                    </td>
-                                    <td className="px-3 py-2 text-right">
-                                      <input type="number" min={0} value={ov.stock ?? 0}
-                                        onChange={(e) => update({ stock: Math.max(0, Number(e.target.value) || 0) })}
-                                        className="h-8 w-20 rounded border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 text-right text-xs tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)]" />
-                                    </td>
-                                  </tr>
+                                  <Fragment key={key}>
+                                    <tr className="border-t border-[var(--c-border)] cursor-pointer hover:bg-[var(--c-bg3)]/40" onClick={toggle}>
+                                      <td className="px-3 py-2">
+                                        <div className="flex items-center gap-3">
+                                          <ChevronDown size={14} className={`text-[var(--c-text3)] transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                                          <button type="button" onClick={(e) => { e.stopPropagation(); triggerVariantUpload(items[0]); }}
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[var(--c-border2)] bg-[var(--c-bg)] text-[var(--c-text3)] transition hover:border-[var(--c-green)] hover:text-[var(--c-green)]">
+                                            {firstOv.imageUrl ? (
+                                              // eslint-disable-next-line @next/next/no-img-element
+                                              <img src={firstOv.imageUrl} alt={key} className="h-full w-full object-cover" />
+                                            ) : (
+                                              <ImagePlus size={14} />
+                                            )}
+                                          </button>
+                                          <div>
+                                            <p className="text-sm font-medium text-[var(--c-text)]">{key}</p>
+                                            <p className="text-xs text-[var(--c-text3)]">{items.length} {items.length === 1 ? "вариант" : "вариантов"}</p>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                                        <input type="number" min={0} step="0.01"
+                                          value={firstOv.price ?? ""}
+                                          onChange={(e) => {
+                                            const v = e.target.value ? Number(e.target.value) : undefined as unknown as number;
+                                            // Bulk-set price on every sub-variant.
+                                            setVariantOverrides((prev) => {
+                                              const next = { ...prev };
+                                              for (const c of items) next[c] = { ...(next[c] ?? {}), price: v };
+                                              return next;
+                                            });
+                                          }}
+                                          placeholder={String(priceValue || 0)}
+                                          className="h-9 w-28 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-2 text-right text-sm tabular text-[var(--c-text)] outline-none focus:border-[var(--c-green)] focus:ring-1 focus:ring-[var(--c-green)]" />
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-[var(--c-text2)] tabular">{groupStock}</td>
+                                    </tr>
+                                    {isOpen && items.map((c) => renderRow(c, c.split(" / ").filter((_, i) => i !== groupIdx).join(" / ") || c, true))}
+                                  </Fragment>
                                 );
                               })}
                             </tbody>
                           </table>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <input ref={variantFileRef} type="file" accept="image/*" className="hidden"
+                          onChange={(e) => {
+                            const combo = pendingVariantUploadRef.current;
+                            const f = e.target.files?.[0];
+                            if (combo && f) void uploadVariantImage(combo, f);
+                            pendingVariantUploadRef.current = null;
+                            if (variantFileRef.current) variantFileRef.current.value = "";
+                          }} />
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </Card>

@@ -15,6 +15,7 @@ export type SalesChannel = "pos" | "website" | "telegram" | "delivery" | "wildbe
 export interface ProductVariant {
   id: string; name: string; sku: string; barcode?: string;
   price: number; costPrice: number; stock: Record<string, number>; weight?: number;
+  imageUrl?: string;
 }
 
 export interface Product {
