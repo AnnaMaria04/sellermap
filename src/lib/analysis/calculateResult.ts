@@ -202,33 +202,10 @@ export function generateChecklist(
   return items;
 }
 
-export function generateAiInsights(
-  margin: MarginAnalysis,
-  packaging: PackagingAnalysis,
-): AiInsights {
-  return {
-    good: [
-      "Есть спрос в среднем ценовом сегменте.",
-      "Конкуренты часто проигрывают в описании и инфографике.",
-    ],
-    blockers: [
-      margin.marginPercent < 22
-        ? "Маржа ниже безопасного уровня при росте рекламы."
-        : "Маржа рабочая, но требует контроля рекламного резерва.",
-      packaging.riskLevel === "high"
-        ? "Упаковка может съесть прибыль при возвратах."
-        : "Логистика управляемая, но тарифы нужно сверить.",
-    ],
-    beforePurchase: [
-      "Проверить MOQ, вес и размер короба у поставщика.",
-      "Сверить комиссию и логистику WB на дату запуска.",
-    ],
-    firstTest: [
-      "Запустить тест 30-50 единиц с ценой в безопасном диапазоне.",
-      "Проверить CTR главного фото до масштабирования рекламы.",
-    ],
-  };
-}
+/** Empty insight slate. Real bullet points come from the LLM via
+ *  /api/analysis/product-insights, fetched by the AiInsights component. The
+ *  calculator stays pure and free of placeholder copy. */
+const EMPTY_INSIGHTS: AiInsights = { good: [], blockers: [], beforePurchase: [], firstTest: [] };
 
 export function calculateResult(input: RawResultInput): ProductResult {
   const margin = calculateMargin(input.marginInput);
@@ -272,7 +249,7 @@ export function calculateResult(input: RawResultInput): ProductResult {
     margin,
     packaging,
     cardAudit,
-    aiInsights: generateAiInsights(margin, packaging),
+    aiInsights: EMPTY_INSIGHTS,
     checklist: generateChecklist(margin, packaging),
     supplier: {
       ...input.supplier,
