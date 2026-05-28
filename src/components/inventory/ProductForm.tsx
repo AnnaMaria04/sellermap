@@ -42,7 +42,17 @@ function slugify(s: string): string {
 
 type FormValues = z.infer<typeof schema>;
 
-interface OptionRow { name: string; values: string }
+/** One option dimension (e.g. "Size" with values ["S","M","L"]).
+ *  Shopify pattern: each value is its own input row, with edit/done mode. */
+interface OptionDim { id: string; name: string; values: string[]; editing: boolean }
+
+const MAX_OPTIONS = 3;
+const newOption = (): OptionDim => ({
+  id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  name: "",
+  values: [""],
+  editing: true,
+});
 
 function generateSku(name: string): string {
   const base = name.toUpperCase().replace(/[^A-ZА-Я0-9]/g, "").slice(0, 4) || "SKU";
@@ -62,10 +72,6 @@ const CHESTNY_ZNAK_GROUPS = [
   "Ветеринарные препараты", "Икра",
 ];
 
-function parseValues(raw: string): string[] {
-  return raw.split(",").map((v) => v.trim()).filter(Boolean);
-}
-
 function marginQuality(m: number): { label: string; cls: string } {
   if (m < 20) return { label: "Низкая маржа", cls: "text-[var(--c-red)]" };
   if (m < 40) return { label: "Средняя маржа", cls: "text-[var(--c-amber)]" };
@@ -73,13 +79,17 @@ function marginQuality(m: number): { label: string; cls: string } {
   return { label: "Отличная маржа", cls: "text-[var(--c-green)]" };
 }
 
-function buildCombinations(options: OptionRow[]): string[] {
-  const validOptions = options.filter((o) => o.name.trim() && o.values.trim());
-  if (validOptions.length === 0) return [];
-  const parsed = validOptions.map((o) => parseValues(o.values));
-  if (parsed.length === 1) return parsed[0].map((v) => v);
-  const combos: string[] = [];
-  for (const v1 of parsed[0]) for (const v2 of parsed[1]) combos.push(`${v1} / ${v2}`);
+function buildCombinations(options: OptionDim[]): string[] {
+  const valid = options
+    .map((o) => ({ name: o.name.trim(), vals: o.values.map((v) => v.trim()).filter(Boolean) }))
+    .filter((o) => o.name && o.vals.length > 0);
+  if (valid.length === 0) return [];
+  let combos: string[] = valid[0].vals.slice();
+  for (let i = 1; i < valid.length; i++) {
+    const next: string[] = [];
+    for (const a of combos) for (const b of valid[i].vals) next.push(`${a} / ${b}`);
+    combos = next;
+  }
   return combos;
 }
 
@@ -169,7 +179,27 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
   // Variant state — on edit we show existing variants as an editable list;
   // on create the option builder produces combinations.
   const [variantEnabled, setVariantEnabled] = useState<boolean>(!!initial?.hasVariants);
-  const [options, setOptions] = useState<OptionRow[]>([{ name: "", values: "" }]);
+  const [options, setOptions] = useState<OptionDim[]>([]);
+
+  // Helpers for the Shopify-style option editor.
+  const updateOption = (id: string, patch: Partial<OptionDim>) =>
+    setOptions((arr) => arr.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const updateValue = (id: string, idx: number, value: string) =>
+    setOptions((arr) => arr.map((o) => o.id === id ? {
+      ...o,
+      // Auto-grow: when the user types into the trailing empty row, add a new empty row.
+      values: idx === o.values.length - 1 && value && !o.values[idx]
+        ? [...o.values.slice(0, idx), value, ""]
+        : o.values.map((v, i) => (i === idx ? value : v)),
+    } : o));
+  const removeValue = (id: string, idx: number) =>
+    setOptions((arr) => arr.map((o) => o.id === id ? { ...o, values: o.values.filter((_, i) => i !== idx) } : o));
+  const removeOption = (id: string) =>
+    setOptions((arr) => arr.filter((o) => o.id !== id));
+  const addOption = () =>
+    setOptions((arr) => arr.length < MAX_OPTIONS
+      ? [...arr.map((o) => ({ ...o, editing: false })), newOption()]
+      : arr);
   const [existingVariants, setExistingVariants] = useState<ProductVariant[]>(initial?.variants ?? []);
 
   // Extra field state, seeded from initial when editing
@@ -790,32 +820,87 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                     </table>
                   </div>
                 </div>
-              ) : !variantEnabled ? (
-                <button type="button" onClick={() => setVariantEnabled(true)}
+              ) : !variantEnabled || options.length === 0 ? (
+                <button type="button" onClick={() => { setVariantEnabled(true); setOptions([newOption()]); }}
                   className="flex items-center gap-2 text-sm font-medium text-[var(--c-green)] hover:opacity-80">
-                  <Plus size={15} /> Добавить опции: размер, цвет и т.п.
+                  <Plus size={15} /> Добавить опции: размер, цвет, материал
                 </button>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {options.map((opt, idx) => (
-                    <div key={idx} className="grid grid-cols-2 gap-2">
-                      <input type="text" value={opt.name}
-                        onChange={(e) => { const n = [...options]; n[idx] = { ...n[idx], name: e.target.value }; setOptions(n); }}
-                        placeholder={idx === 0 ? "Размер" : "Цвет"} className={inputCls} />
-                      <input type="text" value={opt.values}
-                        onChange={(e) => { const n = [...options]; n[idx] = { ...n[idx], values: e.target.value }; setOptions(n); }}
-                        placeholder={idx === 0 ? "S, M, L, XL" : "Красный, Синий"} className={inputCls} />
+                    <div key={opt.id} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)]">
+                      {opt.editing ? (
+                        <div className="space-y-3 p-4">
+                          <div>
+                            <Lbl>Название опции</Lbl>
+                            <input type="text" value={opt.name}
+                              onChange={(e) => updateOption(opt.id, { name: e.target.value })}
+                              placeholder={idx === 0 ? "Размер" : idx === 1 ? "Цвет" : "Материал"}
+                              className={inputCls} autoFocus />
+                          </div>
+                          <div>
+                            <Lbl>Значения</Lbl>
+                            <div className="space-y-2">
+                              {opt.values.map((val, vidx) => (
+                                <div key={vidx} className="flex items-center gap-2">
+                                  <input type="text" value={val}
+                                    onChange={(e) => updateValue(opt.id, vidx, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && val.trim()) {
+                                        e.preventDefault();
+                                        if (vidx === opt.values.length - 1) {
+                                          updateOption(opt.id, { values: [...opt.values, ""] });
+                                        }
+                                      }
+                                    }}
+                                    placeholder={vidx === opt.values.length - 1 ? "Добавить значение" : ""}
+                                    className={inputCls} />
+                                  {opt.values.length > 1 && (vidx < opt.values.length - 1 || val.trim()) && (
+                                    <button type="button" onClick={() => removeValue(opt.id, vidx)}
+                                      aria-label="Удалить значение"
+                                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg2)] hover:text-[var(--c-red)]">
+                                      <X size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 border-t border-[var(--c-border)] pt-3">
+                            <button type="button" onClick={() => removeOption(opt.id)}
+                              className="text-sm font-medium text-[var(--c-red)] hover:opacity-80">
+                              Удалить
+                            </button>
+                            <button type="button"
+                              onClick={() => updateOption(opt.id, { editing: false, values: opt.values.filter((v) => v.trim()) })}
+                              disabled={!opt.name.trim() || !opt.values.some((v) => v.trim())}
+                              className="rounded-lg bg-[var(--c-text)] px-4 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
+                              Готово
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => updateOption(opt.id, { editing: true })}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--c-bg2)]">
+                          <span className="text-sm font-medium text-[var(--c-text)] w-24 shrink-0">{opt.name || "Без названия"}</span>
+                          <div className="flex flex-1 flex-wrap gap-1.5">
+                            {opt.values.filter((v) => v.trim()).map((v, i) => (
+                              <span key={i} className="rounded-md bg-[var(--c-bg2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text2)]">{v}</span>
+                            ))}
+                          </div>
+                        </button>
+                      )}
                     </div>
                   ))}
                   <div className="flex items-center gap-3">
-                    {options.length < 2 && (
-                      <button type="button" onClick={() => setOptions([...options, { name: "", values: "" }])}
-                        className="flex items-center gap-1.5 text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
-                        <Plus size={12} /> Добавить опцию
+                    {options.length < MAX_OPTIONS && (
+                      <button type="button" onClick={addOption}
+                        className="flex items-center gap-1.5 text-sm font-medium text-[var(--c-green)] hover:opacity-80">
+                        <Plus size={14} /> Добавить ещё опцию
                       </button>
                     )}
-                    <button type="button" onClick={() => { setVariantEnabled(false); setOptions([{ name: "", values: "" }]); }}
-                      className="text-xs font-medium text-[var(--c-red)] hover:opacity-80">Убрать варианты</button>
+                    <button type="button" onClick={() => { setVariantEnabled(false); setOptions([]); }}
+                      className="text-xs font-medium text-[var(--c-text3)] hover:text-[var(--c-red)]">Убрать варианты</button>
                   </div>
                   {combinations.length > 0 && (
                     <div>
