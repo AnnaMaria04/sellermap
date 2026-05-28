@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle, Settings2 } from "lucide-react";
+import { Loader2, Plus, X, ImagePlus, ChevronDown, AlertTriangle, Settings2, Download, Check } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
@@ -204,6 +204,45 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
   const [slugTouched, setSlugTouched] = useState<boolean>(!!initial?.slug);
 
   const [pubModalOpen, setPubModalOpen] = useState(false);
+
+  // WB import (create mode): paste a WB URL or article → prefill name/price/image.
+  const [wbOpen, setWbOpen] = useState(false);
+  const [wbInput, setWbInput] = useState("");
+  const [wbLoading, setWbLoading] = useState(false);
+  const [wbResult, setWbResult] = useState<{ ok: boolean; message?: string } | null>(null);
+
+  async function importFromWb() {
+    setWbLoading(true);
+    setWbResult(null);
+    try {
+      const res = await fetch("/api/integrations/wb/card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: wbInput }),
+      });
+      const d = await res.json() as {
+        ok: boolean; message?: string; nmId?: number; name?: string; brand?: string;
+        category?: string; price?: number; images?: string[]; description?: string;
+      };
+      if (!d.ok) { setWbResult({ ok: false, message: d.message ?? "Не удалось загрузить" }); return; }
+      if (d.name) setValue("name", d.name, { shouldValidate: false });
+      if (d.category) setValue("category", d.category, { shouldValidate: false });
+      if (typeof d.price === "number" && d.price > 0) setValue("price", d.price, { shouldValidate: false });
+      if (d.description) setValue("description", d.description, { shouldValidate: false });
+      if (d.images && d.images.length > 0) setImages((prev) => [...new Set([...prev, ...d.images!])]);
+      if (d.nmId) {
+        if (!skuTouchedRef.current) setValue("sku", `WB-${d.nmId}`, { shouldValidate: false });
+        setChannels((prev) => prev.includes("wildberries") ? prev : [...prev, "wildberries"]);
+        if (d.brand) setTags((prev) => prev.includes(d.brand!) ? prev : [...prev, d.brand!]);
+      }
+      setWbResult({ ok: true });
+    } catch (e) {
+      setWbResult({ ok: false, message: e instanceof Error ? e.message : "Ошибка" });
+    } finally {
+      setWbLoading(false);
+    }
+  }
+
   const [priceMore, setPriceMore] = useState(false);
   const [invMore, setInvMore] = useState(false);
   const [shipMore, setShipMore] = useState(false);
@@ -389,6 +428,39 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
   return (
     <InventoryShell title={title} subtitle={subtitle}>
       <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl pb-24">
+        {!isEdit && (
+          <div className="mb-4 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
+            <button type="button" onClick={() => setWbOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm">
+              <span className="flex items-center gap-2 font-medium text-[var(--c-text)]">
+                <Download size={14} className="text-[var(--c-purple,#a259ff)]" />
+                Импорт с Wildberries — заполнить из URL карточки
+              </span>
+              <ChevronDown size={16} className={`text-[var(--c-text3)] transition-transform ${wbOpen ? "rotate-180" : ""}`} />
+            </button>
+            {wbOpen && (
+              <div className="border-t border-[var(--c-border)] p-4">
+                <div className="flex flex-wrap gap-2">
+                  <input type="text" value={wbInput} onChange={(e) => setWbInput(e.target.value)}
+                    placeholder="https://www.wildberries.ru/catalog/123456789/detail.aspx — или просто артикул"
+                    className={`${inputCls} flex-1 min-w-[260px]`} />
+                  <button type="button" onClick={importFromWb} disabled={!wbInput.trim() || wbLoading}
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-50">
+                    {wbLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    Импортировать
+                  </button>
+                </div>
+                {wbResult && (
+                  <p className={`mt-2 flex items-center gap-1.5 text-xs ${wbResult.ok ? "text-[var(--c-green)]" : "text-[var(--c-red)]"}`}>
+                    {wbResult.ok ? <><Check size={12} /> Данные с WB подставлены ниже — проверьте и сохраните.</> : <>{wbResult.message}</>}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-[var(--c-text3)]">Подставит название, категорию, цену, изображения и описание. Себестоимость нужно заполнить вручную — она не публикуется на WB.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {Object.keys(errors).length > 0 && (
           <div className="mb-4 rounded-xl border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.1)] px-4 py-3">
             <p className="flex items-center gap-2 text-sm font-semibold text-[var(--c-red)]">
