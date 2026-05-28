@@ -254,6 +254,11 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
           : o,
       );
 
+      // Latest purchase cost per product, taken from the PO lines. Receiving a
+      // line refreshes the product's себестоимость so P&L/forecasts stay correct
+      // without any manual upkeep (the seller just orders stock as usual).
+      const costByProduct = new Map(po.items.map((i) => [i.productId, i.unitCost]));
+
       // Apply stock deltas
       let products = state.products;
       const movements: StockMovement[] = [];
@@ -262,9 +267,16 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
         const product = products.find((p) => p.id === productId);
         if (!product) continue;
         const before = (product.stockByLocation[locationId] ?? 0) + product.inTransitUnits;
-        products = products.map((p) =>
-          p.id === productId ? applyStockDelta(p, locationId, qty) : p,
-        );
+        const newCost = costByProduct.get(productId);
+        products = products.map((p) => {
+          if (p.id !== productId) return p;
+          const next = applyStockDelta(p, locationId, qty);
+          if (newCost != null && newCost > 0 && newCost !== p.costPrice) {
+            const margin = next.price > 0 ? Math.round(((next.price - newCost) / next.price) * 1000) / 10 : next.margin;
+            return { ...next, costPrice: newCost, margin };
+          }
+          return next;
+        });
         const after = (products.find((p) => p.id === productId)?.stockByLocation[locationId] ?? 0);
         movements.push({
           id: uid("mv"),
