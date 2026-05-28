@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { yandexComplete, yandexConfigured } from "@/lib/integrations/yandexAi";
+import { aiComplete, aiConfigured, aiProviderName } from "@/lib/integrations/aiProvider";
 import { SYSTEM_PROMPT, buildUserPrompt, parseInsights, type InsightSummary } from "@/lib/ai/insights";
 
 export async function POST(req: NextRequest) {
-  if (!yandexConfigured()) {
+  if (!aiConfigured()) {
     return NextResponse.json({
       ok: false,
       configured: false,
-      message: "YandexGPT не настроен — добавьте YANDEX_AI_API_KEY и YANDEX_FOLDER_ID",
+      message: "AI-провайдер не настроен",
     });
   }
 
@@ -17,11 +17,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, configured: true, message: "Нет данных для анализа" });
   }
 
-  const text = await yandexComplete(SYSTEM_PROMPT, prompt, { temperature: 0.4, maxTokens: 800 });
+  const text = await aiComplete(SYSTEM_PROMPT, prompt, { temperature: 0.4, maxTokens: 800 });
   if (!text) {
-    return NextResponse.json({ ok: false, configured: true, message: "Не удалось получить ответ от YandexGPT" });
+    return NextResponse.json({
+      ok: false, configured: true,
+      message: `Не удалось получить ответ от ${aiProviderName() ?? "AI"}`,
+    });
   }
 
   const insights = parseInsights(text);
-  return NextResponse.json({ ok: true, configured: true, insights });
+  return NextResponse.json({ ok: true, configured: true, provider: aiProviderName(), insights });
 }

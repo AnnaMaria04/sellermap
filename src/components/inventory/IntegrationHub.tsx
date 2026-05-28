@@ -26,6 +26,7 @@ import {
   type SyncLogEntry,
 } from "@/lib/integrations/types";
 import { useInventory } from "@/contexts/InventoryContext";
+import { channelForKind, toProduct } from "@/lib/integrations/mapping";
 import { type Product, type SalesChannel, type Order } from "@/mock/inventory";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -109,46 +110,6 @@ function nowStamp(): string {
   return new Date().toISOString().slice(0, 16).replace("T", " ");
 }
 
-/** Map a marketplace channel kind to an internal SalesChannel where possible. */
-function channelForKind(kind: ChannelKind): SalesChannel[] {
-  if (kind === "wildberries" || kind === "ozon" || kind === "yandex_market") return [kind];
-  return [];
-}
-
-/** Build a minimal-but-valid Product from a pulled external product. */
-function toProduct(raw: RawExternalProduct, kind: ChannelKind): Product {
-  const today = new Date().toISOString().split("T")[0];
-  const stock = raw.stock ?? 0;
-  const channels = channelForKind(kind);
-  // Imported products sell 100% through the source channel by default, so the
-  // channel-allocation view reflects them immediately after sync.
-  const channelAllocation = channels.length === 1 ? { [channels[0]]: 100 } : undefined;
-  return {
-    id: `imp-${kind}-${raw.externalId}`,
-    name: raw.name,
-    imageUrl: raw.imageUrl,
-    category: raw.category?.trim() || "Без категории",
-    productType: "product",
-    status: "active",
-    sku: raw.sku ?? raw.externalId,
-    barcode: raw.barcode,
-    hasVariants: false,
-    variants: [],
-    price: raw.price ?? 0,
-    costPrice: 0,
-    channels,
-    channelAllocation,
-    tags: ["импорт", kind],
-    requiresLabeling: false,
-    createdAt: today,
-    updatedAt: today,
-    stockByLocation: stock > 0 ? { "loc-main": stock } : {},
-    reservedUnits: 0,
-    damagedUnits: 0,
-    inTransitUnits: 0,
-    totalPhysical: stock,
-  };
-}
 
 /** Convert component-local ConnectedIntegration to the DB-persisted shape. */
 function toPersistedIntegration(ci: ConnectedIntegration): PersistedIntegration {

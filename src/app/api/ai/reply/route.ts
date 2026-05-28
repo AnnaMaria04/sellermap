@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { yandexComplete, yandexConfigured } from "@/lib/integrations/yandexAi";
+import { aiComplete, aiConfigured } from "@/lib/integrations/aiProvider";
 
-// Drafts a polite Russian reply to a WB review or question via YandexGPT (RU
-// LLM — compliant + reliable for Russian users). Degrades gracefully (ok:false)
-// when YANDEX_AI_API_KEY / YANDEX_FOLDER_ID are absent so the UI can fall back
-// to a manual reply.
+// Drafts a polite Russian reply to a WB review or question. Uses the active AI
+// provider (DeepSeek by default, YandexGPT fallback). Degrades gracefully
+// (ok:false) when nothing is configured so the UI can fall back to a manual
+// reply.
 export async function POST(req: NextRequest) {
-  if (!yandexConfigured()) {
+  if (!aiConfigured()) {
     return NextResponse.json(
-      { ok: false, message: "ИИ не настроен — добавьте YANDEX_AI_API_KEY и YANDEX_FOLDER_ID" },
+      { ok: false, message: "ИИ не настроен" },
       { status: 200 },
     );
   }
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join("\n");
 
-  const reply = await yandexComplete(system, user, { temperature: 0.5, maxTokens: 400 });
+  const reply = await aiComplete(system, user, { temperature: 0.5, maxTokens: 400 });
   if (!reply) {
     return NextResponse.json({ ok: false, message: "Не удалось сгенерировать ответ" }, { status: 200 });
   }
