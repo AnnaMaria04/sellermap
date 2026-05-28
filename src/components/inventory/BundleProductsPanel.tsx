@@ -177,27 +177,22 @@ export function BundleProductsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--c-text)]">Комплекты и наборы</h2>
-          <p className="text-sm text-[var(--c-text3)] mt-0.5">Управление составными товарами и наборами</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setAutoAssembly(v => !v)}
-            className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
-          >
-            {autoAssembly ? <ToggleRight size={16} className="text-[var(--c-green)]" /> : <ToggleLeft size={16} />}
-            Авто-сборка
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
-          >
-            <Plus size={15} />
-            Создать комплект
-          </button>
-        </div>
+      {/* Toolbar — page title comes from InventoryShell header */}
+      <div className="flex items-center justify-end gap-3">
+        <button
+          onClick={() => setAutoAssembly(v => !v)}
+          className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+        >
+          {autoAssembly ? <ToggleRight size={16} className="text-[var(--c-green)]" /> : <ToggleLeft size={16} />}
+          Авто-сборка
+        </button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+        >
+          <Plus size={15} />
+          Создать комплект
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
