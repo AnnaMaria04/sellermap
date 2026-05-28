@@ -10,7 +10,7 @@ import type {
   ScoreStatus,
 } from "./types";
 
-function scoreStatus(score: number): ScoreStatus {
+export function scoreStatus(score: number): ScoreStatus {
   if (score >= 78) return "сильный";
   if (score >= 58) return "средний";
   if (score >= 42) return "риск";

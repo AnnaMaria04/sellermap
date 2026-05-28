@@ -1,8 +1,8 @@
 "use client";
 
 import { Camera, FileText, HelpCircle, Image, ListChecks, Loader2, MessageSquare, SearchCheck, Sparkles, Tags, WalletCards } from "lucide-react";
-import { useState } from "react";
-import type { ProductResult } from "@/lib/analysis/types";
+import { useEffect, useState } from "react";
+import type { CardAuditItem, ProductResult } from "@/lib/analysis/types";
 import { Card } from "@/components/ui/card";
 import { statusTone } from "./result-style";
 
@@ -19,6 +19,41 @@ export function CardAudit({ result }: { result: ProductResult }) {
   const [generated, setGenerated] = useState<GeneratedCard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Real audit pulled from the DB (snapshots + keywords + market context).
+  // Falls back to result.cardAudit (seed) when the API has nothing.
+  const [items, setItems] = useState<CardAuditItem[]>(result.cardAudit);
+  const [auditState, setAuditState] = useState<"idle" | "loading" | "error">("idle");
+  const [auditMessage, setAuditMessage] = useState<string | null>(null);
+  const [auditSource, setAuditSource] = useState<"db" | "seed">("seed");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!result.nmId) return;
+    setAuditState("loading");
+    setAuditMessage(null);
+    fetch(`/api/analysis/card-audit?nmId=${encodeURIComponent(result.nmId)}`)
+      .then(async (r) => {
+        const d = (await r.json()) as { ok: boolean; items?: CardAuditItem[]; message?: string; meta?: { snapshotCount?: number } };
+        if (cancelled) return;
+        if (!d.ok) {
+          setAuditState("error");
+          setAuditMessage(d.message ?? "не удалось загрузить аудит");
+          return;
+        }
+        if (d.items && d.items.length > 0 && (d.meta?.snapshotCount ?? 0) > 0) {
+          setItems(d.items);
+          setAuditSource("db");
+        }
+        setAuditState("idle");
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setAuditState("error");
+        setAuditMessage(e instanceof Error ? e.message : "сетевая ошибка");
+      });
+    return () => { cancelled = true; };
+  }, [result.nmId]);
 
   async function generateCard() {
     setLoading(true);
@@ -37,7 +72,7 @@ export function CardAudit({ result }: { result: ProductResult }) {
             weakness: item.weakness,
             insight: item.aiInsight,
           })),
-          auditNotes: result.cardAudit
+          auditNotes: items
             .map((item) => `${item.label}: ${item.explanation}. Действие: ${item.action}`)
             .join("\n"),
         }),
@@ -61,9 +96,23 @@ export function CardAudit({ result }: { result: ProductResult }) {
         <p className="mt-3 text-sm text-[var(--c-text2)]">
           Что мешает конверсии и поисковому трафику.
         </p>
+        {auditState === "loading" && (
+          <p className="mt-2 inline-flex items-center gap-2 text-xs text-[var(--c-text3)]">
+            <Loader2 size={12} className="animate-spin" /> Считаю по снимкам wb_product_snapshots…
+          </p>
+        )}
+        {auditState === "error" && (
+          <p className="mt-2 text-xs text-[var(--c-amber)]">Не удалось загрузить реальный аудит: {auditMessage}. Показываю демо.</p>
+        )}
+        {auditState === "idle" && auditSource === "db" && (
+          <p className="mt-2 text-xs text-[var(--c-green)]">Аудит посчитан по реальным снимкам карточки.</p>
+        )}
+        {auditState === "idle" && auditSource === "seed" && (
+          <p className="mt-2 text-xs text-[var(--c-text3)]">Снимков по этой карточке пока нет — показываем демо-аудит.</p>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        {result.cardAudit.map((item, index) => {
+        {items.map((item, index) => {
           const Icon = icons[index] ?? ListChecks;
           return (
             <div key={item.label} className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] p-3">
