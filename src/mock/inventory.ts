@@ -33,6 +33,7 @@ export interface Product {
   dataMatrixCode?: string; gtin?: string; batchNumber?: string; expiryDate?: string;
   weight?: number; dimensions?: { length: number; width: number; height: number };
   countryOfOrigin?: string; hsCode?: string;
+  packageId?: string;
   createdAt: string; updatedAt: string;
   stockByLocation: Record<string, number>;
   reservedUnits: number; damagedUnits: number; inTransitUnits: number; totalPhysical: number;

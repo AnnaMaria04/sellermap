@@ -12,6 +12,7 @@ import { useInventory } from "@/contexts/InventoryContext";
 import { CHANNEL_LABELS } from "@/mock/inventory";
 import type { Product, ProductType, ProductStatus, ProductVariant, SalesChannel } from "@/mock/inventory";
 import { createClient } from "@/lib/supabase/client";
+import { usePackages } from "@/hooks/usePackages";
 
 /** Max upload size — keep the data round-trip snappy. */
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -221,6 +222,36 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
   const [country, setCountry] = useState<string>(initial?.countryOfOrigin ?? "");
   const [hsCode, setHsCode] = useState<string>(initial?.hsCode ?? "");
 
+  // Packages — reusable shipping containers stored per browser.
+  const { packages, addPackage } = usePackages();
+  const [packageId, setPackageId] = useState<string>(initial?.packageId ?? "");
+  const [pkgModalOpen, setPkgModalOpen] = useState(false);
+  const [pkgForm, setPkgForm] = useState({ name: "", length: "", width: "", height: "", weight: "", isDefault: false });
+
+  function savePackage() {
+    if (!pkgForm.name.trim()) return;
+    const created = addPackage({
+      name: pkgForm.name.trim(),
+      length: pkgForm.length ? Number(pkgForm.length) : undefined,
+      width: pkgForm.width ? Number(pkgForm.width) : undefined,
+      height: pkgForm.height ? Number(pkgForm.height) : undefined,
+      weight: pkgForm.weight ? Number(pkgForm.weight) : undefined,
+      isDefault: pkgForm.isDefault,
+    });
+    setPackageId(created.id);
+    setPkgModalOpen(false);
+    setPkgForm({ name: "", length: "", width: "", height: "", weight: "", isDefault: false });
+  }
+
+  // Auto-pick the default package when none is selected on a fresh form.
+  useEffect(() => {
+    if (!packageId && !isEdit) {
+      const def = packages.find((p) => p.isDefault);
+      if (def) setPackageId(def.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packages.length]);
+
   const [images, setImages] = useState<string[]>(initial?.images ?? (initial?.imageUrl ? [initial.imageUrl] : []));
   const [imgInput, setImgInput] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -370,7 +401,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
         e.preventDefault();
         formRef.current?.requestSubmit();
       }
-      if (e.key === "Escape") setPubModalOpen(false);
+      if (e.key === "Escape") { setPubModalOpen(false); setPkgModalOpen(false); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -448,6 +479,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
       weight: weightKg,
       countryOfOrigin: country.trim() || undefined,
       hsCode: hsCode.trim() || undefined,
+      packageId: packageId || undefined,
       sellWhenOOS: sellWhenOOS || undefined,
       posExcluded: posExcluded || undefined,
       seoTitle: seoTitle.trim() || undefined,
@@ -744,6 +776,34 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
               </div>
               {physical && (
                 <>
+                  <div>
+                    <Lbl>Упаковка</Lbl>
+                    <div className="flex gap-2">
+                      <select value={packageId} onChange={(e) => {
+                          if (e.target.value === "__add__") { setPkgModalOpen(true); return; }
+                          setPackageId(e.target.value);
+                        }}
+                        className={inputCls}>
+                        <option value="">Без упаковки по умолчанию</option>
+                        {packages.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}{p.length && p.width && p.height ? ` · ${p.length}×${p.width}×${p.height} см` : ""}{p.isDefault ? " · по умолчанию" : ""}
+                          </option>
+                        ))}
+                        <option value="__add__">＋ Добавить упаковку…</option>
+                      </select>
+                    </div>
+                    {packageId && (() => {
+                      const p = packages.find((x) => x.id === packageId);
+                      if (!p) return null;
+                      const dims = p.length && p.width && p.height ? `${p.length} × ${p.width} × ${p.height} см` : null;
+                      return (
+                        <p className="mt-1 text-xs text-[var(--c-text3)]">
+                          {dims ?? "Размеры не указаны"}{p.weight ? ` · вес упаковки ${p.weight} кг` : ""}
+                        </p>
+                      );
+                    })()}
+                  </div>
                   <div>
                     <Lbl>Вес товара</Lbl>
                     <div className="flex gap-2">
@@ -1126,6 +1186,64 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                 <button type="button" onClick={() => setPubModalOpen(false)}
                   className="rounded-lg border border-[var(--c-border2)] px-4 py-1.5 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
                   Готово
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add package modal */}
+        {pkgModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPkgModalOpen(false)}>
+            <div className="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-[var(--c-border)] px-5 py-4">
+                <h3 className="text-base font-semibold text-[var(--c-text)]">Новая упаковка</h3>
+                <button type="button" onClick={() => setPkgModalOpen(false)} aria-label="Закрыть"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--c-text3)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="space-y-4 p-5">
+                <div>
+                  <Lbl required>Название</Lbl>
+                  <input type="text" value={pkgForm.name} onChange={(e) => setPkgForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Например: Стандартная коробка" className={inputCls} autoFocus />
+                </div>
+                <div>
+                  <Lbl>Размеры, см</Lbl>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input type="number" min={0} step="0.1" value={pkgForm.length}
+                      onChange={(e) => setPkgForm((f) => ({ ...f, length: e.target.value }))}
+                      placeholder="Длина" className={`${inputCls} tabular`} />
+                    <input type="number" min={0} step="0.1" value={pkgForm.width}
+                      onChange={(e) => setPkgForm((f) => ({ ...f, width: e.target.value }))}
+                      placeholder="Ширина" className={`${inputCls} tabular`} />
+                    <input type="number" min={0} step="0.1" value={pkgForm.height}
+                      onChange={(e) => setPkgForm((f) => ({ ...f, height: e.target.value }))}
+                      placeholder="Высота" className={`${inputCls} tabular`} />
+                  </div>
+                </div>
+                <div>
+                  <Lbl>Вес упаковки, кг (необязательно)</Lbl>
+                  <input type="number" min={0} step="0.01" value={pkgForm.weight}
+                    onChange={(e) => setPkgForm((f) => ({ ...f, weight: e.target.value }))}
+                    placeholder="0.0" className={`${inputCls} tabular w-40`} />
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--c-text2)]">
+                  <input type="checkbox" checked={pkgForm.isDefault}
+                    onChange={(e) => setPkgForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                    className="h-4 w-4 rounded border-[var(--c-border2)] accent-[var(--c-green)]" />
+                  Использовать как упаковку по умолчанию
+                </label>
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-[var(--c-border)] bg-[var(--c-bg)] px-5 py-3">
+                <button type="button" onClick={() => setPkgModalOpen(false)}
+                  className="rounded-lg border border-[var(--c-border2)] px-4 py-1.5 text-sm font-medium text-[var(--c-text2)] hover:text-[var(--c-text)]">
+                  Отмена
+                </button>
+                <button type="button" onClick={savePackage} disabled={!pkgForm.name.trim()}
+                  className="rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-50">
+                  Сохранить
                 </button>
               </div>
             </div>
