@@ -26,7 +26,7 @@ export function PageEmptyState({
 }) {
   return (
     <div>
-      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] px-6 py-16">
+      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-6 py-16">
         <div className="mx-auto flex max-w-md flex-col items-center text-center">
           {illustration ?? <DocIllustration />}
           <h2 className="mt-6 text-lg font-semibold text-[var(--c-text)]">{title}</h2>

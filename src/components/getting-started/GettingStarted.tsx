@@ -38,7 +38,7 @@ export function GettingStarted() {
       <AskBar />
 
       {/* Main setup card */}
-      <section className="mt-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-5">
+      <section className="mt-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
         {/* Store name */}
         <div className="mb-5">
           {loading ? (
@@ -183,7 +183,7 @@ const HELP_LINKS = [
 function AskBar() {
   const [value, setValue] = useState("");
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-3">
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c-bg3)] text-[var(--c-text2)]">
         <Sparkles className="h-4 w-4" />
       </span>
@@ -224,7 +224,7 @@ function StoreName({ name, onRename }: { name: string; onRename: (n: string) => 
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => { onRename(draft); setEditing(false); }}
           placeholder="Название магазина"
-          className="rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-2.5 py-1 text-sm font-semibold text-[var(--c-text)] outline-none focus:border-[var(--c-blue)]"
+          className="rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1 text-sm font-semibold text-[var(--c-text)] outline-none focus:border-[var(--c-blue)]"
         />
         <button type="submit" className="rounded-md p-1 text-[var(--c-green)] hover:bg-[var(--c-bg3)]">
           <Check className="h-4 w-4" />
@@ -262,7 +262,7 @@ function PrimaryTile({
 }) {
   return (
     <div className="flex h-full flex-col rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
-      <div className={cn("mb-4 flex h-40 items-center justify-center overflow-hidden rounded-lg bg-[var(--c-bg)]", done && "opacity-60")}>
+      <div className={cn("mb-4 flex h-40 items-center justify-center overflow-hidden rounded-lg bg-[var(--c-bg2)]", done && "opacity-60")}>
         {illustration}
       </div>
       <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--c-text)]">

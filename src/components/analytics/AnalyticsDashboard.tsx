@@ -36,7 +36,7 @@ function dateLegend(r: DateRange): string {
 
 function Card({ title, children, className }: { title?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-5", className)}>
+    <div className={cn("rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5", className)}>
       {title && <div className="mb-3 text-sm">{title}</div>}
       {children}
     </div>

@@ -47,7 +47,7 @@ export default function InventoryLevelsPage() {
               className="w-full bg-transparent text-sm text-[var(--c-text)] outline-none placeholder:text-[var(--c-text3)]"
             />
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)]">
+          <div className="overflow-x-auto rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--c-border)] text-left text-xs uppercase text-[var(--c-text3)]">

@@ -8,13 +8,13 @@ export default function AbandonedCheckoutsPage() {
     <InventoryShell
       title="Брошенные корзины"
       actions={
-        <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
+        <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
           Действия
         </button>
       }
     >
       <div className="mx-auto max-w-[1040px]">
-        <div className="overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)]">
+        <div className="overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
           {/* Empty state */}
           <div className="flex items-center justify-between gap-6 px-8 py-10">
             <div className="max-w-md">
@@ -30,7 +30,7 @@ export default function AbandonedCheckoutsPage() {
           </div>
 
           {/* Recover-email footer */}
-          <div className="border-t border-[var(--c-border)] bg-[var(--c-bg2)] px-8 py-5">
+          <div className="border-t border-[var(--c-border)] bg-[var(--c-bg3)] px-8 py-5">
             <h3 className="text-sm font-semibold text-[var(--c-text)]">
               Восстанавливайте продажи письмом о брошенной корзине
             </h3>
@@ -38,7 +38,7 @@ export default function AbandonedCheckoutsPage() {
               Автоматическое письмо уже создано для вас. Уделите минуту, чтобы проверить
               текст, оформление и список получателей.
             </p>
-            <button className="mt-3 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
+            <button className="mt-3 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
               Проверить письмо
             </button>
           </div>

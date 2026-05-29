@@ -53,7 +53,7 @@ export function OrdersAnalyticsBar() {
   ];
 
   return (
-    <div className="mb-4 flex flex-wrap items-stretch gap-x-8 gap-y-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] px-4 py-3">
+    <div className="mb-4 flex flex-wrap items-stretch gap-x-8 gap-y-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-3">
       {/* Scope pill */}
       <div ref={ref} className="relative flex items-center">
         <button
@@ -68,7 +68,7 @@ export function OrdersAnalyticsBar() {
           <ChevronDown className={cn("h-3.5 w-3.5 text-[var(--c-text3)] transition", open && "rotate-180")} />
         </button>
         {open && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg)] p-1.5 shadow-xl">
+          <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-1.5 shadow-xl">
             {SCOPES.map((s) => (
               <button
                 key={s.id}

@@ -19,7 +19,7 @@ export function LiveView() {
   const money = (n: number) => formatMoney(n, DEFAULT_CURRENCY);
 
   const stat = (label: string, value: string, metricKey?: string) => (
-    <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4">
+    <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
       {metricKey ? <MetricInfo metric={METRICS[metricKey]} className="text-sm" /> : (
         <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">{label}</span>
       )}
@@ -50,7 +50,7 @@ export function LiveView() {
         {stat("Заказы", String(totals.orders), "orders")}
       </div>
 
-      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4">
+      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4">
         <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">Поведение клиентов</span>
         <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
           {[["Активные корзины", 0], ["Оформляют", 0], ["Купили", totals.orders]].map(([l, v]) => (
@@ -67,7 +67,7 @@ export function LiveView() {
         ["Новые и вернувшиеся клиенты"],
         ["Продажи по товарам"],
       ].map(([title]) => (
-        <div key={title} className={cn("rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4")}>
+        <div key={title} className={cn("rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-4")}>
           <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">{title}</span>
           <NoData />
         </div>

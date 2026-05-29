@@ -21,7 +21,7 @@ export default function ShippingLabelsPage() {
   return (
     <InventoryShell title="Этикетки доставки" actions={<MoreActions />}>
       <div className="mx-auto max-w-[1040px]">
-        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-8">
+        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-8">
           <div className="grid items-center gap-8 md:grid-cols-2">
             <div>
               <h2 className="text-lg font-semibold text-[var(--c-text)]">
@@ -80,7 +80,7 @@ export default function ShippingLabelsPage() {
 
 function MoreActions() {
   return (
-    <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
+    <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
       Действия
     </button>
   );

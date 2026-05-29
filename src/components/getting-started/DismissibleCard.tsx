@@ -21,7 +21,7 @@ export function DismissibleCard({
   return (
     <div
       className={cn(
-        "group/dismiss relative rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] transition hover:shadow-[0_1px_12px_rgba(0,0,0,0.06)]",
+        "group/dismiss relative rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] transition hover:shadow-[0_1px_12px_rgba(0,0,0,0.06)]",
         className,
       )}
     >

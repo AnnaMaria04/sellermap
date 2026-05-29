@@ -49,7 +49,7 @@ export function MetricInfo({
       {open && (
         <span
           role="tooltip"
-          className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg)] p-3 text-left shadow-lg"
+          className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-3 text-left shadow-lg"
           onMouseEnter={show}
           onMouseLeave={hide}
         >
