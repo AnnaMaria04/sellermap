@@ -32,6 +32,7 @@ import {
   FileText,
   Map,
   ShoppingCart,
+  Store,
   Calculator,
   Activity,
   Tag,
@@ -95,6 +96,7 @@ const NAV: NavSection[] = [
         ],
       },
       { label: "Скидки", href: "/inventory/promotions", icon: Tag },
+      { label: "Витрина", href: "/inventory/storefront", icon: Store },
       {
         label: "Аналитика", href: "/inventory/analytics", icon: BarChart3,
         children: [
