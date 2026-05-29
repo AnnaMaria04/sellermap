@@ -8,6 +8,7 @@ import { SeasonalityPanel } from "@/components/inventory/SeasonalityPanel";
 import { WriteOffPanel } from "@/components/inventory/WriteOffPanel";
 import { CostAnalysisPanel } from "@/components/inventory/CostAnalysisPanel";
 import { ReplenishmentRules } from "@/components/inventory/ReplenishmentRules";
+import { ReplenishmentEnginePanel } from "@/components/inventory/ReplenishmentEnginePanel";
 import { ExpiryTracker } from "@/components/inventory/ExpiryTracker";
 import { TurnoverAnalysis } from "@/components/inventory/TurnoverAnalysis";
 import { SalesChartPanel } from "@/components/inventory/SalesChartPanel";
@@ -58,6 +59,7 @@ export default function InventoryAnalyticsPage() {
         <div className="space-y-8">
           <SeasonalityPanel />
           <DemandForecast />
+          <ReplenishmentEnginePanel />
           <ReplenishmentRules />
         </div>
       )}

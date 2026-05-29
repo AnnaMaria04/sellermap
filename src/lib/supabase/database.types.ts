@@ -348,6 +348,62 @@ export type Database = {
           },
         ]
       }
+      enrichment_jobs: {
+        Row: {
+          attempts: number
+          check_id: string
+          created_at: string
+          dedupe_key: string
+          error: string | null
+          id: string
+          org_id: string | null
+          payload: Json
+          priority: string
+          result: Json | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          check_id: string
+          created_at?: string
+          dedupe_key: string
+          error?: string | null
+          id?: string
+          org_id?: string | null
+          payload?: Json
+          priority?: string
+          result?: Json | null
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          check_id?: string
+          created_at?: string
+          dedupe_key?: string
+          error?: string | null
+          id?: string
+          org_id?: string | null
+          payload?: Json
+          priority?: string
+          result?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_categories: {
         Row: {
           id: string
