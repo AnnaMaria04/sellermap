@@ -5,6 +5,8 @@ import { ChevronDown, Check } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { OrdersPanel } from "@/components/inventory/OrdersPanel";
 import { OrdersAnalyticsBar } from "@/components/analytics/OrdersAnalyticsBar";
+import { PageEmptyState } from "@/components/inventory/PageEmptyState";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 
 function MoreActions({ showBar, onToggleBar }: { showBar: boolean; onToggleBar: () => void }) {
@@ -46,6 +48,8 @@ function MoreActions({ showBar, onToggleBar }: { showBar: boolean; onToggleBar: 
 
 export default function OrdersPage() {
   const [showBar, setShowBar] = useState(false);
+  const { ready, orders } = useInventory();
+  const isEmpty = ready && orders.length === 0;
 
   return (
     <InventoryShell
@@ -54,7 +58,19 @@ export default function OrdersPage() {
       actions={<MoreActions showBar={showBar} onToggleBar={() => setShowBar((v) => !v)} />}
     >
       {showBar && <OrdersAnalyticsBar />}
-      <OrdersPanel />
+      {isEmpty ? (
+        <div className="mx-auto max-w-[1040px]">
+          <PageEmptyState
+            title="Здесь появятся ваши заказы"
+            description="Здесь вы будете выполнять заказы, принимать оплату и отслеживать их статусы."
+            actionLabel="Создать заказ"
+            actionHref="/inventory/orders/drafts/new"
+            learnMore="Подробнее о заказах"
+          />
+        </div>
+      ) : (
+        <OrdersPanel />
+      )}
     </InventoryShell>
   );
 }
