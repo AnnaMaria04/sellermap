@@ -19,94 +19,109 @@ export interface MetricDef {
 export const METRICS: Record<string, MetricDef> = {
   grossSales: {
     key: "grossSales",
-    title: "Gross sales",
-    description: "Sales before discounts, returns, taxes, and shipping.",
-    formula: "Gross sales = product price × quantity ordered",
+    title: "Валовые продажи",
+    description: "Продажи до вычета скидок, возвратов, налогов и доставки.",
+    formula: "Валовые продажи = цена товара × количество заказанного",
   },
   returningCustomerRate: {
     key: "returningCustomerRate",
-    title: "Returning customer rate",
-    description: "Percentage of customers who have placed more than one order.",
-    formula: "Returning customer rate = returning customers / total customers",
+    title: "Доля повторных клиентов",
+    description: "Процент клиентов, оформивших более одного заказа.",
+    formula: "Доля повторных клиентов = повторные клиенты / все клиенты",
   },
   ordersFulfilled: {
     key: "ordersFulfilled",
-    title: "Orders fulfilled",
-    description: "Number of orders that have been fully fulfilled.",
+    title: "Заказы выполнены",
+    description: "Количество полностью выполненных заказов.",
   },
   orders: {
     key: "orders",
-    title: "Orders",
-    description: "Number of orders placed during the selected period.",
+    title: "Заказы",
+    description: "Количество заказов за выбранный период.",
+  },
+  itemsOrdered: {
+    key: "itemsOrdered",
+    title: "Товаров заказано",
+    description: "Количество заказанных товаров, без учёта отменённого количества.",
+  },
+  ordersDelivered: {
+    key: "ordersDelivered",
+    title: "Заказы доставлены",
+    description: "Количество доставленных заказов.",
+  },
+  orderToFulfillment: {
+    key: "orderToFulfillment",
+    title: "Время до выполнения",
+    description: "Среднее время от оформления заказа до его выполнения.",
   },
   totalSales: {
     key: "totalSales",
-    title: "Total sales over time",
-    description: "Total sales, factoring in discounts, returns, shipping, and taxes.",
-    formula: "Total sales = gross sales − discounts − returns + shipping + taxes",
+    title: "Итоговые продажи",
+    description: "Итоговые продажи с учётом скидок, возвратов, доставки и налогов.",
+    formula: "Итоговые продажи = валовые продажи − скидки − возвраты + доставка + налоги",
   },
   discounts: {
     key: "discounts",
-    title: "Discounts",
-    description: "Total value of discounts applied to orders.",
+    title: "Скидки",
+    description: "Общая сумма скидок, применённых к заказам.",
   },
   returns: {
     key: "returns",
-    title: "Returns",
-    description: "Total value of items returned by customers.",
+    title: "Возвраты",
+    description: "Общая стоимость возвращённых клиентами товаров.",
   },
   netSales: {
     key: "netSales",
-    title: "Net sales",
-    description: "Sales after discounts and returns, before shipping and taxes.",
-    formula: "Net sales = gross sales − discounts − returns",
+    title: "Чистые продажи",
+    description: "Продажи после скидок и возвратов, до доставки и налогов.",
+    formula: "Чистые продажи = валовые продажи − скидки − возвраты",
   },
   shippingCharges: {
     key: "shippingCharges",
-    title: "Shipping charges",
-    description: "Total shipping charged to customers.",
+    title: "Доставка",
+    description: "Общая сумма доставки, выставленная клиентам.",
   },
   returnFees: {
     key: "returnFees",
-    title: "Return fees",
-    description: "Fees charged on returned orders.",
+    title: "Сборы за возврат",
+    description: "Сборы, начисленные по возвращённым заказам.",
   },
   taxes: {
     key: "taxes",
-    title: "Taxes",
-    description: "Total tax collected on orders.",
+    title: "Налоги",
+    description: "Общая сумма налогов по заказам.",
   },
   salesByChannel: {
     key: "salesByChannel",
-    title: "Total sales by sales channel",
-    description: "Total sales broken down by the channel the order came from.",
+    title: "Продажи по каналам",
+    description: "Итоговые продажи в разрезе канала, из которого пришёл заказ.",
   },
   averageOrderValue: {
     key: "averageOrderValue",
-    title: "Average order value over time",
-    description: "Average order value, factoring in discounts",
-    formula: "Average order value = (gross sales − discounts) / orders",
+    title: "Средний чек",
+    description: "Средняя стоимость заказа с учётом скидок",
+    formula: "Средний чек = (валовые продажи − скидки) / заказы",
   },
   salesByProduct: {
     key: "salesByProduct",
-    title: "Total sales by product",
-    description: "Total sales broken down by product.",
+    title: "Продажи по товарам",
+    description: "Итоговые продажи в разрезе товаров.",
   },
   sessions: {
     key: "sessions",
-    title: "Sessions over time",
-    description: "Number of sessions on your online store.",
+    title: "Сеансы",
+    description: "Количество сеансов в вашем интернет-магазине.",
   },
   conversionRate: {
     key: "conversionRate",
-    title: "Conversion rate over time",
-    description: "Percentage of sessions that resulted in a completed order.",
-    formula: "Conversion rate = orders / sessions × 100",
+    title: "Конверсия",
+    description: "Процент сеансов, завершившихся оформленным заказом.",
+    formula: "Конверсия = заказы / сеансы × 100",
   },
   conversionBreakdown: {
     key: "conversionBreakdown",
-    title: "Conversion rate breakdown",
-    description: "Funnel from sessions through to completed checkouts.",
+    title: "Воронка конверсии",
+    description: "Путь от сеансов до завершённых оформлений.",
   },
 };
 
@@ -188,6 +203,54 @@ export function computeSalesTotals(
     ordersFulfilled,
     averageOrderValue,
     returningCustomerRate,
+  };
+}
+
+export interface OrderStats {
+  orders: number;
+  itemsOrdered: number;
+  returnsValue: number;
+  ordersFulfilled: number;
+  ordersDelivered: number;
+  /** Average order→fulfillment time in hours, or null when unknown. */
+  fulfillmentHours: number | null;
+}
+
+/** Operational order metrics for the Orders analytics bar. */
+export function computeOrderStats(
+  orders: Order[],
+  returns: ProductReturn[],
+  start: Date,
+  end: Date,
+): OrderStats {
+  const scoped = orders.filter((o) => inRange(o.createdAt, start, end) && o.status !== "cancelled");
+  let itemsOrdered = 0;
+  let ordersFulfilled = 0;
+  let ordersDelivered = 0;
+  let fulfillSum = 0;
+  let fulfillCount = 0;
+
+  for (const o of scoped) {
+    itemsOrdered += o.items.reduce((s, it) => s + it.qty, 0);
+    if (FULFILLED_STATUSES.has(o.status)) ordersFulfilled++;
+    if (o.status === "delivered") ordersDelivered++;
+    if (o.shippedAt) {
+      fulfillSum += (new Date(o.shippedAt).getTime() - new Date(o.createdAt).getTime()) / 3600000;
+      fulfillCount++;
+    }
+  }
+
+  const returnsValue = returns
+    .filter((r) => inRange(r.createdAt, start, end))
+    .reduce((s, r) => s + (r.totalValue ?? 0), 0);
+
+  return {
+    orders: scoped.length,
+    itemsOrdered,
+    returnsValue,
+    ordersFulfilled,
+    ordersDelivered,
+    fulfillmentHours: fulfillCount > 0 ? fulfillSum / fulfillCount : null,
   };
 }
 

@@ -36,6 +36,7 @@ import {
   Megaphone,
   Gift,
   Boxes,
+  ChevronDown,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -56,45 +57,45 @@ type NavSection = { title?: string; items: NavItem[] };
 const NAV: NavSection[] = [
   {
     items: [
-      { label: "Home", href: "/inventory", icon: Home },
+      { label: "Главная", href: "/inventory", icon: Home },
       {
-        label: "Orders", href: "/inventory/orders", icon: ShoppingBag,
+        label: "Заказы", href: "/inventory/orders", icon: ShoppingBag,
         children: [
-          { label: "Drafts", href: "/inventory/orders/drafts" },
-          { label: "Shipping labels", href: "/inventory/orders/shipping-labels" },
-          { label: "Abandoned checkouts", href: "/inventory/orders/abandoned" },
+          { label: "Черновики", href: "/inventory/orders/drafts" },
+          { label: "Этикетки доставки", href: "/inventory/orders/shipping-labels" },
+          { label: "Брошенные корзины", href: "/inventory/orders/abandoned" },
         ],
       },
       {
-        label: "Products", href: "/inventory/products", icon: Package,
+        label: "Товары", href: "/inventory/products", icon: Package,
         children: [
-          { label: "Collections", href: "/inventory/products/collections" },
-          { label: "Inventory", href: "/inventory/inventory" },
-          { label: "Purchase orders", href: "/inventory/purchase-orders" },
-          { label: "Transfers", href: "/inventory/transfers" },
-          { label: "Gift cards", href: "/inventory/products/gift-cards" },
+          { label: "Коллекции", href: "/inventory/products/collections" },
+          { label: "Запасы", href: "/inventory/inventory" },
+          { label: "Заказы поставщикам", href: "/inventory/purchase-orders" },
+          { label: "Перемещения", href: "/inventory/transfers" },
+          { label: "Подарочные карты", href: "/inventory/products/gift-cards" },
         ],
       },
       {
-        label: "Customers", href: "/inventory/customers", icon: Users,
+        label: "Клиенты", href: "/inventory/customers", icon: Users,
         children: [
-          { label: "Segments", href: "/inventory/customers/segments" },
-          { label: "Companies", href: "/inventory/customers/companies" },
+          { label: "Сегменты", href: "/inventory/customers/segments" },
+          { label: "Компании", href: "/inventory/customers/companies" },
         ],
       },
       {
-        label: "Marketing", href: "/inventory/marketing", icon: Megaphone,
+        label: "Маркетинг", href: "/inventory/marketing", icon: Megaphone,
         children: [
-          { label: "Campaigns", href: "/inventory/marketing/campaigns" },
-          { label: "Attribution", href: "/inventory/marketing/attribution" },
+          { label: "Кампании", href: "/inventory/marketing/campaigns" },
+          { label: "Атрибуция", href: "/inventory/marketing/attribution" },
         ],
       },
-      { label: "Discounts", href: "/inventory/promotions", icon: Tag },
+      { label: "Скидки", href: "/inventory/promotions", icon: Tag },
       {
-        label: "Analytics", href: "/inventory/analytics", icon: BarChart3,
+        label: "Аналитика", href: "/inventory/analytics", icon: BarChart3,
         children: [
-          { label: "Reports", href: "/inventory/analytics/reports" },
-          { label: "Live View", href: "/inventory/analytics/live" },
+          { label: "Отчёты", href: "/inventory/analytics/reports" },
+          { label: "В реальном времени", href: "/inventory/analytics/live" },
         ],
       },
     ],
@@ -158,6 +159,10 @@ function isGroupActive(item: NavItem, pathname: string) {
 // ── NavList ───────────────────────────────────────────────────────────────────
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  // Manual expand/collapse override per parent href. undefined = follow active
+  // state; true/false = user toggled. Clicking an expanded parent collapses it.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
   return (
     <nav className="py-3">
       {NAV.map((section, si) => (
@@ -170,14 +175,20 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
           {section.items.map((item) => {
             const groupOn   = isGroupActive(item, pathname);
             const selfOn    = isActive(pathname, item.href);
-            const showKids  = groupOn && item.children && item.children.length > 0;
+            const hasKids   = !!item.children && item.children.length > 0;
+            const expanded  = overrides[item.href] ?? groupOn;
+            const showKids  = hasKids && expanded;
 
             return (
               <div key={item.href}>
-                {/* Parent link — always navigates */}
+                {/* Parent link — navigates and (when it has children) toggles
+                    the submenu: a second click on an open parent collapses it. */}
                 <Link
                   href={item.href}
-                  onClick={onNavigate}
+                  onClick={() => {
+                    if (hasKids) setOverrides((o) => ({ ...o, [item.href]: !expanded }));
+                    onNavigate?.();
+                  }}
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg mx-2 px-3 py-2 text-sm transition",
                     selfOn
@@ -188,10 +199,16 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                   )}
                 >
                   <item.icon size={16} className="shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {hasKids && (
+                    <ChevronDown
+                      size={14}
+                      className={cn("shrink-0 text-[var(--c-text3)] transition-transform", showKids && "rotate-180")}
+                    />
+                  )}
                 </Link>
 
-                {/* Children — auto-visible when group is active (Shopify pattern) */}
+                {/* Children — visible when expanded */}
                 {showKids && (
                   <div className="mx-2 mb-1 ml-8 border-l border-[var(--c-border)] pl-3 space-y-0.5">
                     {item.children!.map((child) => (

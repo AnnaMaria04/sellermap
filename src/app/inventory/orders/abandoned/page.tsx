@@ -1,16 +1,16 @@
 "use client";
 
-import { ShoppingCart } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { PageEmptyState } from "@/components/inventory/PageEmptyState";
 
 export default function Page() {
   return (
-    <InventoryShell title="Abandoned checkouts">
+    <InventoryShell title="Брошенные корзины">
       <PageEmptyState
-        icon={<ShoppingCart className="h-6 w-6" />}
-        title="Abandoned checkouts"
-        description="Checkouts that were started but never completed appear here."
+        title="Брошенные корзины"
+        description="Здесь появятся оформления, которые начали, но не завершили."
+
+        learnMore="Подробнее о брошенных корзинах"
       />
     </InventoryShell>
   );

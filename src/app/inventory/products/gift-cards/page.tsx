@@ -1,16 +1,16 @@
 "use client";
 
-import { Gift } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { PageEmptyState } from "@/components/inventory/PageEmptyState";
 
 export default function Page() {
   return (
-    <InventoryShell title="Gift cards">
+    <InventoryShell title="Подарочные карты">
       <PageEmptyState
-        icon={<Gift className="h-6 w-6" />}
-        title="Gift cards"
-        description="Sell gift cards that customers can redeem at checkout."
+        title="Подарочные карты"
+        description="Продавайте подарочные карты, которые клиенты используют при оформлении заказа."
+        actionLabel="Создать подарочную карту"
+        learnMore="Подробнее о подарочных картах"
       />
     </InventoryShell>
   );

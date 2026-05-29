@@ -1,4 +1,4 @@
-/** Analytics date-range model: presets, resolution and comparison periods. */
+/** Модель диапазона дат аналитики: пресеты, разрешение и периоды сравнения. */
 
 export interface DateRange {
   start: Date;
@@ -24,48 +24,48 @@ export interface PresetGroup {
   items: { id: PresetId; label: string }[];
 }
 
-/** Sidebar structure mirroring the reference design. */
+/** Структура боковой панели как в эталонном дизайне. */
 export const PRESET_GROUPS: PresetGroup[] = [
-  { items: [{ id: "today", label: "Today" }, { id: "yesterday", label: "Yesterday" }] },
+  { items: [{ id: "today", label: "Сегодня" }, { id: "yesterday", label: "Вчера" }] },
   {
-    label: "Last",
+    label: "Последние",
     items: [
-      { id: "last7", label: "Last 7 days" },
-      { id: "last30", label: "Last 30 days" },
-      { id: "last90", label: "Last 90 days" },
+      { id: "last7", label: "Последние 7 дней" },
+      { id: "last30", label: "Последние 30 дней" },
+      { id: "last90", label: "Последние 90 дней" },
     ],
   },
   {
-    label: "Period to date",
+    label: "С начала периода",
     items: [
-      { id: "week_to_date", label: "Week to date" },
-      { id: "month_to_date", label: "Month to date" },
-      { id: "year_to_date", label: "Year to date" },
+      { id: "week_to_date", label: "С начала недели" },
+      { id: "month_to_date", label: "С начала месяца" },
+      { id: "year_to_date", label: "С начала года" },
     ],
   },
   {
     items: [
-      { id: "black_friday", label: "Black Friday" },
-      { id: "cyber_monday", label: "Cyber Monday" },
-      { id: "quarter_to_date", label: "Quarters" },
+      { id: "black_friday", label: "Чёрная пятница" },
+      { id: "cyber_monday", label: "Киберпонедельник" },
+      { id: "quarter_to_date", label: "Кварталы" },
     ],
   },
-  { items: [{ id: "custom", label: "Custom range" }] },
+  { items: [{ id: "custom", label: "Произвольный период" }] },
 ];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
-  today: "Today",
-  yesterday: "Yesterday",
-  last7: "Last 7 days",
-  last30: "Last 30 days",
-  last90: "Last 90 days",
-  week_to_date: "Week to date",
-  month_to_date: "Month to date",
-  quarter_to_date: "Quarters",
-  year_to_date: "Year to date",
-  black_friday: "Black Friday",
-  cyber_monday: "Cyber Monday",
-  custom: "Custom",
+  today: "Сегодня",
+  yesterday: "Вчера",
+  last7: "Последние 7 дней",
+  last30: "Последние 30 дней",
+  last90: "Последние 90 дней",
+  week_to_date: "С начала недели",
+  month_to_date: "С начала месяца",
+  quarter_to_date: "Кварталы",
+  year_to_date: "С начала года",
+  black_friday: "Чёрная пятница",
+  cyber_monday: "Киберпонедельник",
+  custom: "Произвольный",
 };
 
 function startOfDay(d: Date): Date {
@@ -84,7 +84,7 @@ function addDays(d: Date, n: number): Date {
   return x;
 }
 
-/** Resolve a preset to a concrete range relative to `now`. */
+/** Разрешить пресет в конкретный диапазон относительно `now`. */
 export function resolvePreset(id: PresetId, now = new Date()): DateRange {
   const today = startOfDay(now);
   switch (id) {
@@ -101,7 +101,7 @@ export function resolvePreset(id: PresetId, now = new Date()): DateRange {
     case "last90":
       return { start: addDays(today, -89), end: endOfDay(now) };
     case "week_to_date": {
-      const dow = (today.getDay() + 6) % 7; // Monday-based
+      const dow = (today.getDay() + 6) % 7; // неделя с понедельника
       return { start: addDays(today, -dow), end: endOfDay(now) };
     }
     case "month_to_date":
@@ -134,14 +134,14 @@ export type ComparisonId =
   | "custom";
 
 export const COMPARISON_OPTIONS: { id: ComparisonId; label: string }[] = [
-  { id: "none", label: "No comparison" },
-  { id: "yesterday", label: "Yesterday" },
-  { id: "previous_year", label: "Previous year" },
-  { id: "previous_year_dow", label: "Previous year (match day of week)" },
-  { id: "custom", label: "Custom" },
+  { id: "none", label: "Без сравнения" },
+  { id: "yesterday", label: "Вчера" },
+  { id: "previous_year", label: "Предыдущий год" },
+  { id: "previous_year_dow", label: "Предыдущий год (по дню недели)" },
+  { id: "custom", label: "Произвольное" },
 ];
 
-/** Resolve the comparison range for a primary range. Null = no comparison. */
+/** Разрешить период сравнения для основного диапазона. null = без сравнения. */
 export function resolveComparison(primary: DateRange, id: ComparisonId): DateRange | null {
   const spanMs = primary.end.getTime() - primary.start.getTime();
   switch (id) {
@@ -168,23 +168,47 @@ export function resolveComparison(primary: DateRange, id: ComparisonId): DateRan
 }
 
 export function formatRangeLabel(r: DateRange): string {
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
-  const s = r.start.toLocaleDateString("en-US", opts);
-  const e = r.end.toLocaleDateString("en-US", opts);
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
+  const s = r.start.toLocaleDateString("ru-RU", opts);
+  const e = r.end.toLocaleDateString("ru-RU", opts);
   return s === e ? s : `${s} – ${e}`;
 }
 
-export const CURRENCIES = ["USD $", "EUR €", "RUB ₽", "GBP £"] as const;
+// Валюты только для стран СНГ. По умолчанию — рубль.
+export const CURRENCIES = [
+  "RUB ₽",
+  "KZT ₸",
+  "BYN Br",
+  "UAH ₴",
+  "AMD ֏",
+  "AZN ₼",
+  "KGS",
+  "UZS",
+  "TJS",
+  "MDL",
+] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
+export const DEFAULT_CURRENCY: Currency = "RUB ₽";
+
 const CURRENCY_FMT: Record<Currency, { code: string; locale: string }> = {
-  "USD $": { code: "USD", locale: "en-US" },
-  "EUR €": { code: "EUR", locale: "en-US" },
   "RUB ₽": { code: "RUB", locale: "ru-RU" },
-  "GBP £": { code: "GBP", locale: "en-GB" },
+  "KZT ₸": { code: "KZT", locale: "ru-RU" },
+  "BYN Br": { code: "BYN", locale: "ru-RU" },
+  "UAH ₴": { code: "UAH", locale: "ru-RU" },
+  "AMD ֏": { code: "AMD", locale: "ru-RU" },
+  "AZN ₼": { code: "AZN", locale: "ru-RU" },
+  "KGS": { code: "KGS", locale: "ru-RU" },
+  "UZS": { code: "UZS", locale: "ru-RU" },
+  "TJS": { code: "TJS", locale: "ru-RU" },
+  "MDL": { code: "MDL", locale: "ru-RU" },
 };
 
 export function formatMoney(value: number, currency: Currency): string {
-  const { code, locale } = CURRENCY_FMT[currency];
-  return new Intl.NumberFormat(locale, { style: "currency", currency: code }).format(value);
+  const { code, locale } = CURRENCY_FMT[currency] ?? CURRENCY_FMT[DEFAULT_CURRENCY];
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: code,
+    maximumFractionDigits: 0,
+  }).format(value);
 }

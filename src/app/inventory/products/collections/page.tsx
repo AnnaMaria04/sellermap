@@ -1,16 +1,17 @@
 "use client";
 
-import { Layers } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { PageEmptyState } from "@/components/inventory/PageEmptyState";
 
 export default function Page() {
   return (
-    <InventoryShell title="Collections">
+    <InventoryShell title="Коллекции">
       <PageEmptyState
-        icon={<Layers className="h-6 w-6" />}
-        title="Collections"
-        description="Group products into collections to make them easier to find and merchandise."
+        title="Коллекции"
+        description="Группируйте товары в коллекции, чтобы их было проще находить и продвигать."
+        actionLabel="Создать коллекцию"
+        actionHref="/inventory/products"
+        learnMore="Подробнее о коллекциях"
       />
     </InventoryShell>
   );

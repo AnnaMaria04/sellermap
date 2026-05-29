@@ -5,7 +5,7 @@ import { Globe } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
 import { MetricInfo } from "./MetricInfo";
 import { METRICS, computeSalesTotals } from "@/lib/analytics/metrics";
-import { resolvePreset, formatMoney } from "@/lib/analytics/date-range";
+import { resolvePreset, formatMoney, DEFAULT_CURRENCY } from "@/lib/analytics/date-range";
 import { cn } from "@/lib/utils";
 
 /** Real-time operational view (reference design "Live View"). */
@@ -16,7 +16,7 @@ export function LiveView() {
     () => computeSalesTotals(orders, returns, today.start, today.end),
     [orders, returns, today],
   );
-  const money = (n: number) => formatMoney(n, "USD $");
+  const money = (n: number) => formatMoney(n, DEFAULT_CURRENCY);
 
   const stat = (label: string, value: string, metricKey?: string) => (
     <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4">
@@ -28,7 +28,7 @@ export function LiveView() {
   );
 
   const NoData = () => (
-    <div className="flex h-28 items-center justify-center text-sm text-[var(--c-text3)]">No data for this date range</div>
+    <div className="flex h-28 items-center justify-center text-sm text-[var(--c-text3)]">Нет данных за этот период</div>
   );
 
   return (
@@ -37,23 +37,23 @@ export function LiveView() {
       <div className="h-1 rounded-full bg-[var(--c-red)]" />
       <div className="flex items-center gap-2">
         <Globe className="h-5 w-5 text-[var(--c-text)]" />
-        <h2 className="text-lg font-semibold text-[var(--c-text)]">Live View</h2>
+        <h2 className="text-lg font-semibold text-[var(--c-text)]">В реальном времени</h2>
         <span className="flex items-center gap-1.5 text-sm text-[var(--c-text2)]">
-          <span className="h-2 w-2 rounded-full bg-[var(--c-blue)]" /> Just now
+          <span className="h-2 w-2 rounded-full bg-[var(--c-blue)]" /> Только что
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {stat("Visitors right now", "0")}
-        {stat("Total sales", money(totals.totalSales))}
-        {stat("Sessions", "0")}
-        {stat("Orders", String(totals.orders), "orders")}
+        {stat("Посетителей сейчас", "0")}
+        {stat("Итоговые продажи", money(totals.totalSales))}
+        {stat("Сеансы", "0")}
+        {stat("Заказы", String(totals.orders), "orders")}
       </div>
 
       <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4">
-        <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">Customer behavior</span>
+        <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">Поведение клиентов</span>
         <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-          {[["Active carts", 0], ["Checking out", 0], ["Purchased", totals.orders]].map(([l, v]) => (
+          {[["Активные корзины", 0], ["Оформляют", 0], ["Купили", totals.orders]].map(([l, v]) => (
             <div key={l as string}>
               <div className="text-[var(--c-text2)]">{l}</div>
               <div className="mt-1 text-lg font-semibold text-[var(--c-text)]">{v}</div>
@@ -63,9 +63,9 @@ export function LiveView() {
       </div>
 
       {[
-        ["Sessions by location"],
-        ["New vs returning customers"],
-        ["Total sales by product"],
+        ["Сеансы по регионам"],
+        ["Новые и вернувшиеся клиенты"],
+        ["Продажи по товарам"],
       ].map(([title]) => (
         <div key={title} className={cn("rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4")}>
           <span className="text-sm font-semibold text-[var(--c-text)] underline decoration-dotted decoration-[var(--c-text3)] underline-offset-4">{title}</span>

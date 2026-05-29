@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Boxes } from "lucide-react";
+import { Search } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { PageEmptyState } from "@/components/inventory/PageEmptyState";
 import { useInventory } from "@/contexts/InventoryContext";
@@ -30,9 +30,11 @@ export default function InventoryLevelsPage() {
     <InventoryShell title="Inventory" subtitle="Stock on hand, committed and available to sell">
       {products.length === 0 ? (
         <PageEmptyState
-          icon={<Boxes className="h-6 w-6" />}
-          title="No inventory yet"
-          description="Add products to start tracking stock levels across your locations."
+          title="Пока нет запасов"
+          description="Добавьте товары, чтобы отслеживать остатки по складам."
+          actionLabel="Добавить товар"
+          actionHref="/inventory/products/new"
+          learnMore="Подробнее о запасах"
         />
       ) : (
         <>

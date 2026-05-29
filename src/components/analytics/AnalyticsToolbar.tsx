@@ -34,10 +34,10 @@ export interface AnalyticsControls {
   currency: Currency;
 }
 
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
 ];
 
 function sameDay(a: Date, b: Date): boolean {
@@ -48,7 +48,7 @@ function isBetween(d: Date, a: Date, b: Date): boolean {
   return t > Math.min(a.getTime(), b.getTime()) && t < Math.max(a.getTime(), b.getTime());
 }
 function fmtInput(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function MonthGrid({
@@ -256,8 +256,8 @@ export function AnalyticsToolbar({
                 </div>
               </div>
               <div className="mt-3 flex justify-end gap-2 border-t border-[var(--c-border)] pt-3">
-                <button onClick={() => setOpenMenu(null)} className="rounded-lg border border-[var(--c-border)] px-4 py-1.5 text-sm font-medium text-[var(--c-text)] hover:bg-[var(--c-bg2)]">Cancel</button>
-                <button onClick={applyRange} className="rounded-lg bg-[var(--c-text)] px-4 py-1.5 text-sm font-medium text-[var(--c-bg)] hover:opacity-90">Apply</button>
+                <button onClick={() => setOpenMenu(null)} className="rounded-lg border border-[var(--c-border)] px-4 py-1.5 text-sm font-medium text-[var(--c-text)] hover:bg-[var(--c-bg2)]">Отмена</button>
+                <button onClick={applyRange} className="rounded-lg bg-[var(--c-text)] px-4 py-1.5 text-sm font-medium text-[var(--c-bg)] hover:opacity-90">Применить</button>
               </div>
             </div>
           </div>

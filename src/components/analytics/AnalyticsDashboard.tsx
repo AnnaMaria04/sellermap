@@ -12,7 +12,7 @@ import {
   type TimePoint,
 } from "@/lib/analytics/metrics";
 import {
-  resolvePreset, resolveComparison, formatMoney, type DateRange, type Currency,
+  resolvePreset, resolveComparison, formatMoney, DEFAULT_CURRENCY, type DateRange, type Currency,
 } from "@/lib/analytics/date-range";
 import { cn } from "@/lib/utils";
 
@@ -26,12 +26,12 @@ function defaultControls(): AnalyticsControls {
     range,
     comparison: "none",
     comparisonRange: resolveComparison(range, "none"),
-    currency: "USD $",
+    currency: DEFAULT_CURRENCY,
   };
 }
 
 function dateLegend(r: DateRange): string {
-  return r.start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return r.start.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function Card({ title, children, className }: { title?: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -112,7 +112,7 @@ function OverTimeChart({
 function NoData() {
   return (
     <div className="flex h-[180px] items-center justify-center text-sm text-[var(--c-text3)]">
-      No data for this date range
+      Нет данных за этот период
     </div>
   );
 }
@@ -172,7 +172,7 @@ export function AnalyticsDashboard() {
             primaryLabel={primaryLabel} compareLabel={compareLabel} showCompare={showCompare}
           />
         </div>
-        <Card title={<MetricInfo metric={{ key: "tsb", title: "Total sales breakdown", description: "How total sales is composed for the period." }} />}>
+        <Card title={<MetricInfo metric={{ key: "tsb", title: "Структура итоговых продаж", description: "Из чего складываются итоговые продажи за период." }} />}>
           <div className="divide-y divide-[var(--c-border)]">
             {breakdown.map((b) => (
               <div key={b.key} className={cn("flex items-center justify-between py-2.5 text-sm", b.bold && "font-semibold")}>
@@ -232,7 +232,7 @@ export function AnalyticsDashboard() {
         <Card title={<MetricInfo metric={METRICS.conversionBreakdown} />}>
           <div className="mb-3 text-2xl font-bold text-[var(--c-text)]">0% <span className="text-[var(--c-text3)]">—</span></div>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            {["Sessions", "Added to cart", "Reached checkout", "Completed checkout"].map((s) => (
+            {["Сеансы", "Добавлено в корзину", "Дошли до оформления", "Завершили оформление"].map((s) => (
               <div key={s}>
                 <div className="text-xs text-[var(--c-text3)]">{s}</div>
                 <div className="text-[var(--c-text)]">0% <span className="text-[var(--c-text3)]">0</span></div>

@@ -5,7 +5,7 @@ import { LiveView } from "@/components/analytics/LiveView";
 
 export default function LiveViewPage() {
   return (
-    <InventoryShell title="Live View">
+    <InventoryShell title="В реальном времени">
       <LiveView />
     </InventoryShell>
   );

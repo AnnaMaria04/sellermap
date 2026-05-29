@@ -1,16 +1,17 @@
 "use client";
 
-import { Megaphone } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { PageEmptyState } from "@/components/inventory/PageEmptyState";
 
 export default function Page() {
   return (
-    <InventoryShell title="Marketing">
+    <InventoryShell title="Маркетинг">
       <PageEmptyState
-        icon={<Megaphone className="h-6 w-6" />}
-        title="Marketing"
-        description="Track and manage your marketing activity in one place."
+        title="Маркетинг"
+        description="Отслеживайте и управляйте маркетинговой активностью в одном месте."
+        actionLabel="Создать кампанию"
+        actionHref="/inventory/marketing/campaigns"
+        learnMore="Подробнее о маркетинге"
       />
     </InventoryShell>
   );

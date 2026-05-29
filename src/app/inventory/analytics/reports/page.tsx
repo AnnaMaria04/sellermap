@@ -27,7 +27,7 @@ export default function AnalyticsReportsPage() {
   const [tab, setTab] = useState<Tab>("sales");
 
   return (
-    <InventoryShell title="Reports">
+    <InventoryShell title="Отчёты">
       {/* Tab bar — 4 tabs, Shopify-style underline */}
       <div className="mb-6 border-b border-[var(--c-border)]">
         <div className="flex gap-0 overflow-x-auto hide-scrollbar">
