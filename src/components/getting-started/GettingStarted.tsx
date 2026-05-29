@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Check, MessageCircleQuestion } from "lucide-react";
+import { Pencil, Check, MessageCircleQuestion, Store, Package } from "lucide-react";
 import { useSetupStatus } from "./useSetupStatus";
+import { SetupCard } from "./SetupCard";
 import { cn } from "@/lib/utils";
 
 /**
  * Getting-started Home — the first screen a new/empty seller sees. Guides them
- * from empty to first value via a setup checklist. This commit lays down the
- * container, the 12-column grid and the header band; the cards follow.
+ * from empty to first value via a setup checklist that fills in as data appears.
  */
 export function GettingStarted() {
-  const { loading, workspaceName, renameWorkspace, doneCount, total } = useSetupStatus();
+  const { loading, workspaceName, renameWorkspace, status, doneCount, total } = useSetupStatus();
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-6 py-8">
       <div className="grid grid-cols-12 gap-6">
         {/* 1 ── HEADER BAND ───────────────────────────────────────────────── */}
-        <header className="col-span-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <header className="order-1 col-span-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--c-text)]">Давайте начнём</h1>
             {loading ? (
@@ -26,7 +26,6 @@ export function GettingStarted() {
               <WorkspaceName name={workspaceName} onRename={renameWorkspace} />
             )}
           </div>
-
           <p className="shrink-0 text-sm text-[var(--c-text2)]">
             Вопросы?{" "}
             <a
@@ -38,16 +37,69 @@ export function GettingStarted() {
           </p>
         </header>
 
-        {/* ── Structural placeholders (cards built in the next commits) ───── */}
-        <Placeholder className="col-span-12 lg:col-span-4" label="2A · Подключите маркетплейс" />
-        <Placeholder className="col-span-12 lg:col-span-4" label="2B · Заполните каталог" />
-        <Placeholder className="col-span-12 lg:col-span-4 lg:row-span-2" label={`3 · Настройка · ${doneCount}/${total}`} tall />
+        {/* 3 ── CHECKLIST RAIL (above cards on mobile, right rail at lg) ───── */}
+        <aside className="order-2 col-span-12 self-start lg:order-3 lg:col-span-4 lg:sticky lg:top-6">
+          <Placeholder label={`3 · Настройка · ${doneCount}/${total}`} tall />
+        </aside>
 
-        <Placeholder className="col-span-12 lg:col-span-4" label="4A · Приём оплаты телефоном" />
-        <Placeholder className="col-span-12 lg:col-span-4" label="4B · Локации и склады" />
+        {/* 2 + 4 ── SETUP CARDS (left column) ─────────────────────────────── */}
+        <div className="order-3 col-span-12 space-y-6 lg:order-2 lg:col-span-8">
+          {/* 2 — PRIMARY SETUP */}
+          <div className="grid gap-6 sm:grid-cols-2">
+            {loading ? (
+              <><CardSkeleton /><CardSkeleton /></>
+            ) : (
+              <>
+                <SetupCard
+                  icon={<Store className="h-5 w-5" />}
+                  title="Подключите маркетплейс"
+                  subtitle="Автоматически подтягивайте заказы, остатки и цены из Wildberries, Ozon и Яндекс.Маркета."
+                  done={status.marketplace}
+                  primary={{ label: "Подключить", href: "/inventory/settings/integrations" }}
+                  secondary={{ label: "Начать с демо-данных", href: "/inventory" }}
+                  footer={<ChannelLogos />}
+                />
+                <SetupCard
+                  icon={<Package className="h-5 w-5" />}
+                  title="Заполните каталог"
+                  subtitle="Добавьте товары и варианты вручную или импортируйте каталог из файла."
+                  done={status.catalog}
+                  primary={{ label: "Добавить товар", href: "/inventory/products/new" }}
+                  secondary={{ label: "Импорт", href: "/inventory/products" }}
+                />
+              </>
+            )}
+          </div>
 
-        <Placeholder className="col-span-12" label="5 · Помощь: WB · СБП · 54-ФЗ" />
+          {/* 4 — SECONDARY SETUP (built next) */}
+          <div className="grid gap-6 sm:grid-cols-3">
+            <Placeholder label="4A · Приём оплаты телефоном" />
+            <Placeholder label="4B · Локации и склады" />
+            <Placeholder label="4C · Налоги и касса" />
+          </div>
+        </div>
+
+        {/* 5 ── HELP ROW (built next) ─────────────────────────────────────── */}
+        <div className="order-4 col-span-12">
+          <Placeholder label="5 · Помощь: WB · СБП · 54-ФЗ" />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ChannelLogos() {
+  const channels = ["WB", "Ozon", "Я.Маркет"];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {channels.map((c) => (
+        <span
+          key={c}
+          className="rounded-md border border-[var(--c-border)] bg-[var(--c-bg2)] px-2.5 py-1 text-xs font-medium text-[var(--c-text2)]"
+        >
+          {c}
+        </span>
+      ))}
     </div>
   );
 }
@@ -87,13 +139,24 @@ function WorkspaceName({ name, onRename }: { name: string; onRename: (n: string)
   );
 }
 
-function Placeholder({ className, label, tall }: { className?: string; label: string; tall?: boolean }) {
+function CardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-5">
+      <div className="skeleton h-9 w-9 rounded-lg" />
+      <div className="skeleton mt-3 h-4 w-40" />
+      <div className="skeleton mt-2 h-3 w-full" />
+      <div className="skeleton mt-1.5 h-3 w-2/3" />
+      <div className="skeleton mt-5 h-9 w-32" />
+    </div>
+  );
+}
+
+function Placeholder({ label, tall }: { label: string; tall?: boolean }) {
   return (
     <div
       className={cn(
         "flex items-center justify-center rounded-2xl border border-dashed border-[var(--c-border)] bg-[var(--c-bg2)] p-5 text-sm text-[var(--c-text3)]",
         tall ? "min-h-[260px]" : "min-h-[140px]",
-        className,
       )}
     >
       {label}
