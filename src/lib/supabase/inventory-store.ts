@@ -27,6 +27,7 @@ const TABLES = {
   orders: "orders",
   customers: "customers",
   staff: "staff_members",
+  promotions: "promotions",
 } as const;
 
 type Collection = keyof typeof TABLES;

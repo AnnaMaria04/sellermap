@@ -57,6 +57,8 @@ import {
   type CustomerTier,
   type StaffMember,
   STAFF_MEMBERS,
+  type Promotion,
+  PROMOTIONS,
 } from "@/mock/inventory";
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ export interface InventoryState {
   orders: Order[];
   customers: Customer[];
   staff: StaffMember[];
+  promotions: Promotion[];
 }
 
 const initialState: InventoryState = {
@@ -95,6 +98,7 @@ const initialState: InventoryState = {
   orders: ORDERS,
   customers: CUSTOMERS,
   staff: STAFF_MEMBERS,
+  promotions: PROMOTIONS,
 };
 
 // A real (Supabase-backed) shop starts empty — the demo mock above is only the
@@ -102,7 +106,7 @@ const initialState: InventoryState = {
 const emptyState: InventoryState = {
   products: [], suppliers: [], locations: [], purchaseOrders: [], transfers: [],
   stocktakes: [], movements: [], reservations: [], returns: [], bundles: [],
-  replenishmentRules: [], batches: [], orders: [], customers: [], staff: [],
+  replenishmentRules: [], batches: [], orders: [], customers: [], staff: [], promotions: [],
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -164,7 +168,11 @@ type InventoryAction =
   | { type: "ADD_LOYALTY_POINTS"; id: string; points: number }
   // Staff
   | { type: "ADD_STAFF"; member: StaffMember }
-  | { type: "UPDATE_STAFF"; id: string; patch: Partial<StaffMember> };
+  | { type: "UPDATE_STAFF"; id: string; patch: Partial<StaffMember> }
+  // Promotions
+  | { type: "CREATE_PROMOTION"; promotion: Promotion }
+  | { type: "UPDATE_PROMOTION"; id: string; patch: Partial<Promotion> }
+  | { type: "DELETE_PROMOTION"; id: string };
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -943,6 +951,14 @@ function reducer(state: InventoryState, action: InventoryAction): InventoryState
     case "UPDATE_STAFF":
       return { ...state, staff: state.staff.map((m) => m.id === action.id ? { ...m, ...action.patch } : m) };
 
+    // ── Promotions ────────────────────────────────────────────────────────────
+    case "CREATE_PROMOTION":
+      return { ...state, promotions: [action.promotion, ...state.promotions] };
+    case "UPDATE_PROMOTION":
+      return { ...state, promotions: state.promotions.map((p) => p.id === action.id ? { ...p, ...action.patch } : p) };
+    case "DELETE_PROMOTION":
+      return { ...state, promotions: state.promotions.filter((p) => p.id !== action.id) };
+
     default:
       return state;
   }
@@ -1004,6 +1020,9 @@ interface InventoryContextValue extends InventoryState {
     addLoyaltyPoints: (id: string, points: number) => void;
     addStaff: (member: Omit<StaffMember, "id">) => void;
     updateStaff: (id: string, patch: Partial<StaffMember>) => void;
+    createPromotion: (data: Omit<Promotion, "id" | "createdAt" | "usageCount">) => void;
+    updatePromotion: (id: string, patch: Partial<Promotion>) => void;
+    deletePromotion: (id: string) => void;
   };
   // Computed helpers forwarded for convenience
   getAvailableStock: (product: Product) => number;
@@ -1270,6 +1289,17 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "ADD_STAFF", member });
     }, []),
     updateStaff: useCallback((id, patch) => dispatch({ type: "UPDATE_STAFF", id, patch }), []),
+    createPromotion: useCallback((data) => {
+      const promotion: Promotion = {
+        ...data,
+        id: uid("promo"),
+        usageCount: 0,
+        createdAt: new Date().toISOString().split("T")[0],
+      };
+      dispatch({ type: "CREATE_PROMOTION", promotion });
+    }, []),
+    updatePromotion: useCallback((id, patch) => dispatch({ type: "UPDATE_PROMOTION", id, patch }), []),
+    deletePromotion: useCallback((id) => dispatch({ type: "DELETE_PROMOTION", id }), []),
   };
 
   const value: InventoryContextValue = {

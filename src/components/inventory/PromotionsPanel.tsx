@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from "react";
 import {
-  PROMOTIONS,
   PROMOTION_TYPE_LABELS,
   type Promotion,
   type PromotionType,
   type PromotionStatus,
   type PromotionChannel,
 } from "@/mock/inventory";
+import { useInventory } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -581,7 +581,7 @@ function StatCard({
 // ── Main panel ─────────────────────────────────────────────────────────────
 
 export function PromotionsPanel() {
-  const [promotions, setPromotions] = useState<Promotion[]>(PROMOTIONS);
+  const { promotions, actions } = useInventory();
   const [tab, setTab] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
 
@@ -642,28 +642,21 @@ export function PromotionsPanel() {
 
   function handleSaveEdit() {
     if (!editingPromo) return;
-    setPromotions((prev) =>
-      prev.map((p) => (p.id === editingPromo.id ? ({ ...p, ...editDraft } as Promotion) : p)),
-    );
+    actions.updatePromotion(editingPromo.id, editDraft);
     setEditingPromo(null);
     setEditDraft({});
   }
 
   function handleTogglePause(promo: Promotion) {
-    setPromotions((prev) =>
-      prev.map((p) => {
-        if (p.id !== promo.id) return p;
-        const next: PromotionStatus =
-          p.status === "paused"
-            ? new Date(p.startsAt) > new Date() ? "scheduled" : "active"
-            : "paused";
-        return { ...p, status: next };
-      }),
-    );
+    const next: PromotionStatus =
+      promo.status === "paused"
+        ? new Date(promo.startsAt) > new Date() ? "scheduled" : "active"
+        : "paused";
+    actions.updatePromotion(promo.id, { status: next });
   }
 
   function handleDelete(id: string) {
-    setPromotions((prev) => prev.filter((p) => p.id !== id));
+    actions.deletePromotion(id);
   }
 
   function handleOpenCreate() {
@@ -673,8 +666,7 @@ export function PromotionsPanel() {
 
   function handleSaveCreate() {
     if (!createDraft.name?.trim()) return;
-    const newPromo: Promotion = {
-      id: `promo-${Date.now()}`,
+    actions.createPromotion({
       name: createDraft.name,
       description: createDraft.description,
       type: createDraft.type ?? "percentage",
@@ -685,13 +677,10 @@ export function PromotionsPanel() {
       productIds: createDraft.productIds ?? [],
       categoryFilter: createDraft.categoryFilter || undefined,
       usageLimit: createDraft.usageLimit,
-      usageCount: 0,
       promoCode: createDraft.promoCode || undefined,
       startsAt: createDraft.startsAt ?? "",
       endsAt: createDraft.endsAt ?? "",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setPromotions((prev) => [newPromo, ...prev]);
+    });
     setCreating(false);
     setCreateDraft(emptyPromotion());
   }

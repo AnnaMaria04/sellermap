@@ -1329,8 +1329,10 @@ export type Database = {
       }
       promotions: {
         Row: {
+          app_id: string | null
           channels: string[]
           created_at: string
+          data: Json | null
           ends_at: string | null
           id: string
           name: string | null
@@ -1345,8 +1347,10 @@ export type Database = {
           value: number
         }
         Insert: {
+          app_id?: string | null
           channels?: string[]
           created_at?: string
+          data?: Json | null
           ends_at?: string | null
           id?: string
           name?: string | null
@@ -1361,8 +1365,10 @@ export type Database = {
           value?: number
         }
         Update: {
+          app_id?: string | null
           channels?: string[]
           created_at?: string
+          data?: Json | null
           ends_at?: string | null
           id?: string
           name?: string | null

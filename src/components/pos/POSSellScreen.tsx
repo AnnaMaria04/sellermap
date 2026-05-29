@@ -24,6 +24,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useInventory } from "@/contexts/InventoryContext";
+import { priceCart, type CartLine } from "@/lib/promotions/engine";
 import { cn, formatRub } from "@/lib/utils";
 import { getAvailableStock } from "@/mock/inventory";
 import type { Product, Order, OrderItem } from "@/mock/inventory";
@@ -596,7 +597,7 @@ function ReceiptModal({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function POSSellScreen() {
-  const { products, locations, actions } = useInventory();
+  const { products, locations, promotions, actions } = useInventory();
   const addSale = usePOSSession((s) => s.addSale);
   const { pinHash, discountThresholdPct, verifyPin } = useManagerPin();
 
@@ -683,13 +684,31 @@ export function POSSellScreen() {
     [cart],
   );
 
-  const discountAmount = useMemo(() => {
+  const manualDiscount = useMemo(() => {
     const val = parseFloat(discount.value) || 0;
     if (discount.mode === "pct") {
       return Math.round((subtotal * Math.min(val, 100)) / 100);
     }
     return Math.min(val, subtotal);
   }, [discount, subtotal]);
+
+  // Auto-applied promotions (audit E16 — promotions are now priced into the cart).
+  const promoResult = useMemo(() => {
+    const lines: CartLine[] = cart.map((item) => ({
+      id: item.product.id,
+      productId: item.product.id,
+      category: item.product.category,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+    }));
+    return priceCart(lines, promotions, { channel: "pos" });
+  }, [cart, promotions]);
+
+  const promoDiscount = promoResult.discount;
+  const appliedPromoNames = promoResult.applied.map((a) => a.name);
+
+  // Manual + promotional discount, never exceeding the subtotal.
+  const discountAmount = Math.min(subtotal, manualDiscount + promoDiscount);
 
   const total = Math.max(0, subtotal - discountAmount);
 
@@ -762,12 +781,14 @@ export function POSSellScreen() {
 
   // ── PIN requirement check ──────────────────────────────────────────────────
 
+  // Manager PIN gates the manual cashier discount only — automatic
+  // promotions are not subject to the override threshold.
   const discountPct = useMemo(() => {
-    if (!discountAmount || !subtotal) return 0;
-    return (discountAmount / subtotal) * 100;
-  }, [discountAmount, subtotal]);
+    if (!manualDiscount || !subtotal) return 0;
+    return (manualDiscount / subtotal) * 100;
+  }, [manualDiscount, subtotal]);
 
-  const pinRequired = !!pinHash && discountAmount > 0 && discountPct >= discountThresholdPct;
+  const pinRequired = !!pinHash && manualDiscount > 0 && discountPct >= discountThresholdPct;
 
   const discountLabel = discount.mode === "pct"
     ? `${discount.value}%`
@@ -809,13 +830,24 @@ export function POSSellScreen() {
         createdAt: now.toISOString(),
         deliveredAt: now.toISOString(),
         note:
-          discountAmount > 0
-            ? `Скидка ${discount.mode === "pct" ? discount.value + "%" : fmt(discountAmount)}`
-            : undefined,
+          [
+            manualDiscount > 0
+              ? `Скидка ${discount.mode === "pct" ? discount.value + "%" : fmt(manualDiscount)}`
+              : null,
+            appliedPromoNames.length > 0 ? `Акции: ${appliedPromoNames.join(", ")}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined,
       };
 
       // Persist order
       actions.createOrder(order);
+
+      // Count promotion usage so usageLimit caps are enforced over time.
+      for (const ap of promoResult.applied) {
+        const p = promotions.find((x) => x.id === ap.promotionId);
+        if (p) actions.updatePromotion(p.id, { usageCount: p.usageCount + 1 });
+      }
 
       // Deduct stock for each item
       for (const item of cart) {
@@ -1141,9 +1173,15 @@ export function POSSellScreen() {
                 <span>Подытог</span>
                 <span className="tabular">{fmt(subtotal)}</span>
               </div>
+              {promoDiscount > 0 && (
+                <div className="flex justify-between text-xs text-[var(--c-green)]">
+                  <span className="truncate pr-2">🏷 {appliedPromoNames.join(", ")}</span>
+                  <span className="tabular whitespace-nowrap">−{fmt(promoDiscount)}</span>
+                </div>
+              )}
               {discountAmount > 0 && (
                 <div className="flex justify-between text-sm text-[var(--c-amber)]">
-                  <span>Скидка</span>
+                  <span>Скидка{promoDiscount > 0 && manualDiscount > 0 ? " (всего)" : ""}</span>
                   <span className="tabular">−{fmt(discountAmount)}</span>
                 </div>
               )}
