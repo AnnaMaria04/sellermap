@@ -1049,7 +1049,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   // Latest-state ref so action creators can read current data without
   // re-creating themselves on every state change.
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   useEffect(() => {
     supabase.current = createClient();

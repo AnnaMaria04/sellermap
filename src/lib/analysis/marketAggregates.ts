@@ -12,7 +12,6 @@
 //
 // Everything here is pure or read-only; RLS already controls what the user can
 // see in `daily_market_metrics`. No new tables; no new columns.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ConcentrationLevel = "low" | "medium" | "high" | "unknown";

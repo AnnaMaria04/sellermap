@@ -104,7 +104,6 @@ export function BarcodeInput({
     if ("BarcodeDetector" in window) {
       // Native BarcodeDetector API
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const detector = new (window as any).BarcodeDetector({
           formats: [
             "code_128", "code_39", "ean_13", "ean_8",
@@ -125,7 +124,6 @@ export function BarcodeInput({
           if (detected || !showCamera) return;
           detector
             .detect(videoEl)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .then((barcodes: any[]) => {
               if (barcodes.length > 0 && !detected) {
                 detected = true;

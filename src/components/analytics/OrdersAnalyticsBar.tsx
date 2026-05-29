@@ -60,7 +60,7 @@ export function OrdersAnalyticsBar() {
           onClick={() => setOpen(!open)}
           className={cn(
             "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition",
-            open ? "border-[var(--c-blue)] ring-1 ring-[var(--c-blue)]" : "border-[var(--c-border)] hover:bg-[var(--c-bg2)]",
+            open ? "border-[var(--c-blue)] ring-1 ring-[var(--c-blue)]" : "border-[var(--c-border)] hover:bg-[var(--c-bg3)]",
           )}
         >
           <CalendarIcon className="h-4 w-4 text-[var(--c-text2)]" />
@@ -110,7 +110,7 @@ export function OrdersAnalyticsBar() {
           <div className="h-6 w-24">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spark}>
-                <Line type="monotone" dataKey="value" stroke="#1f6feb" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="value" stroke="var(--c-blue)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

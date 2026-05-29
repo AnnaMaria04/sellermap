@@ -27,7 +27,7 @@ export default function InventoryLevelsPage() {
   }, [products, q, getAvailableStock]);
 
   return (
-    <InventoryShell title="Inventory" subtitle="Stock on hand, committed and available to sell">
+    <InventoryShell title="Запасы" subtitle="Остатки на складе: всего, зарезервировано и доступно">
       {products.length === 0 ? (
         <PageEmptyState
           title="Пока нет запасов"
@@ -43,7 +43,7 @@ export default function InventoryLevelsPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search products"
+              placeholder="Поиск товаров"
               className="w-full bg-transparent text-sm text-[var(--c-text)] outline-none placeholder:text-[var(--c-text3)]"
             />
           </div>
@@ -51,11 +51,11 @@ export default function InventoryLevelsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--c-border)] text-left text-xs uppercase text-[var(--c-text3)]">
-                  <th className="px-4 py-2.5 font-medium">Product</th>
-                  <th className="px-4 py-2.5 font-medium">SKU</th>
-                  <th className="px-4 py-2.5 text-right font-medium">On hand</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Committed</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Available</th>
+                  <th className="px-4 py-2.5 font-medium">Товар</th>
+                  <th className="px-4 py-2.5 font-medium">Артикул</th>
+                  <th className="px-4 py-2.5 text-right font-medium">На складе</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Зарезервировано</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Доступно</th>
                 </tr>
               </thead>
               <tbody>

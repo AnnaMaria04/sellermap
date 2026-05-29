@@ -140,8 +140,8 @@ export function DraftOrderEditor() {
                 )}
               </div>
               <div className="flex">
-                <button className="rounded-l-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-1.5 text-[var(--c-text2)] hover:bg-[var(--c-bg)]"><ChevronUp className="h-4 w-4" /></button>
-                <button className="rounded-r-lg border border-l-0 border-[var(--c-border)] bg-[var(--c-bg2)] p-1.5 text-[var(--c-text2)] hover:bg-[var(--c-bg)]"><ChevronDown className="h-4 w-4" /></button>
+                <button aria-label="Предыдущий черновик" className="rounded-l-lg border border-[var(--c-border)] bg-[var(--c-bg2)] p-1.5 text-[var(--c-text2)] hover:bg-[var(--c-bg)]"><ChevronUp className="h-4 w-4" /></button>
+                <button aria-label="Следующий черновик" className="rounded-r-lg border border-l-0 border-[var(--c-border)] bg-[var(--c-bg2)] p-1.5 text-[var(--c-text2)] hover:bg-[var(--c-bg)]"><ChevronDown className="h-4 w-4" /></button>
               </div>
             </div>
           </div>

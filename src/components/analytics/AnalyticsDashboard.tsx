@@ -16,8 +16,8 @@ import {
 } from "@/lib/analytics/date-range";
 import { cn } from "@/lib/utils";
 
-const PRIMARY = "#1f6feb";
-const COMPARE = "#9ecbff";
+const PRIMARY = "var(--c-blue)";
+const COMPARE = "var(--c-text3)";
 
 function defaultControls(): AnalyticsControls {
   const range = resolvePreset("today");

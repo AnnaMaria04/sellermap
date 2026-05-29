@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import {
   Pencil, Check, Plus, ArrowUp, Sparkles, Tag, Store,
   Truck, Receipt, MapPin, Cpu, ImageIcon,
@@ -57,9 +58,9 @@ export function GettingStarted() {
             subtitle={
               <>
                 Начните с добавления товара и пары ключевых деталей. Не готовы?{" "}
-                <a href="/inventory/products" className="text-[var(--c-blue)] hover:underline">
+                <Link href="/inventory/products" className="text-[var(--c-blue)] hover:underline">
                   Начните с демо-товара
-                </a>
+                </Link>
               </>
             }
             primary={{ label: "Добавить товар", href: "/inventory/products/new" }}

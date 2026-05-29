@@ -8,7 +8,6 @@
 //     and a market context (median price / reviews). Unit-tested.
 //   - loadCardAuditData(supabase, nmId) — read-only query helper. Returns the
 //     raw rows the calculator needs.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { scoreStatus } from "./calculateResult";
 import type { CardAuditItem } from "./types";

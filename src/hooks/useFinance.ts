@@ -45,7 +45,7 @@ export function useFinance() {
   const orgId = useRef<string | null>(null);
   // Ref mirror so async category resolution always sees the latest list.
   const categoriesRef = useRef<ExpenseCategory[]>([]);
-  categoriesRef.current = categories;
+  useEffect(() => { categoriesRef.current = categories; }, [categories]);
 
   useEffect(() => {
     supabase.current = createClient();
