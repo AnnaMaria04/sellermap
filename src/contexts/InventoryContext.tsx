@@ -1030,6 +1030,8 @@ interface InventoryContextValue extends InventoryState {
   getSupplierName: (id: string | undefined) => string;
   /** False until the seller's workspace has been loaded from Supabase. */
   ready: boolean;
+  /** The signed-in seller's shop id, or null when not yet resolved / no backend. */
+  orgId: string | null;
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
@@ -1039,6 +1041,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   // before its data loads. The demo mock is only dispatched in no-backend mode.
   const [state, dispatch] = useReducer(reducer, emptyState);
   const [ready, setReady] = useState(false);
+  // Reactive mirror of orgId.current so consumers (e.g. the storefront builder)
+  // can read the shop id from the context value.
+  const [shopId, setShopId] = useState<string | null>(null);
   const hydrated = useRef(false);
   const orgId = useRef<string | null>(null);
   const currentUser = useRef<{ id: string; name: string }>({ id: "u-current", name: "Текущий пользователь" });
@@ -1088,6 +1093,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         return;
       }
       orgId.current = profile.org_id;
+      setShopId(profile.org_id);
       try {
         const remote = await loadWorkspace(supabase.current, profile.org_id);
         if (cancelled) return;
@@ -1312,6 +1318,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       return state.suppliers.find((s) => s.id === id)?.name ?? id;
     },
     ready,
+    orgId: shopId,
   };
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;

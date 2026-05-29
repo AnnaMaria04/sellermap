@@ -91,6 +91,12 @@ async function syncCollection(
     if (error) throw error;
   }
 
+  // Orders are append-only: never deleted by the seller's full-sync. This both
+  // matches the channel-sync policy (orders are cancelled, never removed) and
+  // keeps externally-inserted orders — e.g. public storefront checkouts that
+  // land directly in the DB while the seller's app is open — from being wiped.
+  if (collection === "orders") return;
+
   const keepIds = items.map((i) => i.id);
   let del = supabase.from(table).delete().eq("org_id", orgId);
   if (keepIds.length > 0) {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Store, ShoppingCart, X, Plus, Minus, Check } from "lucide-react";
 import {
-  loadStorefront, recordStoreOrder, type StorefrontSettings, type StoreProduct,
+  loadStorefront, submitStoreOrder, type StorefrontSettings, type StoreProduct,
 } from "@/lib/storefront/settings";
 
 function rub(n: number) {
@@ -16,6 +16,7 @@ export default function PublicStorePage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
 
   useEffect(() => { setS(loadStorefront()); }, []);
@@ -32,16 +33,22 @@ export default function PublicStorePage() {
   const add = (id: string) => setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
   const dec = (id: string) => setCart((c) => { const n = (c[id] ?? 0) - 1; const next = { ...c }; if (n <= 0) delete next[id]; else next[id] = n; return next; });
 
-  function placeOrder() {
-    const number = `S${Date.now().toString().slice(-6)}`;
-    recordStoreOrder({
-      number, createdAt: new Date().toISOString(), customer: { ...form },
-      items: lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty })), total,
-    });
-    setDone(number);
-    setCart({});
-    setCheckout(false);
-    setCartOpen(false);
+  async function placeOrder() {
+    if (!s || submitting) return;
+    setSubmitting(true);
+    try {
+      const { number } = await submitStoreOrder(s, {
+        customer: { ...form },
+        items: lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty })),
+        total,
+      });
+      setDone(number);
+      setCart({});
+      setCheckout(false);
+      setCartOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (s && !s.published) {
@@ -143,7 +150,7 @@ export default function PublicStorePage() {
               <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Адрес доставки" className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-blue)]" />
             </div>
             <div className="mt-3 flex items-center justify-between text-sm"><span className="text-[var(--c-text2)]">К оплате</span><span className="font-bold text-[var(--c-text)]">{rub(total)}</span></div>
-            <button onClick={placeOrder} disabled={!form.name || !form.phone} className="mt-4 w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: accent }}>Подтвердить заказ</button>
+            <button onClick={placeOrder} disabled={!form.name || !form.phone || submitting} className="mt-4 w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: accent }}>{submitting ? "Оформляем…" : "Подтвердить заказ"}</button>
             <p className="mt-2 text-center text-xs text-[var(--c-text3)]">Оплата при получении</p>
           </div>
         </div>

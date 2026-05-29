@@ -12,10 +12,16 @@ import {
 } from "@/lib/storefront/settings";
 
 export default function StorefrontBuilderPage() {
-  const { products } = useInventory();
+  const { products, orgId } = useInventory();
   const [s, setS] = useState<StorefrontSettings>(loadStorefront);
   const [q, setQ] = useState("");
   const [savedAt, setSavedAt] = useState(false);
+
+  // Snapshot the shop id so the public /store can route checkouts to this back
+  // office through the service-role endpoint.
+  useEffect(() => {
+    if (orgId && s.orgId !== orgId) setS((prev) => ({ ...prev, orgId }));
+  }, [orgId, s.orgId]);
 
   // Persist on every change (builder ↔ /store share localStorage).
   useEffect(() => { saveStorefront(s); }, [s]);
