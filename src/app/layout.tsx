@@ -1,21 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geologica, Unbounded } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/sellermap/app-shell";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { PWARegister } from "@/components/pwa/PWARegister";
 import { Toaster } from "sonner";
 
-const geologica = Geologica({
+// One clean, neutral sans across the whole app (Shopify-admin style).
+const inter = Inter({
   variable: "--font-body",
   subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "500"],
-});
-
-const unbounded = Unbounded({
-  variable: "--font-display",
-  subsets: ["latin", "cyrillic"],
-  weight: ["600", "700"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -23,14 +19,14 @@ export const metadata: Metadata = {
   description:
     "Физический магазин + WB + Ozon — в одном приложении.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "SellerMap", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "SellerMap", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0c0e0f",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -41,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
-      className={`${geologica.variable} ${unbounded.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>

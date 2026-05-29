@@ -163,7 +163,7 @@ export default function ProductDetailPage({ params }: Props) {
           </Link>
           <Link
             href="/inventory/purchase-orders"
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <ShoppingCart size={14} />
             Заказать
@@ -453,7 +453,7 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
               <button
                 onClick={() => router.push("/inventory/purchase-orders")}
-                className="mt-3 flex w-full h-9 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="mt-3 flex w-full h-9 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <ShoppingCart size={14} />
                 Создать заказ
@@ -783,7 +783,7 @@ export default function ProductDetailPage({ params }: Props) {
               </button>
               <button
                 onClick={saveEdit}
-                className="flex h-9 items-center rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex h-9 items-center rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 Сохранить
               </button>

@@ -303,7 +303,7 @@ export function ReplenishmentRules() {
           </div>
           <button
             onClick={openCreate}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Plus size={15} />
             Создать правило
@@ -317,7 +317,7 @@ export function ReplenishmentRules() {
           <p className="text-sm text-[var(--c-text3)]">Нет правил для этого товара</p>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Plus size={14} />
             Создать правило
@@ -632,7 +632,7 @@ export function ReplenishmentRules() {
                   className={cn(
                     "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
                     formData.productId && formData.reorderQty && !formSaved
-                      ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                      ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                       : "cursor-not-allowed bg-[var(--c-bg3)] text-[var(--c-text3)]",
                   )}
                 >

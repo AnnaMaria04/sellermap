@@ -161,7 +161,7 @@ function StatusStepper({
                 onAdvance(confirming);
                 setConfirming(null);
               }}
-              className="h-8 flex-1 rounded-lg bg-[var(--c-green)] text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="h-8 flex-1 rounded-lg bg-[var(--c-green)] text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               Подтвердить
             </button>
@@ -231,7 +231,7 @@ function LineItemsTable({
         {!receiving && po.status !== "closed" && po.status !== "draft" && (
           <button
             onClick={() => setReceiving(true)}
-            className="flex h-8 items-center gap-2 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-8 items-center gap-2 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Package size={13} />
             Принять товар
@@ -365,7 +365,7 @@ function LineItemsTable({
         <div className="border-t border-[var(--c-border)] px-5 py-4">
           <button
             onClick={handleConfirmReceive}
-            className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Check size={16} />
             Подтвердить получение
@@ -465,7 +465,7 @@ function NotesSection({
                 setEditing(false);
                 toast.success("Примечание сохранено");
               }}
-              className="flex-1 h-8 rounded-lg bg-[var(--c-green)] text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="flex-1 h-8 rounded-lg bg-[var(--c-green)] text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               Сохранить
             </button>
@@ -604,7 +604,7 @@ export default function PODetailPage({
           </p>
           <Link
             href="/inventory/purchase-orders"
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <ArrowLeft size={14} />
             Все заказы

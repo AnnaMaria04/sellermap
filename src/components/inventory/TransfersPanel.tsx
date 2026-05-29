@@ -320,7 +320,7 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
           <ExportButton transfers={filtered} />
           <button
             onClick={() => setShowForm(true)}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Plus size={15} />
             Создать перемещение
@@ -338,7 +338,7 @@ export function TransfersPanel({ onCreateTransfer: _onCreateTransfer }: Props) {
             action={
               <button
                 onClick={() => setShowForm(true)}
-                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <Plus size={15} />
                 Создать перемещение
@@ -676,7 +676,7 @@ function TransferDetailPanel({ transfer, onClose, onReceive }: DetailProps) {
           {!receiving && transfer.status === "in_transit" && (
             <button
               onClick={() => setReceiving(true)}
-              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               <Package size={16} />
               Принять товар
@@ -697,7 +697,7 @@ function TransferDetailPanel({ transfer, onClose, onReceive }: DetailProps) {
                 </button>
                 <button
                   onClick={confirmReceive}
-                  className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                  className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
                 >
                   <Check size={14} />
                   Подтвердить получение
@@ -1064,7 +1064,7 @@ function CreateTransferForm({ onClose }: { onClose: () => void }) {
             className={cn(
               "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
               isValid && !saved
-                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                 : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
             )}
           >

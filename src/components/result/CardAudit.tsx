@@ -141,7 +141,7 @@ export function CardAudit({ result }: { result: ProductResult }) {
         type="button"
         onClick={generateCard}
         disabled={loading}
-        className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-medium text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-medium text-[var(--c-bg)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
         Создать карточку товара с AI

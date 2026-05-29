@@ -138,7 +138,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] py-2.5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] py-2.5 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:opacity-60"
             >
               {busy && <Loader2 size={15} className="animate-spin" />}
               {mode === "signin" ? "Войти" : "Зарегистрироваться"}

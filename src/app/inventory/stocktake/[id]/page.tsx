@@ -783,7 +783,7 @@ function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="flex flex-1 h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex flex-1 h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <CheckCircle size={15} />
             {confirmLabel}

@@ -248,7 +248,7 @@ export function SuppliersPanel() {
             setEditSupplier(null);
             setShowForm(true);
           }}
-          className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition whitespace-nowrap"
+          className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition whitespace-nowrap"
         >
           <Plus size={15} />
           Добавить поставщика
@@ -264,7 +264,7 @@ export function SuppliersPanel() {
           action={
             <button
               onClick={() => setShowForm(true)}
-              className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               <Plus size={15} />
               Добавить поставщика
@@ -803,7 +803,7 @@ function SupplierDetailPanel({
         <div className="border-t border-[var(--c-border)] bg-[var(--c-bg2)] p-4 space-y-2">
           <button
             onClick={onCreateOrder}
-            className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <ShoppingCart size={15} />
             Создать заказ поставщику
@@ -1185,7 +1185,7 @@ function SupplierForm({
             className={cn(
               "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
               name.trim() && !saved
-                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                 : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
             )}
           >

@@ -300,7 +300,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
           </button>
           <button
             onClick={onAddProduct}
-            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
+            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
           >
             <Plus size={15} />
             Добавить товар
@@ -404,7 +404,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
           action={
             <button
               onClick={onAddProduct}
-              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890]"
+              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
             >
               <Plus size={15} />
               Добавить товар

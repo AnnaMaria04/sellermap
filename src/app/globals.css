@@ -1,10 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  /* Dark theme — softer slate base with lifted contrast so cards, borders and
-   * muted text stay readable. The previous near-black palette made everything
-   * blend together; this raises bg by ~5 lightness steps and roughly doubles
-   * the visibility of borders and tertiary text. */
+  /* Light theme is the default — a calm, spacious Shopify-admin palette: a soft
+   * gray canvas, white cards, hairline borders and restrained accent colors.
+   * Dark is opt-in via [data-theme="dark"] below. */
+  --c-bg: #f6f7f9;
+  --c-bg2: #ffffff;
+  --c-bg3: #eef0f3;
+  --c-border: rgba(0,0,0,0.08);
+  --c-border2: rgba(0,0,0,0.14);
+  --c-text: #1a1c1d;
+  --c-text2: #5a6270;
+  --c-text3: #8a909c;
+  --c-green: #1a8754;
+  --c-green-dim: rgba(26,135,84,0.10);
+  --c-amber: #b26a00;
+  --c-amber-dim: rgba(178,106,0,0.10);
+  --c-red: #c9342f;
+  --c-red-dim: rgba(201,52,47,0.10);
+  --c-blue: #2c6ecb;
+  --c-blue-dim: rgba(44,110,203,0.10);
+  --c-header: rgba(255,255,255,0.92);
+  --background: var(--c-bg);
+  --foreground: var(--c-text);
+  --charcoal: var(--c-text);
+  --off-white: var(--c-bg);
+  --light-gray: var(--c-border);
+  --primary-green: var(--c-green);
+  --dark-green: var(--c-green);
+  --mint: var(--c-green);
+  --soft-green: var(--c-green-dim);
+  --warning: var(--c-amber);
+  --risk: var(--c-red);
+  /* One clean sans across the app (provided by next/font as --font-body). */
+  --font-geologica: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-unbounded: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Dark theme — opt-in. Softer slate base with lifted contrast so cards,
+ * borders and muted text stay readable. */
+[data-theme="dark"] {
   --c-bg: #12161b;
   --c-bg2: #1a1f25;
   --c-bg3: #242a32;
@@ -22,19 +58,6 @@
   --c-blue: #4d9fff;
   --c-blue-dim: rgba(77,159,255,0.10);
   --c-header: rgba(12,14,15,0.92);
-  --background: var(--c-bg);
-  --foreground: var(--c-text);
-  --charcoal: var(--c-text);
-  --off-white: var(--c-bg);
-  --light-gray: var(--c-border);
-  --primary-green: var(--c-green);
-  --dark-green: var(--c-green);
-  --mint: var(--c-green);
-  --soft-green: var(--c-green-dim);
-  --warning: var(--c-amber);
-  --risk: var(--c-red);
-  --font-geologica: 'Geologica', sans-serif;
-  --font-unbounded: 'Unbounded', sans-serif;
 }
 
 @theme inline {
@@ -49,8 +72,8 @@
   --color-soft-green: var(--soft-green);
   --color-warning: var(--warning);
   --color-risk: var(--risk);
-  --font-sans: "Geologica", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geologica", ui-monospace, monospace;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* Global UI density — scales all rem-based sizing (text, spacing, control
@@ -63,8 +86,10 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), var(--font-geologica);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -92,7 +117,8 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display), var(--font-unbounded);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .font-body {
@@ -108,33 +134,6 @@ body {
   letter-spacing: 0.08em;
   padding-top: 18px;
   text-transform: uppercase;
-}
-
-/* Light theme */
-[data-theme="light"] {
-  --c-bg: #f6f7f9;
-  --c-bg2: #ffffff;
-  --c-bg3: #eef0f3;
-  --c-border: rgba(0,0,0,0.08);
-  --c-border2: rgba(0,0,0,0.14);
-  --c-text: #0f1214;
-  --c-text2: #5a6270;
-  --c-text3: #9ba3b0;
-  --c-green: #12a063;
-  --c-green-dim: rgba(18,160,99,0.10);
-  --c-amber: #c9790d;
-  --c-amber-dim: rgba(201,121,13,0.10);
-  --c-red: #c73333;
-  --c-red-dim: rgba(199,51,51,0.10);
-  --c-blue: #2d7dd2;
-  --c-blue-dim: rgba(45,125,210,0.10);
-  --c-header: rgba(255,255,255,0.92);
-}
-
-/* Inventory-specific utilities */
-:root {
-  --c-blue: #4d9fff;
-  --c-blue-dim: rgba(77,159,255,0.10);
 }
 
 .hide-scrollbar {

@@ -163,7 +163,7 @@ export function FeedbacksPanel() {
               <button
                 onClick={() => send(tab, it.id)}
                 disabled={busy === it.id || !drafts[it.id]?.trim()}
-                className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:opacity-50"
               >
                 <Send size={14} /> Отправить
               </button>

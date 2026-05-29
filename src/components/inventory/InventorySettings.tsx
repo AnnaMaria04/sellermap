@@ -379,7 +379,7 @@ export function InventorySettings() {
               setProfileSaved(true);
               setTimeout(() => setProfileSaved(false), 2000);
             }}
-            className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             {profileSaved ? <><Check size={12} /> Сохранено</> : <><Save size={12} /> Сохранить</>}
           </button>

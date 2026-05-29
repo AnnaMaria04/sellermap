@@ -591,7 +591,7 @@ export function PurchaseOrderForm({ onClose, onSave, initialSupplierId }: Props)
               className={cn(
                 "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
                 isValid && !saved
-                  ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                  ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                   : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
               )}
             >

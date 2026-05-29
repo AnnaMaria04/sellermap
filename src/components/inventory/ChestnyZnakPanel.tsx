@@ -294,7 +294,7 @@ export function ChestnyZnakPanel() {
                         <button
                           onClick={() => simulateGenerate(product)}
                           disabled={isBusy}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:opacity-60"
                         >
                           {isBusy ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -493,7 +493,7 @@ export function ChestnyZnakPanel() {
                                 )
                               }
                               disabled={isBusy}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:opacity-60"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:opacity-60"
                             >
                               {isBusy ? (
                                 <Loader2 size={13} className="animate-spin" />

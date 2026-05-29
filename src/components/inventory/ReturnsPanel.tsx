@@ -212,7 +212,7 @@ export function ReturnsPanel() {
         </p>
         <button
           onClick={() => setShowForm(true)}
-          className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+          className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
         >
           <Plus size={15} />
           Создать возврат
@@ -497,7 +497,7 @@ export function ReturnsPanel() {
                     "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
                     formSaved
                       ? "bg-[var(--c-green)]/70 text-[var(--c-bg)] cursor-not-allowed"
-                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]",
+                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90",
                   )}
                 >
                   {formSaved ? <><Check size={14} /> Создан</> : "Создать возврат"}
@@ -636,7 +636,7 @@ function ReturnDetailPanel({ ret, onClose }: { ret: ProductReturn; onClose: () =
                 "flex w-full h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition",
                 processed
                   ? "bg-[var(--c-green)]/70 text-[var(--c-bg)] cursor-not-allowed"
-                  : "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]",
+                  : "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90",
               )}
             >
               {processed ? <><Check size={14} /> Обработано</> : <><RotateCcw size={14} /> Обработать возврат</>}

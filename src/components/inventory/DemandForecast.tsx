@@ -669,7 +669,7 @@ export function DemandForecast() {
                                     (prev) => new Set(prev).add(f.product.id),
                                   );
                                 }}
-                                className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] whitespace-nowrap"
+                                className="flex items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 py-1.5 text-xs font-semibold text-[var(--c-bg)] transition hover:opacity-90 whitespace-nowrap"
                               >
                                 <ShoppingCart size={11} />
                                 Заказать {f.reorderQty} шт

@@ -195,7 +195,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   ))}
                 </select>
                 <div className="flex gap-2">
-                  <button onClick={saveProfile} className="flex-1 h-9 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition">
+                  <button onClick={saveProfile} className="flex-1 h-9 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition">
                     <Save size={13} className="inline mr-1.5" />Сохранить
                   </button>
                   <button onClick={() => setEditingProfile(false)} className="h-9 w-9 rounded-lg border border-[var(--c-border2)] text-[var(--c-text3)] hover:text-[var(--c-text)] transition flex items-center justify-center">
@@ -328,7 +328,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none resize-none"
                 />
                 <div className="flex gap-2">
-                  <button onClick={saveNote} className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition">
+                  <button onClick={saveNote} className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition">
                     <Save size={12} />Сохранить
                   </button>
                   <button onClick={() => { setEditingNote(false); setNoteText(customer.note ?? ""); }} className="h-8 px-3 rounded-lg border border-[var(--c-border2)] text-xs text-[var(--c-text3)] hover:text-[var(--c-text)] transition">

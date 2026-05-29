@@ -364,7 +364,7 @@ export default function TransferDetailPage({ params }: Props) {
               {!receiving && (transfer.status === "in_transit" || transfer.status === "partial") && (
                 <button
                   onClick={initReceive}
-                  className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                  className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
                 >
                   <Package size={14} />
                   Принять товар
@@ -471,7 +471,7 @@ export default function TransferDetailPage({ params }: Props) {
               </p>
               <button
                 onClick={confirmReceive}
-                className="flex shrink-0 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex shrink-0 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <Check size={14} />
                 Подтвердить получение
@@ -519,7 +519,7 @@ export default function TransferDetailPage({ params }: Props) {
                     setEditingNote(false);
                     toast.success("Примечание сохранено");
                   }}
-                  className="flex h-8 items-center rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                  className="flex h-8 items-center rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
                 >
                   Сохранить
                 </button>
@@ -565,7 +565,7 @@ export default function TransferDetailPage({ params }: Props) {
               </button>
               <button
                 onClick={confirmStatusChange}
-                className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <Check size={14} />
                 Подтвердить

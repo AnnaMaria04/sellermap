@@ -162,7 +162,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
           </button>
           <button
             onClick={onCreatePO}
-            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Plus size={15} />
             <span className="hidden sm:inline">Создать заказ</span>
@@ -180,7 +180,7 @@ export function PurchaseOrderList({ onCreatePO }: Props) {
           action={
             <button
               onClick={onCreatePO}
-              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               <Plus size={15} />
               Создать заказ
@@ -445,7 +445,7 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
           {!receiving && po.status !== "closed" && po.status !== "draft" && (
             <button
               onClick={() => setReceiving(true)}
-              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               <Package size={16} />
               Принять товар
@@ -471,7 +471,7 @@ function PODetailPanel({ po, onClose }: { po: PurchaseOrder; onClose: () => void
                     setReceiving(false);
                   }
                 }}
-                className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex-1 flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <Check size={14} />
                 Подтвердить приёмку

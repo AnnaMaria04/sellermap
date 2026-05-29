@@ -322,7 +322,7 @@ export function WriteOffPanel() {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <Plus size={15} />
             Создать списание

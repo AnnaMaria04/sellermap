@@ -597,7 +597,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                     placeholder="https://www.wildberries.ru/catalog/123456789/detail.aspx — или просто артикул"
                     className={`${inputCls} flex-1 min-w-[260px]`} />
                   <button type="button" onClick={importFromWb} disabled={!wbInput.trim() || wbLoading}
-                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-50">
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
                     {wbLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                     Импортировать
                   </button>
@@ -1418,7 +1418,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
                   Отмена
                 </button>
                 <button type="button" onClick={savePackage} disabled={!pkgForm.name.trim()}
-                  className="rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-50">
+                  className="rounded-lg bg-[var(--c-green)] px-4 py-1.5 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
                   Сохранить
                 </button>
               </div>
@@ -1434,7 +1434,7 @@ export function ProductForm({ initial, mode }: ProductFormProps) {
               Отмена
             </button>
             <button type="submit" disabled={isSubmitting}
-              className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:bg-[#25e890] disabled:cursor-not-allowed disabled:opacity-60">
+              className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
               {isSubmitting && <Loader2 size={14} className="animate-spin" />}
               {isSubmitting ? (isEdit ? "Сохранение…" : "Создание…") : (isEdit ? "Сохранить" : "Создать товар")}
             </button>

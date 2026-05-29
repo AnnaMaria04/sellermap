@@ -459,7 +459,7 @@ export function BarcodeLabelPanel({ product: initialProduct, onClose }: Props) {
                       </div>
                       <button
                         onClick={addScannedProduct}
-                        className="shrink-0 rounded-lg bg-[var(--c-green)] px-3 py-1 text-xs font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890]"
+                        className="shrink-0 rounded-lg bg-[var(--c-green)] px-3 py-1 text-xs font-semibold text-[var(--c-bg)] transition hover:opacity-90"
                       >
                         + Добавить
                       </button>
@@ -772,7 +772,7 @@ export function BarcodeLabelPanel({ product: initialProduct, onClose }: Props) {
               className={cn(
                 "flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition",
                 printItems.length > 0 && !printing
-                  ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                  ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                   : "cursor-not-allowed bg-[var(--c-bg3)] text-[var(--c-text3)]",
               )}
             >

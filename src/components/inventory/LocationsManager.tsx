@@ -181,7 +181,7 @@ export function LocationsManager() {
         <h2 className="text-base font-semibold text-[var(--c-text)]">Локации и склады</h2>
         <button
           onClick={() => { setShowAddForm(true); setFormData(FORM_DEFAULTS); setFormErrors({}); }}
-          className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+          className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
         >
           <Plus size={15} />
           Добавить локацию
@@ -299,7 +299,7 @@ export function LocationsManager() {
                     "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
                     saved
                       ? "bg-[var(--c-green)]/70 text-[var(--c-bg)] cursor-not-allowed"
-                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]",
+                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90",
                   )}
                 >
                   {saved ? <><Check size={14} /> Сохранено</> : "Создать локацию"}
@@ -546,7 +546,7 @@ function LocationDetailPanel({ location, onClose }: { location: Location; onClos
           <Link
             href="/inventory/stocktake"
             onClick={onClose}
-            className="flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+            className="flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
           >
             <ClipboardList size={14} />
             Инвентаризация

@@ -239,7 +239,7 @@ function ExpenseForm({ onSave, onClose }: { onSave: (e: Omit<Expense, "id" | "cr
             <button
               type="submit"
               disabled={!amount}
-              className="h-10 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] disabled:opacity-50 transition"
+              className="h-10 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 disabled:opacity-50 transition"
             >
               Добавить
             </button>
@@ -431,7 +431,7 @@ export default function FinancePage() {
                   </select>
                   <button
                     onClick={() => setShowAddExpense(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--c-green)] px-3 text-xs font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
                   >
                     <Plus size={13} />
                     Добавить
@@ -445,7 +445,7 @@ export default function FinancePage() {
                   <p className="text-sm text-[var(--c-text3)]">Расходов пока нет</p>
                   <button
                     onClick={() => setShowAddExpense(true)}
-                    className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                    className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
                   >
                     <Plus size={15} />
                     Добавить расход
@@ -587,7 +587,7 @@ export default function FinancePage() {
 
               <button
                 onClick={() => { saveTaxSettings(draftSettings); setTab("taxes"); }}
-                className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+                className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 Сохранить настройки
               </button>

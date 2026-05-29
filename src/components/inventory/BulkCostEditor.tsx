@@ -216,7 +216,7 @@ export function BulkCostEditor({ onClose }: { onClose?: () => void }) {
         <button
           onClick={save}
           disabled={changed.length === 0}
-          className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] transition hover:bg-[#25e890] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 py-2 text-sm font-semibold text-[var(--c-bg)] transition hover:opacity-90 disabled:opacity-50"
         >
           <Check size={16} /> Сохранить ({changed.length})
         </button>

@@ -228,7 +228,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition",
                   company.trim()
-                    ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                    ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                     : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
                 )}
               >
@@ -313,7 +313,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                             className={cn(
                               "rounded-lg px-3 text-xs font-semibold transition",
                               keyValue.trim()
-                                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                                ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                                 : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
                             )}
                           >
@@ -340,7 +340,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition",
                   hasAnyApiKey
-                    ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]"
+                    ? "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90"
                     : "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed",
                 )}
               >

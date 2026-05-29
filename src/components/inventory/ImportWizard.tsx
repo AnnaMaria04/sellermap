@@ -377,7 +377,7 @@ export function ImportWizard({ onClose }: Props) {
                 <button
                   onClick={handleImport}
                   disabled={importing}
-                  className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition disabled:opacity-60"
+                  className="flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition disabled:opacity-60"
                 >
                   {importing ? (
                     <><RefreshCw size={14} className="animate-spin" /> Импортируется...</>
@@ -396,7 +396,7 @@ export function ImportWizard({ onClose }: Props) {
                     "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold transition",
                     (step === "source" && !source) || (step === "upload" && !fileName)
                       ? "bg-[var(--c-bg3)] text-[var(--c-text3)] cursor-not-allowed"
-                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:bg-[#25e890]",
+                      : "bg-[var(--c-green)] text-[var(--c-bg)] hover:opacity-90",
                   )}
                 >
                   Далее
@@ -407,7 +407,7 @@ export function ImportWizard({ onClose }: Props) {
           ) : (
             <button
               onClick={onClose}
-              className="ml-auto flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:bg-[#25e890] transition"
+              className="ml-auto flex h-10 items-center gap-2 rounded-lg bg-[var(--c-green)] px-5 text-sm font-semibold text-[var(--c-bg)] hover:opacity-90 transition"
             >
               <Package size={15} />
               Перейти к товарам
