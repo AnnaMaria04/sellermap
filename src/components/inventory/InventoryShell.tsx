@@ -31,6 +31,7 @@ import {
   Map,
   ShoppingCart,
   Calculator,
+  Activity,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ const NAV: NavSection[] = [
       { label: "Налоги",    href: "/inventory/tax",        icon: Calculator },
       { label: "Аналитика", href: "/inventory/analytics",  icon: BarChart3 },
       { label: "Отчёты",    href: "/inventory/reports",    icon: FileText },
+      { label: "Синхронизация", href: "/inventory/sync-health", icon: Activity },
     ],
   },
 ];
