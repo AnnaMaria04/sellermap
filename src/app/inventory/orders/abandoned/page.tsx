@@ -1,14 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { ShoppingCart, XCircle } from "lucide-react";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
+import { AbandonedEmailEditor } from "@/components/inventory/AbandonedEmailEditor";
 
 export default function AbandonedCheckoutsPage() {
+  const [emailOpen, setEmailOpen] = useState(false);
+
   return (
     <InventoryShell
       title="Брошенные корзины"
       actions={
-        <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
+        <button className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg)]">
           Действия
         </button>
       }
@@ -29,7 +33,7 @@ export default function AbandonedCheckoutsPage() {
             <CartArt />
           </div>
 
-          {/* Recover-email footer */}
+          {/* Recover-email banner */}
           <div className="border-t border-[var(--c-border)] bg-[var(--c-bg3)] px-8 py-5">
             <h3 className="text-sm font-semibold text-[var(--c-text)]">
               Восстанавливайте продажи письмом о брошенной корзине
@@ -38,7 +42,10 @@ export default function AbandonedCheckoutsPage() {
               Автоматическое письмо уже создано для вас. Уделите минуту, чтобы проверить
               текст, оформление и список получателей.
             </p>
-            <button className="mt-3 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg2)]">
+            <button
+              onClick={() => setEmailOpen(true)}
+              className="mt-3 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text)] transition hover:bg-[var(--c-bg)]"
+            >
               Проверить письмо
             </button>
           </div>
@@ -50,6 +57,8 @@ export default function AbandonedCheckoutsPage() {
           </a>
         </p>
       </div>
+
+      {emailOpen && <AbandonedEmailEditor onClose={() => setEmailOpen(false)} />}
     </InventoryShell>
   );
 }
@@ -58,7 +67,7 @@ function CartArt() {
   return (
     <div className="relative hidden h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[var(--c-bg3)] sm:flex">
       <ShoppingCart className="h-10 w-10 text-[var(--c-green)]" />
-      <XCircle className="absolute right-4 top-5 h-6 w-6 fill-[var(--c-bg)] text-[var(--c-red)]" />
+      <XCircle className="absolute right-4 top-5 h-6 w-6 fill-[var(--c-bg2)] text-[var(--c-red)]" />
     </div>
   );
 }
