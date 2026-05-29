@@ -39,6 +39,7 @@ import {
   Gift,
   Boxes,
   Sparkles,
+  FileCode,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -128,6 +129,7 @@ const NAV: NavSection[] = [
       { label: "Налоги", href: "/inventory/tax", icon: Calculator },
       { label: "Отчёты", href: "/inventory/reports", icon: FileText },
       { label: "Синхронизация", href: "/inventory/sync-health", icon: Activity },
+      { label: "Обмен с 1С", href: "/inventory/erp1c", icon: FileCode },
     ],
   },
 ];
