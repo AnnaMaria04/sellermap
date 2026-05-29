@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pencil, Check, MessageCircleQuestion, Store, Package } from "lucide-react";
 import { useSetupStatus } from "./useSetupStatus";
 import { SetupCard } from "./SetupCard";
+import { ChecklistRail } from "./ChecklistRail";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,7 +40,11 @@ export function GettingStarted() {
 
         {/* 3 ── CHECKLIST RAIL (above cards on mobile, right rail at lg) ───── */}
         <aside className="order-2 col-span-12 self-start lg:order-3 lg:col-span-4 lg:sticky lg:top-6">
-          <Placeholder label={`3 · Настройка · ${doneCount}/${total}`} tall />
+          {loading ? (
+            <Placeholder label="Настройка" tall />
+          ) : (
+            <ChecklistRail status={status} doneCount={doneCount} total={total} />
+          )}
         </aside>
 
         {/* 2 + 4 ── SETUP CARDS (left column) ─────────────────────────────── */}
