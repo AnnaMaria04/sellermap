@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const NAME_KEY = "sellermap_store_name";
+
 /** The five setup milestones a new seller completes to reach first value. */
 export interface SetupStatus {
   marketplace: boolean;
@@ -39,11 +41,18 @@ const EMPTY: SetupStatus = {
 export function useSetupStatus(): GettingStartedState {
   const [loading, setLoading] = useState(true);
   const [orgId, setOrgId] = useState<string | null>(null);
-  const [workspaceName, setWorkspaceName] = useState<string>("Мой магазин");
+  // Empty string = "not set yet" → the header shows the add-name affordance.
+  const [workspaceName, setWorkspaceName] = useState<string>("");
   const [status, setStatus] = useState<SetupStatus>(EMPTY);
   const supabase = useRef<ReturnType<typeof createClient>>(null);
 
   useEffect(() => {
+    // Locally remembered name (works offline / before the org row loads).
+    try {
+      const local = localStorage.getItem(NAME_KEY);
+      if (local) setWorkspaceName(local);
+    } catch {}
+
     supabase.current = createClient();
     const sb = supabase.current;
     if (!sb) {
@@ -99,6 +108,7 @@ export function useSetupStatus(): GettingStartedState {
     const trimmed = name.trim();
     if (!trimmed) return;
     setWorkspaceName(trimmed);
+    try { localStorage.setItem(NAME_KEY, trimmed); } catch {}
     const sb = supabase.current;
     if (sb && orgId) {
       await sb.from("organizations").update({ name: trimmed }).eq("id", orgId);
