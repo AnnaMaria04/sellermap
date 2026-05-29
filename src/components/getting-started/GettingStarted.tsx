@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Check, MessageCircleQuestion, Store, Package } from "lucide-react";
+import { Pencil, Check, MessageCircleQuestion, Store, Package, Smartphone, Building2, Receipt } from "lucide-react";
 import { useSetupStatus } from "./useSetupStatus";
 import { SetupCard } from "./SetupCard";
 import { ChecklistRail } from "./ChecklistRail";
@@ -76,11 +76,35 @@ export function GettingStarted() {
             )}
           </div>
 
-          {/* 4 — SECONDARY SETUP (built next) */}
+          {/* 4 — SECONDARY SETUP */}
           <div className="grid gap-6 sm:grid-cols-3">
-            <Placeholder label="4A · Приём оплаты телефоном" />
-            <Placeholder label="4B · Локации и склады" />
-            <Placeholder label="4C · Налоги и касса" />
+            {loading ? (
+              <><CardSkeleton /><CardSkeleton /><CardSkeleton /></>
+            ) : (
+              <>
+                <SetupCard
+                  icon={<Smartphone className="h-5 w-5" />}
+                  title="Приём оплаты телефоном"
+                  subtitle="Картой, Mir Pay или по QR (СБП). Без терминала."
+                  done={status.payments}
+                  primary={{ label: "Подключить", href: "/inventory/settings/pos" }}
+                />
+                <SetupCard
+                  icon={<Building2 className="h-5 w-5" />}
+                  title="Локации и склады"
+                  subtitle="Настройте магазины и склады для учёта остатков по местам."
+                  done={status.location}
+                  primary={{ label: "Настроить", href: "/inventory/locations" }}
+                />
+                <SetupCard
+                  icon={<Receipt className="h-5 w-5" />}
+                  title="Налоги и касса"
+                  subtitle="Выберите режим УСН и подключите онлайн-кассу (54-ФЗ)."
+                  done={status.taxes}
+                  primary={{ label: "Настроить", href: "/inventory/tax" }}
+                />
+              </>
+            )}
           </div>
         </div>
 
