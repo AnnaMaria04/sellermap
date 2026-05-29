@@ -73,7 +73,7 @@ function SortButton({
 }: { col: SortKey; label: string; sortKey: SortKey; onSort: (col: SortKey) => void }) {
   return (
     <button
-      className="flex items-center gap-1 text-xs font-medium text-[var(--c-text2)] hover:text-[var(--c-text)] transition"
+      className="flex items-center gap-1 text-xs font-medium text-[var(--c-text3)] hover:text-[var(--c-text)] transition"
       onClick={() => onSort(col)}
     >
       {label}
@@ -226,7 +226,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
             placeholder="Поиск по названию, SKU, штрихкоду..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] pl-9 pr-3 text-base text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
+            className="h-9 w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] pl-9 pr-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:border-[var(--c-green)] focus:outline-none"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text3)] hover:text-[var(--c-text)]">
@@ -242,7 +242,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
             "flex h-9 min-w-[44px] items-center gap-2 rounded-lg border px-3 text-sm font-medium transition",
             showFilters || activeFilterCount > 0
               ? "border-[var(--c-green)] bg-[var(--c-green-dim)] text-[var(--c-green)]"
-              : "border-[var(--c-border2)] bg-transparent text-[var(--c-text2)] hover:border-white/25 hover:text-[var(--c-text)]",
+              : "border-[var(--c-border)] bg-[var(--c-bg2)] text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
           )}
         >
           <SlidersHorizontal size={14} />
@@ -267,7 +267,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
           )}
           <button
             onClick={onImport}
-            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-3 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
+            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
             <Upload size={14} />
             Импорт
@@ -293,14 +293,14 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
               a.download = `товары_${new Date().toISOString().slice(0, 10)}.csv`;
               a.click();
             }}
-            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-3 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
+            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
             <Download size={14} />
             Экспорт
           </button>
           <button
             onClick={onAddProduct}
-            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
+            className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
           >
             <Plus size={15} />
             Добавить товар
@@ -404,7 +404,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
           action={
             <button
               onClick={onAddProduct}
-              className="flex h-11 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
+              className="flex h-9 items-center gap-2 rounded-lg bg-[var(--c-green)] px-4 text-sm font-semibold text-[var(--c-bg)] shadow-sm transition hover:opacity-90"
             >
               <Plus size={15} />
               Добавить товар
@@ -454,7 +454,7 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--c-border)]">
-                    <th className="w-10 px-4 py-3">
+                    <th className="w-10 px-4 py-2.5">
                       <input
                         type="checkbox"
                         checked={allSelected}
@@ -462,34 +462,34 @@ export function ProductsTable({ onAddProduct, onImport, initialStockFilter }: { 
                         className="h-4 w-4 rounded border-[var(--c-border2)] bg-[var(--c-bg3)] accent-[var(--c-green)]"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left">
+                    <th className="px-4 py-2.5 text-left">
                       <SortButton col="name" label="Товар" sortKey={sortKey} onSort={handleSort} />
                     </th>
-                    <th className="px-4 py-3 text-left">
-                      <span className="text-xs font-medium text-[var(--c-text2)]">Статус</span>
+                    <th className="px-4 py-2.5 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text3)]">Статус</span>
                     </th>
-                    <th className="px-4 py-3 text-left">
-                      <span className="text-xs font-medium text-[var(--c-text2)]">Наличие</span>
+                    <th className="px-4 py-2.5 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text3)]">Наличие</span>
                     </th>
-                    <th className="px-4 py-3 text-right">
+                    <th className="px-4 py-2.5 text-right">
                       <SortButton col="stock" label="Остаток" sortKey={sortKey} onSort={handleSort} />
                     </th>
-                    <th className="px-4 py-3 text-right">
+                    <th className="px-4 py-2.5 text-right">
                       <SortButton col="price" label="Цена" sortKey={sortKey} onSort={handleSort} />
                     </th>
-                    <th className="px-4 py-3 text-right">
+                    <th className="px-4 py-2.5 text-right">
                       <SortButton col="costPrice" label="Себест." sortKey={sortKey} onSort={handleSort} />
                     </th>
-                    <th className="px-4 py-3 text-right">
+                    <th className="px-4 py-2.5 text-right">
                       <SortButton col="margin" label="Маржа" sortKey={sortKey} onSort={handleSort} />
                     </th>
-                    <th className="px-4 py-3 text-left">
-                      <span className="text-xs font-medium text-[var(--c-text2)]">Тип</span>
+                    <th className="px-4 py-2.5 text-left">
+                      <span className="text-xs font-medium text-[var(--c-text3)]">Тип</span>
                     </th>
-                    <th className="px-4 py-3 text-center">
-                      <span className="text-xs font-medium text-[var(--c-text2)]">ABC</span>
+                    <th className="px-4 py-2.5 text-center">
+                      <span className="text-xs font-medium text-[var(--c-text3)]">ABC</span>
                     </th>
-                    <th className="w-12 px-4 py-3" />
+                    <th className="w-12 px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
@@ -661,7 +661,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-2 text-xs text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
+        className="h-8 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg3)] px-2 text-xs text-[var(--c-text)] focus:border-[var(--c-green)] focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -694,7 +694,7 @@ function BulkActionsMenu({ selectedIds, products, onClear }: { selectedIds: stri
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border2)] bg-transparent px-3 text-sm font-medium text-[var(--c-text2)] transition hover:border-white/25 hover:text-[var(--c-text)]"
+        className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
       >
         Действия
         <ChevronDown size={14} />

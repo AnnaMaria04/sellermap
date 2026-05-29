@@ -56,21 +56,21 @@ import { exportData } from "@/lib/export";
 // ── Presentation config ────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<OrderStatus, { color: string; bg: string }> = {
-  new:       { color: "text-[var(--c-blue)]",  bg: "bg-[var(--c-blue)]/10" },
-  confirmed: { color: "text-[var(--c-amber)]", bg: "bg-[var(--c-amber)]/10" },
-  packed:    { color: "text-[var(--c-amber)]", bg: "bg-[var(--c-amber)]/10" },
-  shipped:   { color: "text-[var(--c-blue)]",  bg: "bg-[var(--c-blue)]/10" },
-  delivered: { color: "text-[var(--c-green)]", bg: "bg-[var(--c-green)]/10" },
+  new:       { color: "text-[var(--c-blue)]",  bg: "bg-[var(--c-blue-dim)]" },
+  confirmed: { color: "text-[var(--c-amber)]", bg: "bg-[var(--c-amber-dim)]" },
+  packed:    { color: "text-[var(--c-amber)]", bg: "bg-[var(--c-amber-dim)]" },
+  shipped:   { color: "text-[var(--c-blue)]",  bg: "bg-[var(--c-blue-dim)]" },
+  delivered: { color: "text-[var(--c-green)]", bg: "bg-[var(--c-green-dim)]" },
   cancelled: { color: "text-[var(--c-text3)]", bg: "bg-[var(--c-bg3)]" },
-  returned:  { color: "text-[var(--c-red)]",   bg: "bg-[var(--c-red)]/10" },
+  returned:  { color: "text-[var(--c-red)]",   bg: "bg-[var(--c-red-dim)]" },
 };
 
 const CHANNEL_CONFIG: Record<OrderChannel, { color: string; bg: string }> = {
   wildberries:   { color: "text-purple-400",        bg: "bg-purple-400/10" },
-  ozon:          { color: "text-[var(--c-blue)]",   bg: "bg-[var(--c-blue)]/10" },
+  ozon:          { color: "text-[var(--c-blue)]",   bg: "bg-[var(--c-blue-dim)]" },
   yandex_market: { color: "text-yellow-400",        bg: "bg-yellow-400/10" },
-  website:       { color: "text-[var(--c-green)]",  bg: "bg-[var(--c-green)]/10" },
-  pos:           { color: "text-[var(--c-amber)]",  bg: "bg-[var(--c-amber)]/10" },
+  website:       { color: "text-[var(--c-green)]",  bg: "bg-[var(--c-green-dim)]" },
+  pos:           { color: "text-[var(--c-amber)]",  bg: "bg-[var(--c-amber-dim)]" },
   telegram:      { color: "text-sky-400",           bg: "bg-sky-400/10" },
 };
 
@@ -273,12 +273,12 @@ export function OrdersPanel() {
   const confirmTarget = confirmFulfillId ? orders.find((o) => o.id === confirmFulfillId) ?? null : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toolbar — page title comes from InventoryShell header */}
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex items-center justify-end gap-2">
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-2 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition"
+          className="flex h-9 items-center gap-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
         >
           <Download size={15} />
           Экспорт
@@ -304,20 +304,20 @@ export function OrdersPanel() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-48 max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text3)]" />
           <input
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
             placeholder="Поиск по номеру, клиенту, региону..."
-            className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] pl-9 pr-3 py-2 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-blue)]"
+            className="h-9 w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] pl-9 pr-3 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text3)] focus:outline-none focus:border-[var(--c-blue)]"
           />
         </div>
         <select
           value={channelFilter}
           onChange={(e) => setChannelFilter(e.target.value as OrderChannel | "all")}
-          className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
+          className="h-9 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] focus:outline-none focus:border-[var(--c-blue)]"
         >
           <option value="all">Все каналы</option>
           {(["wildberries", "ozon", "yandex_market", "website", "pos", "telegram"] as OrderChannel[]).map((ch) => (
@@ -327,7 +327,7 @@ export function OrdersPanel() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as OrderStatus | "all")}
-          className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none"
+          className="h-9 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text)] focus:outline-none focus:border-[var(--c-blue)]"
         >
           <option value="all">Все статусы</option>
           {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((st) => (
@@ -337,7 +337,7 @@ export function OrdersPanel() {
         {filtersActive && (
           <button
             onClick={resetFilters}
-            className="flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-3 py-2 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)]"
+            className="flex h-9 items-center gap-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 text-sm text-[var(--c-text3)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
             <X size={13} /> Сбросить
           </button>
@@ -360,15 +360,15 @@ export function OrdersPanel() {
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-[var(--c-border)]">
-              <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Заказ</th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Статус</th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Клиент / Регион</th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Состав</th>
-              <th className="px-4 py-3 text-right font-medium text-[var(--c-text3)]">Выручка</th>
-              <th className="px-4 py-3 text-right font-medium text-[var(--c-text3)]">Прибыль</th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--c-text3)]">Создан</th>
-              <th className="px-4 py-3 text-right font-medium text-[var(--c-text3)]">Действие</th>
-              <th className="px-4 py-3 w-8" />
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text3)]">Заказ</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text3)]">Статус</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text3)]">Клиент / Регион</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text3)]">Состав</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-[var(--c-text3)]">Выручка</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-[var(--c-text3)]">Прибыль</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--c-text3)]">Создан</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-[var(--c-text3)]">Действие</th>
+              <th className="px-4 py-2.5 w-8" />
             </tr>
           </thead>
           <tbody>
@@ -381,7 +381,7 @@ export function OrdersPanel() {
                   onClick={() => setSelectedId(o.id)}
                   className={cn(
                     "border-b border-[var(--c-border)] last:border-0 cursor-pointer transition",
-                    selectedId === o.id ? "bg-[var(--c-blue)]/5" : "hover:bg-[var(--c-bg3)]",
+                    selectedId === o.id ? "bg-[var(--c-blue-dim)]" : "hover:bg-[var(--c-bg3)]",
                   )}
                 >
                   <td className="px-4 py-3">
@@ -410,7 +410,7 @@ export function OrdersPanel() {
                     {canFulfill ? (
                       <button
                         onClick={() => requestFulfill(o.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green)]/10 border border-[var(--c-green)]/20 px-2.5 py-1.5 text-xs font-medium text-[var(--c-green)] hover:bg-[var(--c-green)]/15 transition"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-green)]/20 bg-[var(--c-green-dim)] px-2.5 py-1.5 text-xs font-medium text-[var(--c-green)] transition hover:opacity-80"
                       >
                         <PackageCheck size={13} />
                         Отгрузить
@@ -450,7 +450,7 @@ export function OrdersPanel() {
         <div className="mt-3 flex justify-center">
           <button
             onClick={() => setVisibleCount((c) => c + 50)}
-            className="rounded-lg border border-[var(--c-border2)] px-4 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:text-[var(--c-text)]"
+            className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-4 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
             Показать ещё ({filtered.length - visibleCount})
           </button>
@@ -486,7 +486,7 @@ export function OrdersPanel() {
       {/* Fulfillment confirmation */}
       {confirmTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] shadow-2xl overflow-hidden">
+          <div className="w-full max-w-md rounded-xl border border-[var(--c-border)] bg-[var(--c-bg)] shadow-2xl overflow-hidden">
             <div className="flex items-center gap-3 border-b border-[var(--c-border)] px-6 py-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-amber)]/15">
                 <AlertTriangle size={18} className="text-[var(--c-amber)]" />
@@ -517,7 +517,7 @@ export function OrdersPanel() {
                 </button>
                 <button
                   onClick={confirmFulfill}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--c-green)] py-2.5 text-sm font-medium text-white hover:opacity-90 transition"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--c-green)] py-2.5 text-sm font-medium text-[var(--c-bg)] hover:opacity-90 transition"
                 >
                   <PackageCheck size={15} />
                   Списать и отгрузить
@@ -684,7 +684,7 @@ function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAd
             {canFulfill && (
               <button
                 onClick={onFulfill}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--c-green)] py-3 text-sm font-medium text-white hover:opacity-90 transition"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--c-green)] py-3 text-sm font-medium text-[var(--c-bg)] hover:opacity-90 transition"
               >
                 <PackageCheck size={16} />
                 Собрать и отгрузить
@@ -693,7 +693,7 @@ function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAd
             {nextStatus && order.status !== "packed" && order.status !== "shipped" && (
               <button
                 onClick={onAdvance}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--c-blue)]/30 bg-[var(--c-blue)]/10 py-2.5 text-sm font-medium text-[var(--c-blue)] hover:bg-[var(--c-blue)]/15 transition"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--c-blue)]/30 bg-[var(--c-blue-dim)] py-2.5 text-sm font-medium text-[var(--c-blue)] hover:opacity-80 transition"
               >
                 <ArrowRight size={15} />
                 Перевести в «{ORDER_STATUS_LABELS[nextStatus]}»
@@ -702,7 +702,7 @@ function OrderDrawer({ order, costFor, getLocationName, onClose, onFulfill, onAd
             {nextStatus && order.status === "shipped" && (
               <button
                 onClick={onAdvance}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--c-green)]/30 bg-[var(--c-green)]/10 py-2.5 text-sm font-medium text-[var(--c-green)] hover:bg-[var(--c-green)]/15 transition"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--c-green)]/30 bg-[var(--c-green-dim)] py-2.5 text-sm font-medium text-[var(--c-green)] hover:opacity-80 transition"
               >
                 <CheckCircle2 size={15} />
                 Отметить доставленным
