@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Check, PlusCircle, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
-import { sellerModuleTabs } from "@/lib/inventory/seller-profile";
+import { SEGMENTS, MODULE_BY_ID, GATED_MODULES, type BusinessSegment, type ModuleId } from "@/lib/modules/registry";
+import { resolveEnabledModules } from "@/lib/modules/resolve";
 
 const BUSINESS_TYPES = [
   { id: "ip", label: "ИП" },
@@ -42,6 +43,7 @@ export function OnboardingWizard({ onComplete }: Props) {
   const [company, setCompany] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [channels, setChannels] = useState<string[]>([]);
+  const [segment, setSegment] = useState<BusinessSegment | "">("");
 
   // Step 2 state
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
@@ -140,6 +142,30 @@ export function OnboardingWizard({ onComplete }: Props) {
 
             <div>
               <label className="mb-2 block text-xs font-medium text-[var(--c-text2)]">
+                Тип бизнеса <span className="text-[var(--c-text3)]">— определяет, какие разделы вы увидите</span>
+              </label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {SEGMENTS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setSegment(s.id === segment ? "" : s.id)}
+                    className={cn(
+                      "rounded-xl border p-3 text-left transition",
+                      segment === s.id ? "border-[var(--c-green)] ring-1 ring-[var(--c-green)]" : "border-[var(--c-border)] hover:bg-[var(--c-bg3)]",
+                    )}
+                  >
+                    <span className="flex items-center justify-between text-sm font-medium text-[var(--c-text)]">
+                      {s.label}
+                      {segment === s.id && <Check size={14} className="text-[var(--c-green)]" />}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--c-text3)]">{s.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-medium text-[var(--c-text2)]">
                 Форма бизнеса
               </label>
               <div className="flex flex-wrap gap-2">
@@ -197,7 +223,7 @@ export function OnboardingWizard({ onComplete }: Props) {
 
             <div className="flex justify-end pt-1">
               <button
-                onClick={() => { saveProfile({ company: company.trim(), businessType, channels }); setStep(2); }}
+                onClick={() => { saveProfile({ company: company.trim(), businessType, channels, segment: segment || undefined }); setStep(2); }}
                 disabled={!company.trim()}
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition",
@@ -344,14 +370,16 @@ export function OnboardingWizard({ onComplete }: Props) {
                 Ваши модули
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {sellerModuleTabs({ businessType, channels }).map((tab) => (
-                  <span
-                    key={tab}
-                    className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1 text-xs text-[var(--c-text2)]"
-                  >
-                    <Check size={11} className="text-[var(--c-green)]" /> {tab}
-                  </span>
-                ))}
+                {[...resolveEnabledModules({ segment: segment || null, channels })]
+                  .filter((id) => GATED_MODULES.some((m) => m.id === id))
+                  .map((id: ModuleId) => (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1 text-xs text-[var(--c-text2)]"
+                    >
+                      <Check size={11} className="text-[var(--c-green)]" /> {MODULE_BY_ID[id].label}
+                    </span>
+                  ))}
               </div>
             </div>
 

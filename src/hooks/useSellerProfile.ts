@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import type { BusinessSegment, ModuleId } from "@/lib/modules/registry";
 
 export interface SellerProfile {
   id: string;
@@ -10,6 +11,10 @@ export interface SellerProfile {
   businessType: string;
   channels: string[];
   onboardingComplete: boolean;
+  /** Primary segment chosen at onboarding (drives the default module set). */
+  segment?: BusinessSegment;
+  /** Explicit per-module on/off (add-ons / catalog), layered over the preset. */
+  moduleOverrides?: Partial<Record<ModuleId, boolean>>;
 }
 
 const DEFAULT_PROFILE: SellerProfile = {
@@ -20,6 +25,8 @@ const DEFAULT_PROFILE: SellerProfile = {
   businessType: "",
   channels: [],
   onboardingComplete: false,
+  segment: undefined,
+  moduleOverrides: {},
 };
 
 const STORAGE_KEY = "seller_profile";
@@ -64,6 +71,8 @@ export function useSellerProfile() {
               businessType: data.business_type ?? "",
               channels: data.channels ?? [],
               onboardingComplete: data.onboarding_complete ?? false,
+              segment: (data.segment as BusinessSegment | null) ?? undefined,
+              moduleOverrides: (data.module_overrides as SellerProfile["moduleOverrides"]) ?? {},
             });
           } else {
             // New user — create profile stub, check localStorage
@@ -114,6 +123,8 @@ export function useSellerProfile() {
             business_type: next.businessType,
             channels: next.channels,
             onboarding_complete: next.onboardingComplete,
+            segment: next.segment ?? null,
+            module_overrides: next.moduleOverrides ?? {},
             updated_at: new Date().toISOString(),
           });
         } catch {

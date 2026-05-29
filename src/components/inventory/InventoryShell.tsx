@@ -10,6 +10,8 @@ import { computeAlerts } from "@/lib/inventory/alerts";
 import { useDismissedAlerts } from "@/hooks/useDismissedAlerts";
 import { useSeenAlerts } from "@/hooks/useSeenAlerts";
 import { useTheme } from "@/components/ui/ThemeProvider";
+import { useEnabledModules } from "@/hooks/useEnabledModules";
+import { moduleForRoute, type ModuleId } from "@/lib/modules/registry";
 import {
   Package,
   BarChart3,
@@ -157,16 +159,42 @@ function isGroupActive(item: NavItem, pathname: string) {
   return item.children?.some((c) => isActive(pathname, c.href)) ?? false;
 }
 
+/** A nav href is visible when its owning module is enabled (or it owns no
+ *  gated module). `enabled === null` (loading / gating off) → show everything. */
+function navVisible(href: string, enabled: Set<ModuleId> | null) {
+  if (!enabled) return true;
+  const m = moduleForRoute(href);
+  return m === null || enabled.has(m);
+}
+
+/** Filter the NAV tree down to the seller's enabled modules, dropping empty
+ *  parents and sections. Nothing is removed from the app — just hidden here. */
+function filterNav(enabled: Set<ModuleId> | null): NavSection[] {
+  if (!enabled) return NAV;
+  return NAV
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((c) => navVisible(c.href, enabled)),
+        }))
+        .filter((item) => navVisible(item.href, enabled) || (item.children?.length ?? 0) > 0),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
 // ── NavList ───────────────────────────────────────────────────────────────────
 
-function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavList({ pathname, onNavigate, enabled }: { pathname: string; onNavigate?: () => void; enabled: Set<ModuleId> | null }) {
   // Manual expand/collapse override per parent href. undefined = follow active
   // state; true/false = user toggled. Clicking an expanded parent collapses it.
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const sections = filterNav(enabled);
 
   return (
     <nav className="py-3">
-      {NAV.map((section, si) => (
+      {sections.map((section, si) => (
         <div key={si}>
           {section.title && (
             <p className="mx-3 mb-0.5 mt-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--c-text3)]">
@@ -300,6 +328,7 @@ interface Props {
 
 export function InventoryShell({ children, title, subtitle, actions }: Props) {
   const pathname     = usePathname();
+  const { enabled }  = useEnabledModules();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const allItems = NAV.flatMap((s) => s.items.flatMap((i) => [i, ...(i.children ?? [])]));
@@ -323,7 +352,7 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
           </span>
         </Link>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <NavList pathname={pathname} />
+          <NavList pathname={pathname} enabled={enabled} />
         </div>
         <SidebarFooter pathname={pathname} />
       </aside>
@@ -347,7 +376,7 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <NavList pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
+              <NavList pathname={pathname} enabled={enabled} onNavigate={() => setDrawerOpen(false)} />
             </div>
             <SidebarFooter pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
           </aside>
@@ -395,7 +424,7 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
 
       {/* ── Mobile bottom tab bar ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-[var(--c-border)] bg-[var(--c-bg2)] lg:hidden">
-        {BOTTOM_TABS.map(({ icon: Icon, label, href }) => {
+        {BOTTOM_TABS.filter((t) => t.href === null || navVisible(t.href, enabled)).map(({ icon: Icon, label, href }) => {
           const active = href !== null && isActive(pathname, href);
           if (href === null) {
             return (

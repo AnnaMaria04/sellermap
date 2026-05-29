@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { InventoryShell } from "@/components/inventory/InventoryShell";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
+import { useEnabledModules } from "@/hooks/useEnabledModules";
+import { moduleForRoute } from "@/lib/modules/registry";
 import {
   Users2,
   MonitorSmartphone,
@@ -15,6 +17,7 @@ import {
   Plug,
   Settings,
   Search,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -46,12 +49,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Система",
     items: [
+      { label: "Модули",      href: "/inventory/settings/modules", icon: SlidersHorizontal },
       { label: "Уведомления", href: "/inventory/notifications", icon: Bell },
     ],
   },
 ];
 
-const ALL_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 function isActive(pathname: string, href: string, exact?: boolean) {
   if (exact) return pathname === href;
@@ -62,7 +65,13 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 
 function SettingsNav({ pathname }: { pathname: string }) {
   const { profile } = useSellerProfile();
+  const { enabled } = useEnabledModules();
   const [search, setSearch] = useState("");
+  const itemVisible = (href: string) => {
+    if (!enabled) return true;
+    const m = moduleForRoute(href);
+    return m === null || enabled.has(m);
+  };
 
   // Clear search whenever the active settings page changes
   useEffect(() => { setSearch(""); }, [pathname]);
@@ -76,9 +85,13 @@ function SettingsNav({ pathname }: { pathname: string }) {
   const subtitle = profile.businessType || "SellerMap";
 
   const q = search.trim().toLowerCase();
+  // Hide settings tabs whose owning module is disabled (POS, Локации, Интеграции).
+  const groups: NavGroup[] = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((i) => itemVisible(i.href)) }))
+    .filter((g) => g.items.length > 0);
   const filtered: NavGroup[] = q
-    ? [{ items: ALL_ITEMS.filter((i) => i.label.toLowerCase().includes(q)) }]
-    : NAV_GROUPS;
+    ? [{ items: groups.flatMap((g) => g.items).filter((i) => i.label.toLowerCase().includes(q)) }]
+    : groups;
 
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
