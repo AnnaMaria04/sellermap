@@ -84,8 +84,12 @@ export default function NewCustomerPage() {
                   <Input value={phone} onChange={setPhone} className="flex-1" />
                 </div>
               </Field>
-              <label className="mt-1 flex items-center gap-2 text-sm text-[var(--c-text)]"><input type="checkbox" checked={emailOptIn} onChange={(e) => setEmailOptIn(e.target.checked)} className="h-4 w-4 rounded border-[var(--c-border2)]" /> Клиент согласен получать email-рассылку</label>
-              <label className="flex items-center gap-2 text-sm text-[var(--c-text)]"><input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)} className="h-4 w-4 rounded border-[var(--c-border2)]" /> Клиент согласен получать SMS-рассылку</label>
+              <label className={cn("mt-1 flex items-center gap-2 text-sm", email.trim() ? "text-[var(--c-text)]" : "cursor-not-allowed text-[var(--c-text3)]")}>
+                <input type="checkbox" disabled={!email.trim()} checked={emailOptIn && !!email.trim()} onChange={(e) => setEmailOptIn(e.target.checked)} className="h-4 w-4 rounded border-[var(--c-border2)] disabled:cursor-not-allowed disabled:opacity-50" /> Клиент согласен получать email-рассылку
+              </label>
+              <label className={cn("flex items-center gap-2 text-sm", phone.trim() ? "text-[var(--c-text)]" : "cursor-not-allowed text-[var(--c-text3)]")}>
+                <input type="checkbox" disabled={!phone.trim()} checked={smsOptIn && !!phone.trim()} onChange={(e) => setSmsOptIn(e.target.checked)} className="h-4 w-4 rounded border-[var(--c-border2)] disabled:cursor-not-allowed disabled:opacity-50" /> Клиент согласен получать SMS-рассылку
+              </label>
               <p className="mt-1 text-xs text-[var(--c-text3)]">Получите согласие клиента, прежде чем отправлять маркетинговые сообщения.</p>
             </Card>
 
