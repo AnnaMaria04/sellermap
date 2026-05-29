@@ -425,7 +425,7 @@ export function InventoryShell({ children, title, subtitle, actions }: Props) {
           <div className="border-b border-[var(--c-border)] bg-[var(--c-bg2)]">
             <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between gap-4 px-6 py-5 lg:px-8">
               <div className="min-w-0">
-                {title    && <h1 className="truncate text-xl font-semibold tracking-tight text-[var(--c-text)]">{title}</h1>}
+                {title    && <h1 className="truncate text-lg font-semibold text-[var(--c-text)]">{title}</h1>}
                 {subtitle && <p className="mt-1 text-sm text-[var(--c-text2)]">{subtitle}</p>}
               </div>
               {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
