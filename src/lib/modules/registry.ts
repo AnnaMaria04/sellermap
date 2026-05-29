@@ -62,7 +62,7 @@ export const MODULES: ModuleDef[] = [
   { id: "analytics", label: "Аналитика", description: "Отчёты и метрики продаж", core: true,
     defaultFor: [], routes: ["/inventory/analytics"] },
   { id: "finance", label: "Финансы и налоги", description: "P&L, налоги, КУДиР", core: true,
-    defaultFor: [], routes: ["/inventory/finance", "/inventory/tax", "/inventory/reports", "/inventory/sync-health"] },
+    defaultFor: [], routes: ["/inventory/finance", "/inventory/tax", "/inventory/reports"] },
   { id: "settings", label: "Настройки", description: "Настройки магазина", core: true,
     defaultFor: [], routes: ["/inventory/settings"] },
 
@@ -70,7 +70,7 @@ export const MODULES: ModuleDef[] = [
   { id: "pos", label: "Касса (POS)", description: "Офлайн-продажи, смены, чеки",
     defaultFor: ["small_retail", "ecommerce"], routes: ["/inventory/settings/pos", "/pos"], suggestedByChannels: ["pos"] },
   { id: "marketplaces", label: "Маркетплейсы", description: "Wildberries, Ozon, Я.Маркет, отзывы",
-    defaultFor: ["marketplace"], routes: ["/inventory/integrations", "/inventory/settings/integrations", "/inventory/feedbacks"],
+    defaultFor: ["marketplace"], routes: ["/inventory/integrations", "/inventory/settings/integrations", "/inventory/feedbacks", "/inventory/sync-health"],
     suggestedByChannels: ["wildberries", "ozon", "yandex_market"] },
   { id: "warehousing", label: "Склады и логистика", description: "Несколько складов, перемещения, инвентаризация",
     defaultFor: ["producer", "enterprise"], routes: ["/inventory/locations", "/inventory/transfers", "/inventory/stocktake", "/inventory/suppliers", "/inventory/reservations"] },
