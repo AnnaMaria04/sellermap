@@ -57,7 +57,7 @@ function StatStrip({ stats }: {
     neutral: "bg-[var(--c-border2)]",
   };
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
+    <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
       {/* 2 columns on phones, 4 across on ≥sm. The 1px gap over a border-coloured
           background draws clean separators in both layouts (divide-* would
           misplace borders once the row wraps). */}
@@ -101,7 +101,7 @@ function Block({
   className?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]", className)}>
       <div className="flex items-start justify-between border-b border-[var(--c-border)] px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export function InventoryOverview() {
     <div className="space-y-4">
 
       {/* ── Today hero — "сколько я заработал сегодня" ─────────────────────── */}
-      <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
+      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-5">
         <p className="text-xs font-medium uppercase tracking-wider text-[var(--c-text3)]">Заработано сегодня</p>
         <p className={cn(
           "mt-1 text-2xl font-bold tabular sm:text-3xl",
@@ -262,7 +262,7 @@ export function InventoryOverview() {
           <Link
             key={a.label}
             href={a.href}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]"
           >
             <a.icon size={14} className="shrink-0" />
             {a.label}
@@ -322,7 +322,7 @@ export function InventoryOverview() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
         {/* Area chart — 2/3 width */}
-        <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] lg:col-span-2">
+        <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] lg:col-span-2">
           <div className="border-b border-[var(--c-border)] px-5 py-4">
             <p className="text-sm font-semibold text-[var(--c-text)]">Выручка за {chartDays} дней</p>
             <p className="mt-0.5 text-xs text-[var(--c-text3)]">{monthLabel} · реализованные заказы</p>
@@ -354,7 +354,7 @@ export function InventoryOverview() {
                 <Tooltip
                   content={({ active, payload, label }) =>
                     active && payload?.[0] ? (
-                      <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-xs shadow-lg">
+                      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] px-3 py-2 text-xs shadow-lg">
                         <p className="mb-1 text-[var(--c-text2)]">
                           {new Date(label as string).toLocaleString("ru-RU", { day: "numeric", month: "long" })}
                         </p>
@@ -379,7 +379,7 @@ export function InventoryOverview() {
         </div>
 
         {/* P&L breakdown — 1/3 width */}
-        <div className="overflow-hidden rounded-lg border border-[var(--c-border)] bg-[var(--c-bg2)]">
+        <div className="overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)]">
           <div className="border-b border-[var(--c-border)] px-5 py-4">
             <p className="text-sm font-semibold text-[var(--c-text)]">Разбивка прибыли</p>
             <p className="mt-0.5 text-xs text-[var(--c-text3)]">За текущий месяц</p>
