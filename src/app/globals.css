@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+:root {
+  /* Light theme is the default — a calm, spacious Shopify-admin palette: a soft
+   * gray canvas, white cards, hairline borders and restrained accent colors.
+   * Dark is opt-in via [data-theme="dark"] below. */
+  --c-bg: #f6f7f9;
+  --c-bg2: #ffffff;
+  --c-bg3: #eef0f3;
+  --c-border: rgba(0,0,0,0.08);
+  --c-border2: rgba(0,0,0,0.14);
+  --c-text: #1a1c1d;
+  --c-text2: #5a6270;
+  --c-text3: #8a909c;
+  --c-green: #1a8754;
+  --c-green-dim: rgba(26,135,84,0.10);
+  --c-amber: #b26a00;
+  --c-amber-dim: rgba(178,106,0,0.10);
+  --c-red: #c9342f;
+  --c-red-dim: rgba(201,52,47,0.10);
+  --c-blue: #2c6ecb;
+  --c-blue-dim: rgba(44,110,203,0.10);
+  --c-header: rgba(255,255,255,0.92);
+  --background: var(--c-bg);
+  --foreground: var(--c-text);
+  --charcoal: var(--c-text);
+  --off-white: var(--c-bg);
+  --light-gray: var(--c-border);
+  --primary-green: var(--c-green);
+  --dark-green: var(--c-green);
+  --mint: var(--c-green);
+  --soft-green: var(--c-green-dim);
+  --warning: var(--c-amber);
+  --risk: var(--c-red);
+  /* One clean sans across the app (provided by next/font as --font-body). */
+  --font-geologica: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-unbounded: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Dark theme — opt-in. Softer slate base with lifted contrast so cards,
+ * borders and muted text stay readable. */
+[data-theme="dark"] {
+  --c-bg: #12161b;
+  --c-bg2: #1a1f25;
+  --c-bg3: #242a32;
+  --c-border: rgba(255,255,255,0.10);
+  --c-border2: rgba(255,255,255,0.18);
+  --c-text: #ecedef;
+  --c-text2: #b3b7bd;
+  --c-text3: #7b8088;
+  --c-green: #1fd183;
+  --c-green-dim: rgba(31,209,131,0.10);
+  --c-amber: #f5a623;
+  --c-amber-dim: rgba(245,166,35,0.10);
+  --c-red: #f05050;
+  --c-red-dim: rgba(240,80,80,0.10);
+  --c-blue: #4d9fff;
+  --c-blue-dim: rgba(77,159,255,0.10);
+  --c-header: rgba(12,14,15,0.92);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-charcoal: var(--charcoal);
+  --color-off-white: var(--off-white);
+  --color-light-gray: var(--light-gray);
+  --color-primary-green: var(--primary-green);
+  --color-dark-green: var(--dark-green);
+  --color-mint: var(--mint);
+  --color-soft-green: var(--soft-green);
+  --color-warning: var(--warning);
+  --color-risk: var(--risk);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Global UI density — scales all rem-based sizing (text, spacing, control
+ * heights) down ~6% for a compact, Shopify-like feel. Mobile inputs stay 16px
+ * via the rule below so iOS doesn't auto-zoom. */
+html {
+  font-size: 15px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--c-green);
+  color: var(--c-bg);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 122, 79, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 122, 79, 0.14) 1px, transparent 1px);
+  background-size: 50% 50%;
+}
+
+.soft-shadow {
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+}
+
+.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-body {
+  font-family: var(--font-body), var(--font-geologica);
+}
+
+.section-kicker {
+  border-top: 1px solid var(--c-border);
+  color: var(--c-text3);
+  font-family: var(--font-display), var(--font-unbounded);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding-top: 18px;
+  text-transform: uppercase;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Inventory table hover */
+.inv-table-row:hover {
+  background: var(--c-bg3);
+}
+
+/* Smooth transitions */
+.inv-panel-enter {
+  animation: slideInRight 0.2s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Stock status indicators */
+.stock-dot-green { background: var(--c-green); }
+.stock-dot-amber { background: var(--c-amber); }
+.stock-dot-red   { background: var(--c-red); }
+.stock-dot-blue  { background: var(--c-blue); }
+
+/* Inventory progress bars */
+.inv-progress {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--c-bg3);
+  overflow: hidden;
+}
+
+.inv-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Drag zone */
+.drag-zone {
+  border: 2px dashed var(--c-border2);
+  border-radius: 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.drag-zone:hover,
+.drag-zone.active {
+  border-color: var(--c-green);
+  background: var(--c-green-dim);
+}
+
+/* Mobile optimization — prevent horizontal overflow everywhere */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure all inputs are at least 16px to prevent iOS auto-zoom */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Safe area padding for devices with home indicator */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Touch action for smoother scrolling */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* TipTap (rich-text editor) content — keeps headings/lists/quotes legible. */
+.tiptap { line-height: 1.5; }
+.tiptap:focus { outline: none; }
+.tiptap > * + * { margin-top: 0.5rem; }
+.tiptap h1 { font-size: 1.25rem; font-weight: 700; }
+.tiptap h2 { font-size: 1.05rem; font-weight: 700; }
+.tiptap h3 { font-size: 0.95rem; font-weight: 600; }
+.tiptap ul, .tiptap ol { padding-left: 1.25rem; }
+.tiptap ul { list-style: disc; }
+.tiptap ol { list-style: decimal; }
+.tiptap blockquote {
+  border-left: 3px solid var(--c-border2);
+  padding-left: 0.75rem;
+  color: var(--c-text2);
+}
+.tiptap code {
+  background: var(--c-bg2);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 0.9em;
+}
+.tiptap p:empty::before { content: ""; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Interaction polish — applied globally for a consistent "alive" feel.
+   Uses existing tokens only; no new colors. Respects reduced-motion.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* The cursor announces intent: pointers on anything clickable. */
+button:not(:disabled),
+a[href],
+summary,
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+.cursor-clickable {
+  cursor: pointer;
+}
+
+/* Disabled affordance. */
+button:disabled,
+[aria-disabled="true"],
+.is-disabled {
+  cursor: not-allowed;
+}
+
+/* Text caret on editable fields. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([disabled]),
+textarea:not([disabled]),
+[contenteditable="true"] {
+  cursor: text;
+}
+
+/* One consistent, fast transition for interactive state changes. */
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+input,
+select,
+textarea {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+/* Physical press feedback. */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98);
+}
+
+/* Visible keyboard focus ring for everyone (mouse users unaffected). */
+:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Content entrance — subtle fade/slide used by panels and cards. */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fadeInUp 200ms ease-out both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 160ms ease-out both; }
+
+/* Skeleton shimmer for loading states. */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.skeleton {
+  background: var(--c-bg3);
+  border-radius: 8px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+/* Honor users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active,
+  [role="button"]:active { transform: none; }
+}

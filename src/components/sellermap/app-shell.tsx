@@ -1,0 +1,121 @@
+"use client";
+
+import Link from "next/link";
+import { Map, Menu, Search, X } from "lucide-react";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { LinkButton } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const nav = [
+  ["Анализ WB", "/check"],
+  ["Склад", "/inventory"],
+  ["Каталог", "/catalog"],
+  ["Финансы", "/finance"],
+  ["Обновления", "/updates"],
+];
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isPOS       = pathname.startsWith("/pos");
+  const isInventory = pathname.startsWith("/inventory");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // POS and Inventory manage their own full-screen shells with a built-in logo.
+  if (isPOS || isInventory) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b border-[var(--c-border)] bg-[var(--c-header)] backdrop-blur-xl">
+        <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2 font-display text-sm font-semibold">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--c-green-dim)] text-[var(--c-green)]">
+              <Map size={20} />
+            </span>
+            <span>
+              Seller<span className="text-[var(--c-green)]">Map</span>
+            </span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 md:flex">
+            {nav.map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium text-[var(--c-text2)] transition hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)]",
+                  (pathname === href || (href !== "/" && pathname.startsWith(href))) && "bg-[var(--c-bg3)] text-[var(--c-text)]",
+                )}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Desktop action buttons */}
+          <div className="hidden items-center gap-2 md:flex">
+            <LinkButton href="/check" className="h-10 px-4">
+              <Search size={16} />
+              Анализ
+            </LinkButton>
+          </div>
+
+          {/* Mobile: hamburger */}
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--c-border2)] text-[var(--c-text2)]"
+              aria-label="Открыть меню"
+            >
+              <Menu size={18} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile nav drawer */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+          />
+          {/* Drawer panel */}
+          <div className="absolute right-0 top-0 h-full w-72 bg-[var(--c-bg2)] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-4">
+              <span className="text-sm font-semibold text-[var(--c-text)]">Меню</span>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--c-text2)] hover:bg-[var(--c-bg3)]"
+                aria-label="Закрыть меню"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="px-2 py-3 space-y-1">
+              {nav.map(([label, href]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    "flex items-center rounded-lg px-4 py-3 text-sm font-medium text-[var(--c-text2)] hover:bg-[var(--c-bg3)] hover:text-[var(--c-text)] transition",
+                    (pathname === href || (href !== "/" && pathname.startsWith(href))) && "bg-[var(--c-bg3)] text-[var(--c-text)]",
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {children}
+    </div>
+  );
+}
