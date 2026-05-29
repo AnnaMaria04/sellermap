@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, PlusCircle, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSellerProfile } from "@/hooks/useSellerProfile";
+import { sellerModuleTabs } from "@/lib/inventory/seller-profile";
 
 const BUSINESS_TYPES = [
   { id: "ip", label: "ИП" },
@@ -334,6 +335,24 @@ export function OnboardingWizard({ onComplete }: Props) {
               <p className="mt-0.5 text-sm text-[var(--c-text3)]">
                 Необязательно — можно сделать позже
               </p>
+            </div>
+
+            {/* Modules enabled for this seller, derived from the onboarding
+                profile via buildSellerModuleTabs (foundation contract). */}
+            <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg3)] p-4">
+              <p className="text-xs font-medium uppercase text-[var(--c-text3)]">
+                Ваши модули
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {sellerModuleTabs({ businessType, channels }).map((tab) => (
+                  <span
+                    key={tab}
+                    className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border2)] bg-[var(--c-bg2)] px-2.5 py-1 text-xs text-[var(--c-text2)]"
+                  >
+                    <Check size={11} className="text-[var(--c-green)]" /> {tab}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

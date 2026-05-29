@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_history: {
+        Row: {
+          alert_id: string
+          category: string | null
+          created_at: string
+          event: string
+          id: string
+          org_id: string | null
+          product_id: string | null
+          severity: string | null
+          title: string | null
+        }
+        Insert: {
+          alert_id: string
+          category?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          org_id?: string | null
+          product_id?: string | null
+          severity?: string | null
+          title?: string | null
+        }
+        Update: {
+          alert_id?: string
+          category?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          org_id?: string | null
+          product_id?: string | null
+          severity?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_competitors: {
         Row: {
           created_at: string | null
