@@ -32,6 +32,10 @@ import {
   ShoppingCart,
   Calculator,
   Activity,
+  Tag,
+  Megaphone,
+  Gift,
+  Boxes,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -48,49 +52,77 @@ type NavItem = {
 
 type NavSection = { title?: string; items: NavItem[] };
 
+// Primary nav follows the Shopify admin structure (parent + children).
 const NAV: NavSection[] = [
   {
     items: [
-      { label: "Обзор",          href: "/inventory",          icon: Home },
-      { label: "Заказы",         href: "/inventory/orders",   icon: ShoppingBag },
+      { label: "Home", href: "/inventory", icon: Home },
       {
-        label: "Товары",         href: "/inventory/products", icon: Package,
-        children: [{ label: "Комплекты", href: "/inventory/bundles" }],
+        label: "Orders", href: "/inventory/orders", icon: ShoppingBag,
+        children: [
+          { label: "Drafts", href: "/inventory/orders/drafts" },
+          { label: "Shipping labels", href: "/inventory/orders/shipping-labels" },
+          { label: "Abandoned checkouts", href: "/inventory/orders/abandoned" },
+        ],
       },
       {
-        label: "Клиенты",        href: "/inventory/customers", icon: Users,
+        label: "Products", href: "/inventory/products", icon: Package,
         children: [
-          { label: "Акции и промо", href: "/inventory/promotions" },
-          { label: "Отзывы",        href: "/inventory/feedbacks" },
+          { label: "Collections", href: "/inventory/products/collections" },
+          { label: "Inventory", href: "/inventory/inventory" },
+          { label: "Purchase orders", href: "/inventory/purchase-orders" },
+          { label: "Transfers", href: "/inventory/transfers" },
+          { label: "Gift cards", href: "/inventory/products/gift-cards" },
+        ],
+      },
+      {
+        label: "Customers", href: "/inventory/customers", icon: Users,
+        children: [
+          { label: "Segments", href: "/inventory/customers/segments" },
+          { label: "Companies", href: "/inventory/customers/companies" },
+        ],
+      },
+      {
+        label: "Marketing", href: "/inventory/marketing", icon: Megaphone,
+        children: [
+          { label: "Campaigns", href: "/inventory/marketing/campaigns" },
+          { label: "Attribution", href: "/inventory/marketing/attribution" },
+        ],
+      },
+      { label: "Discounts", href: "/inventory/promotions", icon: Tag },
+      {
+        label: "Analytics", href: "/inventory/analytics", icon: BarChart3,
+        children: [
+          { label: "Reports", href: "/inventory/analytics/reports" },
+          { label: "Live View", href: "/inventory/analytics/live" },
         ],
       },
     ],
   },
+  // Existing modules that aren't part of the Shopify menu — left unchanged.
   {
     title: "Операции",
     items: [
       {
-        label: "Закупки",     href: "/inventory/purchase-orders", icon: Truck,
-        children: [{ label: "Поставщики", href: "/inventory/suppliers" }],
-      },
-      {
-        label: "Склады",      href: "/inventory/locations",       icon: Building2,
+        label: "Склады", href: "/inventory/locations", icon: Building2,
         children: [
-          { label: "Перемещения",    href: "/inventory/transfers" },
+          { label: "Перемещения", href: "/inventory/transfers" },
           { label: "Инвентаризация", href: "/inventory/stocktake" },
+          { label: "Поставщики", href: "/inventory/suppliers" },
         ],
       },
-      { label: "Возвраты",    href: "/inventory/returns",         icon: RotateCcw },
-      { label: "История",     href: "/inventory/history",         icon: History },
+      { label: "Комплекты", href: "/inventory/bundles", icon: Boxes },
+      { label: "Возвраты", href: "/inventory/returns", icon: RotateCcw },
+      { label: "Отзывы", href: "/inventory/feedbacks", icon: Gift },
+      { label: "История", href: "/inventory/history", icon: History },
     ],
   },
   {
     title: "Финансы",
     items: [
-      { label: "Финансы",   href: "/inventory/finance",    icon: Wallet },
-      { label: "Налоги",    href: "/inventory/tax",        icon: Calculator },
-      { label: "Аналитика", href: "/inventory/analytics",  icon: BarChart3 },
-      { label: "Отчёты",    href: "/inventory/reports",    icon: FileText },
+      { label: "Финансы", href: "/inventory/finance", icon: Wallet },
+      { label: "Налоги", href: "/inventory/tax", icon: Calculator },
+      { label: "Отчёты", href: "/inventory/reports", icon: FileText },
       { label: "Синхронизация", href: "/inventory/sync-health", icon: Activity },
     ],
   },
