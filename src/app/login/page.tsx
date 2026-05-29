@@ -1,22 +1,33 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Package, AlertCircle } from "lucide-react";
+import { Loader2, Package, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/inventory";
+  // Only allow same-origin relative paths as the post-login target (no
+  // open-redirect to "//evil.com" or absolute URLs).
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/inventory";
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // A full-page navigation (not router.push) so the request carries the freshly
+  // set auth cookie and the middleware authenticates on the first try. A soft
+  // client navigation could reuse an RSC payload rendered while logged-out and
+  // bounce back to /login — the "click login ~10 times" bug.
+  function go(to: string) {
+    window.location.assign(to);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,19 +38,16 @@ function LoginForm() {
     if (!supabase) { setError("Supabase не настроен"); setBusy(false); return; }
 
     if (mode === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) setError(error.message);
-      else router.push(next);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); setBusy(false); return; }
+      go(next); // keep the spinner — the page is about to unload
     } else {
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
-      else if (data.session) router.push(next);
-      else setInfo("Проверьте почту — мы отправили ссылку для подтверждения.");
+      if (error) { setError(error.message); setBusy(false); return; }
+      if (data.session) { go(next); return; }
+      setInfo("Проверьте почту — мы отправили ссылку для подтверждения.");
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   function fillTest() {
@@ -54,7 +62,7 @@ function LoginForm() {
       // No Supabase configured (e.g. local dev) — fall back to the demo bypass
       // cookie so the app is still explorable without a backend.
       document.cookie = `sm_dev_bypass=1; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-      router.push(next);
+      go(next);
       return;
     }
     // Real session: sign in as the shared developer account so RLS-scoped data
@@ -65,9 +73,8 @@ function LoginForm() {
       email: "test@sellermap.com",
       password: "Test1234!",
     });
-    setBusy(false);
-    if (error) { setError(error.message); return; }
-    router.push(next);
+    if (error) { setError(error.message); setBusy(false); return; }
+    go(next);
   }
 
   return (
@@ -78,7 +85,7 @@ function LoginForm() {
           <span className="text-lg font-semibold text-[var(--c-text)]">SellerMap</span>
         </div>
 
-        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-6">
+        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg2)] p-6">
           <h1 className="text-lg font-semibold text-[var(--c-text)]">
             {mode === "signin" ? "Вход" : "Регистрация"}
           </h1>
@@ -100,15 +107,25 @@ function LoginForm() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--c-text2)]">Пароль</label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--c-border2)] bg-[var(--c-bg3)] px-3 py-2 pr-10 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-green)]"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-[var(--c-text3)] transition hover:text-[var(--c-text)]"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {mode === "signin" && (
