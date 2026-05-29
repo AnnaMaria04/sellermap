@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Check, MessageCircleQuestion, Store, Package, Smartphone, Building2, Receipt } from "lucide-react";
+import { Pencil, Check, MessageCircleQuestion, Store, Package, Smartphone, Building2, Receipt, BookOpen, ArrowRight } from "lucide-react";
 import { useSetupStatus } from "./useSetupStatus";
 import { SetupCard } from "./SetupCard";
 import { ChecklistRail } from "./ChecklistRail";
@@ -108,14 +108,48 @@ export function GettingStarted() {
           </div>
         </div>
 
-        {/* 5 ── HELP ROW (built next) ─────────────────────────────────────── */}
-        <div className="order-4 col-span-12">
-          <Placeholder label="5 · Помощь: WB · СБП · 54-ФЗ" />
+        {/* 5 ── HELP ROW + done divider ───────────────────────────────────── */}
+        <div className="order-4 col-span-12 space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {HELP_LINKS.map((h) => (
+              <a
+                key={h.title}
+                href={h.href}
+                className="group flex items-center justify-between gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-bg)] p-4 transition hover:shadow-[0_1px_12px_rgba(0,0,0,0.06)]"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--c-bg3)] text-[var(--c-text2)]">
+                    <BookOpen className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm font-medium text-[var(--c-text)]">{h.title}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-[var(--c-text3)] transition group-hover:translate-x-0.5 group-hover:text-[var(--c-text)]" />
+              </a>
+            ))}
+          </div>
+
+          {!loading && doneCount === total && (
+            <div className="flex items-center justify-center gap-3 rounded-2xl border border-[var(--c-green)] bg-[var(--c-green-dim)] p-5 text-center animate-fade-in-up">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-green)] text-white">
+                <Check className="h-5 w-5" />
+              </span>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-[var(--c-text)]">Всё готово</p>
+                <p className="text-sm text-[var(--c-text2)]">Настройка завершена — можно начинать продавать.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+const HELP_LINKS = [
+  { title: "Как подключить WB", href: "#" },
+  { title: "Настройка СБП", href: "#" },
+  { title: "54-ФЗ за 5 минут", href: "#" },
+];
 
 function ChannelLogos() {
   const channels = ["WB", "Ozon", "Я.Маркет"];
