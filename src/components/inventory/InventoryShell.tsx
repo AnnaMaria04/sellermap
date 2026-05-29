@@ -36,7 +36,7 @@ import {
   Megaphone,
   Gift,
   Boxes,
-  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
@@ -58,6 +58,7 @@ const NAV: NavSection[] = [
   {
     items: [
       { label: "Главная", href: "/inventory", icon: Home },
+      { label: "С чего начать", href: "/inventory/getting-started", icon: Sparkles },
       {
         label: "Заказы", href: "/inventory/orders", icon: ShoppingBag,
         children: [
@@ -199,13 +200,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                   )}
                 >
                   <item.icon size={16} className="shrink-0" />
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {hasKids && (
-                    <ChevronDown
-                      size={14}
-                      className={cn("shrink-0 text-[var(--c-text3)] transition-transform", showKids && "rotate-180")}
-                    />
-                  )}
+                  <span className="truncate">{item.label}</span>
                 </Link>
 
                 {/* Children — visible when expanded */}

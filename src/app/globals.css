@@ -247,3 +247,104 @@ html, body {
   font-size: 0.9em;
 }
 .tiptap p:empty::before { content: ""; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Interaction polish — applied globally for a consistent "alive" feel.
+   Uses existing tokens only; no new colors. Respects reduced-motion.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* The cursor announces intent: pointers on anything clickable. */
+button:not(:disabled),
+a[href],
+summary,
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+.cursor-clickable {
+  cursor: pointer;
+}
+
+/* Disabled affordance. */
+button:disabled,
+[aria-disabled="true"],
+.is-disabled {
+  cursor: not-allowed;
+}
+
+/* Text caret on editable fields. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([disabled]),
+textarea:not([disabled]),
+[contenteditable="true"] {
+  cursor: text;
+}
+
+/* One consistent, fast transition for interactive state changes. */
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+input,
+select,
+textarea {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+/* Physical press feedback. */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98);
+}
+
+/* Visible keyboard focus ring for everyone (mouse users unaffected). */
+:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Content entrance — subtle fade/slide used by panels and cards. */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fadeInUp 200ms ease-out both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 160ms ease-out both; }
+
+/* Skeleton shimmer for loading states. */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.skeleton {
+  background: var(--c-bg3);
+  border-radius: 8px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+/* Honor users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active,
+  [role="button"]:active { transform: none; }
+}
